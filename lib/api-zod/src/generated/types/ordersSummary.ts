@@ -6,8 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface PreordersSummary {
+export interface OrdersSummary {
   totalOrders: number;
-  totalCopies: number;
-  latestOrderAt?: string;
+  pendingOrders: number;
+  revenueCents: number;
+  currency: string;
 }

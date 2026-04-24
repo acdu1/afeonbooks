@@ -6,11 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface Preorder {
+export interface OrderItem {
   id: number;
-  name: string;
-  email: string;
+  productId: number;
+  productName: string;
   quantity: number;
-  message?: string;
-  createdAt: string;
+  unitPriceCents: number;
 }

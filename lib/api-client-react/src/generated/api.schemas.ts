@@ -43,27 +43,92 @@ export interface UpdateSiteContent {
   accentColor: string;
 }
 
-export interface Preorder {
+export interface Product {
   id: number;
   name: string;
-  email: string;
-  quantity: number;
-  message?: string;
+  description: string;
+  priceCents: number;
+  currency: string;
+  imageUrl: string;
+  stock: number;
+  active: boolean;
   createdAt: string;
 }
 
-export interface CreatePreorder {
+export interface CreateProduct {
   /** @minLength 1 */
   name: string;
-  /** @minLength 3 */
-  email: string;
-  /** @minimum 1 */
-  quantity: number;
-  message?: string;
+  description: string;
+  /** @minimum 0 */
+  priceCents: number;
+  /**
+   * @minLength 3
+   * @maxLength 3
+   */
+  currency: string;
+  imageUrl: string;
+  /** @minimum 0 */
+  stock: number;
+  active: boolean;
 }
 
-export interface PreordersSummary {
+export interface OrderItem {
+  id: number;
+  productId: number;
+  productName: string;
+  quantity: number;
+  unitPriceCents: number;
+}
+
+export interface Order {
+  id: number;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  shippingAddress: string;
+  city: string;
+  postalCode: string;
+  country: string;
+  notes?: string;
+  paymentMethod: string;
+  status: string;
+  subtotalCents: number;
+  shippingCents: number;
+  totalCents: number;
+  currency: string;
+  createdAt: string;
+  items: OrderItem[];
+}
+
+export interface CreateOrderItem {
+  productId: number;
+  /** @minimum 1 */
+  quantity: number;
+}
+
+export interface CreateOrder {
+  /** @minLength 1 */
+  customerName: string;
+  /** @minLength 3 */
+  customerEmail: string;
+  /** @minLength 3 */
+  customerPhone: string;
+  /** @minLength 1 */
+  shippingAddress: string;
+  /** @minLength 1 */
+  city: string;
+  /** @minLength 1 */
+  postalCode: string;
+  /** @minLength 1 */
+  country: string;
+  notes?: string;
+  /** @minItems 1 */
+  items: CreateOrderItem[];
+}
+
+export interface OrdersSummary {
   totalOrders: number;
-  totalCopies: number;
-  latestOrderAt?: string;
+  pendingOrders: number;
+  revenueCents: number;
+  currency: string;
 }

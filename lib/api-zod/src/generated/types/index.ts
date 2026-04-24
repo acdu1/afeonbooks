@@ -6,9 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export * from "./createPreorder";
+export * from "./createOrder";
+export * from "./createOrderItem";
+export * from "./createProduct";
 export * from "./healthStatus";
-export * from "./preorder";
-export * from "./preordersSummary";
+export * from "./order";
+export * from "./orderItem";
+export * from "./ordersSummary";
+export * from "./product";
 export * from "./siteContent";
 export * from "./updateSiteContent";

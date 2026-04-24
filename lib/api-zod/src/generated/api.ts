@@ -7,16 +7,10 @@
  */
 import * as zod from "zod";
 
-/**
- * @summary Health check
- */
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
 
-/**
- * @summary Get site content
- */
 export const GetContentResponse = zod.object({
   id: zod.number(),
   brandName: zod.string(),
@@ -35,9 +29,6 @@ export const GetContentResponse = zod.object({
   updatedAt: zod.string(),
 });
 
-/**
- * @summary Update site content
- */
 export const UpdateContentBody = zod.object({
   brandName: zod.string(),
   navHomeLabel: zod.string(),
@@ -72,37 +63,182 @@ export const UpdateContentResponse = zod.object({
   updatedAt: zod.string(),
 });
 
-/**
- * @summary List preorder submissions
- */
-export const ListPreordersResponseItem = zod.object({
+export const ListProductsResponseItem = zod.object({
   id: zod.number(),
   name: zod.string(),
-  email: zod.string(),
-  quantity: zod.number(),
-  message: zod.string().optional(),
+  description: zod.string(),
+  priceCents: zod.number(),
+  currency: zod.string(),
+  imageUrl: zod.string(),
+  stock: zod.number(),
+  active: zod.boolean(),
   createdAt: zod.string(),
 });
-export const ListPreordersResponse = zod.array(ListPreordersResponseItem);
+export const ListProductsResponse = zod.array(ListProductsResponseItem);
 
-/**
- * @summary Submit a preorder
- */
+export const createProductBodyPriceCentsMin = 0;
 
-export const createPreorderBodyEmailMin = 3;
+export const createProductBodyCurrencyMin = 3;
+export const createProductBodyCurrencyMax = 3;
 
-export const CreatePreorderBody = zod.object({
+export const createProductBodyStockMin = 0;
+
+export const CreateProductBody = zod.object({
   name: zod.string().min(1),
-  email: zod.string().min(createPreorderBodyEmailMin),
-  quantity: zod.number().min(1),
-  message: zod.string().optional(),
+  description: zod.string(),
+  priceCents: zod.number().min(createProductBodyPriceCentsMin),
+  currency: zod
+    .string()
+    .min(createProductBodyCurrencyMin)
+    .max(createProductBodyCurrencyMax),
+  imageUrl: zod.string(),
+  stock: zod.number().min(createProductBodyStockMin),
+  active: zod.boolean(),
 });
 
-/**
- * @summary Aggregate preorder stats
- */
-export const GetPreordersSummaryResponse = zod.object({
+export const GetProductParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetProductResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  description: zod.string(),
+  priceCents: zod.number(),
+  currency: zod.string(),
+  imageUrl: zod.string(),
+  stock: zod.number(),
+  active: zod.boolean(),
+  createdAt: zod.string(),
+});
+
+export const UpdateProductParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const updateProductBodyPriceCentsMin = 0;
+
+export const updateProductBodyCurrencyMin = 3;
+export const updateProductBodyCurrencyMax = 3;
+
+export const updateProductBodyStockMin = 0;
+
+export const UpdateProductBody = zod.object({
+  name: zod.string().min(1),
+  description: zod.string(),
+  priceCents: zod.number().min(updateProductBodyPriceCentsMin),
+  currency: zod
+    .string()
+    .min(updateProductBodyCurrencyMin)
+    .max(updateProductBodyCurrencyMax),
+  imageUrl: zod.string(),
+  stock: zod.number().min(updateProductBodyStockMin),
+  active: zod.boolean(),
+});
+
+export const UpdateProductResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  description: zod.string(),
+  priceCents: zod.number(),
+  currency: zod.string(),
+  imageUrl: zod.string(),
+  stock: zod.number(),
+  active: zod.boolean(),
+  createdAt: zod.string(),
+});
+
+export const DeleteProductParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListOrdersResponseItem = zod.object({
+  id: zod.number(),
+  customerName: zod.string(),
+  customerEmail: zod.string(),
+  customerPhone: zod.string(),
+  shippingAddress: zod.string(),
+  city: zod.string(),
+  postalCode: zod.string(),
+  country: zod.string(),
+  notes: zod.string().optional(),
+  paymentMethod: zod.string(),
+  status: zod.string(),
+  subtotalCents: zod.number(),
+  shippingCents: zod.number(),
+  totalCents: zod.number(),
+  currency: zod.string(),
+  createdAt: zod.string(),
+  items: zod.array(
+    zod.object({
+      id: zod.number(),
+      productId: zod.number(),
+      productName: zod.string(),
+      quantity: zod.number(),
+      unitPriceCents: zod.number(),
+    }),
+  ),
+});
+export const ListOrdersResponse = zod.array(ListOrdersResponseItem);
+
+export const createOrderBodyCustomerEmailMin = 3;
+
+export const createOrderBodyCustomerPhoneMin = 3;
+
+export const CreateOrderBody = zod.object({
+  customerName: zod.string().min(1),
+  customerEmail: zod.string().min(createOrderBodyCustomerEmailMin),
+  customerPhone: zod.string().min(createOrderBodyCustomerPhoneMin),
+  shippingAddress: zod.string().min(1),
+  city: zod.string().min(1),
+  postalCode: zod.string().min(1),
+  country: zod.string().min(1),
+  notes: zod.string().optional(),
+  items: zod
+    .array(
+      zod.object({
+        productId: zod.number(),
+        quantity: zod.number().min(1),
+      }),
+    )
+    .min(1),
+});
+
+export const GetOrderParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetOrderResponse = zod.object({
+  id: zod.number(),
+  customerName: zod.string(),
+  customerEmail: zod.string(),
+  customerPhone: zod.string(),
+  shippingAddress: zod.string(),
+  city: zod.string(),
+  postalCode: zod.string(),
+  country: zod.string(),
+  notes: zod.string().optional(),
+  paymentMethod: zod.string(),
+  status: zod.string(),
+  subtotalCents: zod.number(),
+  shippingCents: zod.number(),
+  totalCents: zod.number(),
+  currency: zod.string(),
+  createdAt: zod.string(),
+  items: zod.array(
+    zod.object({
+      id: zod.number(),
+      productId: zod.number(),
+      productName: zod.string(),
+      quantity: zod.number(),
+      unitPriceCents: zod.number(),
+    }),
+  ),
+});
+
+export const GetOrdersSummaryResponse = zod.object({
   totalOrders: zod.number(),
-  totalCopies: zod.number(),
-  latestOrderAt: zod.string().optional(),
+  pendingOrders: zod.number(),
+  revenueCents: zod.number(),
+  currency: zod.string(),
 });

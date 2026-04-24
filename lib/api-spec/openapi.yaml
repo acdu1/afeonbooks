@@ -8,20 +8,17 @@ servers:
     description: Base API path
 tags:
   - name: health
-    description: Health operations
   - name: content
-    description: Editable site content
-  - name: preorders
-    description: Book preorder submissions
+  - name: products
+  - name: orders
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
-      summary: Health check
       responses:
         "200":
-          description: Healthy
+          description: OK
           content:
             application/json:
               schema:
@@ -30,212 +27,273 @@ paths:
     get:
       operationId: getContent
       tags: [content]
-      summary: Get site content
       responses:
         "200":
-          description: Current site content
+          description: OK
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/SiteContent"
+              schema: { $ref: "#/components/schemas/SiteContent" }
     put:
       operationId: updateContent
       tags: [content]
-      summary: Update site content
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateSiteContent"
+            schema: { $ref: "#/components/schemas/UpdateSiteContent" }
       responses:
         "200":
-          description: Updated site content
+          description: OK
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/SiteContent"
-  /preorders:
+              schema: { $ref: "#/components/schemas/SiteContent" }
+  /products:
     get:
-      operationId: listPreorders
-      tags: [preorders]
-      summary: List preorder submissions
+      operationId: listProducts
+      tags: [products]
       responses:
         "200":
-          description: All preorders
+          description: OK
           content:
             application/json:
               schema:
                 type: array
-                items:
-                  $ref: "#/components/schemas/Preorder"
+                items: { $ref: "#/components/schemas/Product" }
     post:
-      operationId: createPreorder
-      tags: [preorders]
-      summary: Submit a preorder
+      operationId: createProduct
+      tags: [products]
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: "#/components/schemas/CreatePreorder"
+            schema: { $ref: "#/components/schemas/CreateProduct" }
       responses:
         "201":
-          description: Created preorder
+          description: Created
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/Preorder"
-  /preorders/summary:
+              schema: { $ref: "#/components/schemas/Product" }
+  /products/{id}:
     get:
-      operationId: getPreordersSummary
-      tags: [preorders]
-      summary: Aggregate preorder stats
+      operationId: getProduct
+      tags: [products]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
       responses:
         "200":
-          description: Summary
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Product" }
+    put:
+      operationId: updateProduct
+      tags: [products]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateProduct" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Product" }
+    delete:
+      operationId: deleteProduct
+      tags: [products]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+  /orders:
+    get:
+      operationId: listOrders
+      tags: [orders]
+      responses:
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PreordersSummary"
+                type: array
+                items: { $ref: "#/components/schemas/Order" }
+    post:
+      operationId: createOrder
+      tags: [orders]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateOrder" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+  /orders/{id}:
+    get:
+      operationId: getOrder
+      tags: [orders]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+  /orders/summary:
+    get:
+      operationId: getOrdersSummary
+      tags: [orders]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrdersSummary" }
 components:
   schemas:
     HealthStatus:
       type: object
-      properties:
-        status:
-          type: string
+      properties: { status: { type: string } }
       required: [status]
     SiteContent:
       type: object
       properties:
-        id:
-          type: integer
-        brandName:
-          type: string
-        navHomeLabel:
-          type: string
-        heroTitle:
-          type: string
-        heroSubtitle:
-          type: string
-        ctaLabel:
-          type: string
-        ctaUrl:
-          type: string
-        coverImageUrl:
-          type: string
-        aboutHeading:
-          type: string
-        aboutBody:
-          type: string
-        authorsLine:
-          type: string
-        illustratorLine:
-          type: string
-        footerNote:
-          type: string
-        accentColor:
-          type: string
-        updatedAt:
-          type: string
-      required:
-        - id
-        - brandName
-        - navHomeLabel
-        - heroTitle
-        - heroSubtitle
-        - ctaLabel
-        - ctaUrl
-        - coverImageUrl
-        - aboutHeading
-        - aboutBody
-        - authorsLine
-        - illustratorLine
-        - footerNote
-        - accentColor
-        - updatedAt
+        id: { type: integer }
+        brandName: { type: string }
+        navHomeLabel: { type: string }
+        heroTitle: { type: string }
+        heroSubtitle: { type: string }
+        ctaLabel: { type: string }
+        ctaUrl: { type: string }
+        coverImageUrl: { type: string }
+        aboutHeading: { type: string }
+        aboutBody: { type: string }
+        authorsLine: { type: string }
+        illustratorLine: { type: string }
+        footerNote: { type: string }
+        accentColor: { type: string }
+        updatedAt: { type: string }
+      required: [id, brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, updatedAt]
     UpdateSiteContent:
       type: object
       properties:
-        brandName:
-          type: string
-        navHomeLabel:
-          type: string
-        heroTitle:
-          type: string
-        heroSubtitle:
-          type: string
-        ctaLabel:
-          type: string
-        ctaUrl:
-          type: string
-        coverImageUrl:
-          type: string
-        aboutHeading:
-          type: string
-        aboutBody:
-          type: string
-        authorsLine:
-          type: string
-        illustratorLine:
-          type: string
-        footerNote:
-          type: string
-        accentColor:
-          type: string
-      required:
-        - brandName
-        - navHomeLabel
-        - heroTitle
-        - heroSubtitle
-        - ctaLabel
-        - ctaUrl
-        - coverImageUrl
-        - aboutHeading
-        - aboutBody
-        - authorsLine
-        - illustratorLine
-        - footerNote
-        - accentColor
-    Preorder:
+        brandName: { type: string }
+        navHomeLabel: { type: string }
+        heroTitle: { type: string }
+        heroSubtitle: { type: string }
+        ctaLabel: { type: string }
+        ctaUrl: { type: string }
+        coverImageUrl: { type: string }
+        aboutHeading: { type: string }
+        aboutBody: { type: string }
+        authorsLine: { type: string }
+        illustratorLine: { type: string }
+        footerNote: { type: string }
+        accentColor: { type: string }
+      required: [brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor]
+    Product:
       type: object
       properties:
-        id:
-          type: integer
-        name:
-          type: string
-        email:
-          type: string
-        quantity:
-          type: integer
-        message:
-          type: string
-        createdAt:
-          type: string
-      required: [id, name, email, quantity, createdAt]
-    CreatePreorder:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: string }
+        priceCents: { type: integer }
+        currency: { type: string }
+        imageUrl: { type: string }
+        stock: { type: integer }
+        active: { type: boolean }
+        createdAt: { type: string }
+      required: [id, name, description, priceCents, currency, imageUrl, stock, active, createdAt]
+    CreateProduct:
       type: object
       properties:
-        name:
-          type: string
-          minLength: 1
-        email:
-          type: string
-          minLength: 3
-        quantity:
-          type: integer
-          minimum: 1
-        message:
-          type: string
-      required: [name, email, quantity]
-    PreordersSummary:
+        name: { type: string, minLength: 1 }
+        description: { type: string }
+        priceCents: { type: integer, minimum: 0 }
+        currency: { type: string, minLength: 3, maxLength: 3 }
+        imageUrl: { type: string }
+        stock: { type: integer, minimum: 0 }
+        active: { type: boolean }
+      required: [name, description, priceCents, currency, imageUrl, stock, active]
+    OrderItem:
       type: object
       properties:
-        totalOrders:
-          type: integer
-        totalCopies:
-          type: integer
-        latestOrderAt:
-          type: string
-      required: [totalOrders, totalCopies]
+        id: { type: integer }
+        productId: { type: integer }
+        productName: { type: string }
+        quantity: { type: integer }
+        unitPriceCents: { type: integer }
+      required: [id, productId, productName, quantity, unitPriceCents]
+    Order:
+      type: object
+      properties:
+        id: { type: integer }
+        customerName: { type: string }
+        customerEmail: { type: string }
+        customerPhone: { type: string }
+        shippingAddress: { type: string }
+        city: { type: string }
+        postalCode: { type: string }
+        country: { type: string }
+        notes: { type: string }
+        paymentMethod: { type: string }
+        status: { type: string }
+        subtotalCents: { type: integer }
+        shippingCents: { type: integer }
+        totalCents: { type: integer }
+        currency: { type: string }
+        createdAt: { type: string }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/OrderItem" }
+      required: [id, customerName, customerEmail, customerPhone, shippingAddress, city, postalCode, country, paymentMethod, status, subtotalCents, shippingCents, totalCents, currency, createdAt, items]
+    CreateOrderItem:
+      type: object
+      properties:
+        productId: { type: integer }
+        quantity: { type: integer, minimum: 1 }
+      required: [productId, quantity]
+    CreateOrder:
+      type: object
+      properties:
+        customerName: { type: string, minLength: 1 }
+        customerEmail: { type: string, minLength: 3 }
+        customerPhone: { type: string, minLength: 3 }
+        shippingAddress: { type: string, minLength: 1 }
+        city: { type: string, minLength: 1 }
+        postalCode: { type: string, minLength: 1 }
+        country: { type: string, minLength: 1 }
+        notes: { type: string }
+        items:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/CreateOrderItem" }
+      required: [customerName, customerEmail, customerPhone, shippingAddress, city, postalCode, country, items]
+    OrdersSummary:
+      type: object
+      properties:
+        totalOrders: { type: integer }
+        pendingOrders: { type: integer }
+        revenueCents: { type: integer }
+        currency: { type: string }
+      required: [totalOrders, pendingOrders, revenueCents, currency]

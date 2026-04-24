@@ -6,12 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CreatePreorder {
-  /** @minLength 1 */
-  name: string;
-  /** @minLength 3 */
-  email: string;
+export interface CreateOrderItem {
+  productId: number;
   /** @minimum 1 */
   quantity: number;
-  message?: string;
 }

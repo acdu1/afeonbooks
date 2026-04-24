@@ -28,4 +28,4 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 
 ## Artifacts
 
-- `site` — Editable book promo landing page clone. Homepage at `/`, content editor at `/editor`. Backend stores site content (singleton row) and preorder submissions in PostgreSQL.
+- `site` — Editable children's book e-commerce store ("Totec Books"). Storefront at `/` with Shop (`/shop`), product detail (`/product/:id`), Cart (`/cart`, client-side localStorage), Checkout (`/checkout`, cash-on-delivery only), Order confirmation (`/order/:id`). Admin at `/editor` with three tabs: Site Content (singleton row), Products (CRUD), Recent Orders. Backend tables: `site_content`, `products`, `orders`, `order_items`. Order creation is a transaction that decrements stock and hardcodes `payment_method = cash_on_delivery`.

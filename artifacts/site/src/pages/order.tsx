@@ -1,0 +1,121 @@
+import { Link, useParams } from "wouter";
+import { useGetContent, useGetOrder } from "@workspace/api-client-react";
+import { Button } from "@/components/ui/button";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
+import { formatPrice } from "@/lib/format";
+import { CheckCircle2 } from "lucide-react";
+
+export default function Order() {
+  const { id } = useParams();
+  const orderId = parseInt(id || "0", 10);
+  
+  const { data: content } = useGetContent();
+  const { data: order, isLoading, isError } = useGetOrder(orderId);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#FAF7F2]">
+        <div className="animate-pulse flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-full border-4 border-black border-t-transparent animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || !order) {
+    return (
+      <div className="min-h-screen w-full flex flex-col bg-[#FAF7F2]">
+        <SiteHeader simple />
+        <main className="flex-1 flex flex-col items-center justify-center px-6 py-20 text-center">
+          <h1 className="text-3xl font-bold mb-4">Order Not Found</h1>
+          <p className="text-black/60 mb-8">We couldn't find the order you're looking for.</p>
+          <Button asChild className="rounded-full bg-black text-white px-8">
+            <Link href="/">Back Home</Link>
+          </Button>
+        </main>
+        <SiteFooter />
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      className="min-h-screen w-full flex flex-col font-sans bg-[#FAF7F2]"
+      style={{ "--theme-accent": content?.accentColor || "#000" } as React.CSSProperties}
+    >
+      <SiteHeader simple />
+
+      <main className="flex-1 w-full px-6 py-12 md:py-24">
+        <div className="max-w-[800px] mx-auto bg-white p-8 md:p-16 border border-black/5 shadow-sm">
+          
+          <div className="text-center mb-16">
+            <div className="w-20 h-20 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto mb-8">
+              <CheckCircle2 className="w-10 h-10" />
+            </div>
+            <h1 className="text-4xl font-bold tracking-tight mb-4">Thank you for your order!</h1>
+            <p className="text-lg text-black/60 font-medium">Order #{order.id} has been placed successfully.</p>
+            <div className="mt-8 inline-block bg-[#FAF7F2] border border-black/10 px-6 py-3 rounded-full text-sm font-bold tracking-widest uppercase">
+              Status: <span className="text-[var(--theme-accent)] ml-2">{order.status}</span>
+            </div>
+          </div>
+
+          <div className="bg-[#FAF7F2]/50 border border-black/10 p-6 md:p-8 mb-12 text-center">
+            <h2 className="text-xl font-bold mb-2">Cash on Delivery</h2>
+            <p className="text-black/70 font-medium">Please have {formatPrice(order.totalCents, order.currency)} ready in cash when your order arrives.</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-12 mb-12">
+            <div>
+              <h3 className="text-xs uppercase tracking-widest text-black/50 font-bold mb-4">Customer Info</h3>
+              <div className="font-medium space-y-1">
+                <p>{order.customerName}</p>
+                <p>{order.customerEmail}</p>
+                <p>{order.customerPhone}</p>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-xs uppercase tracking-widest text-black/50 font-bold mb-4">Shipping Address</h3>
+              <div className="font-medium space-y-1">
+                <p>{order.shippingAddress}</p>
+                <p>{order.city}, {order.postalCode}</p>
+                <p>{order.country}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-black/10 pt-8 mb-12">
+            <h3 className="text-xs uppercase tracking-widest text-black/50 font-bold mb-6">Order Items</h3>
+            <div className="space-y-4">
+              {order.items.map((item) => (
+                <div key={item.id} className="flex justify-between items-center font-medium border-b border-black/5 pb-4 last:border-0 last:pb-0">
+                  <div className="flex items-center gap-4">
+                    <span className="bg-[#FAF7F2] text-black text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
+                      {item.quantity}
+                    </span>
+                    <span>{item.productName}</span>
+                  </div>
+                  <span>{formatPrice(item.unitPriceCents * item.quantity)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="border-t border-black/10 pt-8 flex justify-between items-end">
+            <span className="text-sm uppercase tracking-widest text-black/50 font-bold">Total</span>
+            <span className="text-3xl font-bold">{formatPrice(order.totalCents, order.currency)}</span>
+          </div>
+
+          <div className="mt-16 text-center">
+            <Button asChild className="h-14 px-12 rounded-full bg-black text-white hover:bg-[var(--theme-accent)] transition-colors uppercase tracking-widest font-bold text-xs">
+              <Link href="/shop">Continue Shopping</Link>
+            </Button>
+          </div>
+
+        </div>
+      </main>
+
+      <SiteFooter />
+    </div>
+  );
+}
