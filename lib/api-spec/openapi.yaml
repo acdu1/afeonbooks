@@ -1,6 +1,5 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
   description: API specification
@@ -10,13 +9,16 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: content
+    description: Editable site content
+  - name: preorders
+    description: Book preorder submissions
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +26,78 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /content:
+    get:
+      operationId: getContent
+      tags: [content]
+      summary: Get site content
+      responses:
+        "200":
+          description: Current site content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteContent"
+    put:
+      operationId: updateContent
+      tags: [content]
+      summary: Update site content
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSiteContent"
+      responses:
+        "200":
+          description: Updated site content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteContent"
+  /preorders:
+    get:
+      operationId: listPreorders
+      tags: [preorders]
+      summary: List preorder submissions
+      responses:
+        "200":
+          description: All preorders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Preorder"
+    post:
+      operationId: createPreorder
+      tags: [preorders]
+      summary: Submit a preorder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePreorder"
+      responses:
+        "201":
+          description: Created preorder
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Preorder"
+  /preorders/summary:
+    get:
+      operationId: getPreordersSummary
+      tags: [preorders]
+      summary: Aggregate preorder stats
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreordersSummary"
 components:
   schemas:
     HealthStatus:
@@ -31,6 +105,137 @@ components:
       properties:
         status:
           type: string
+      required: [status]
+    SiteContent:
+      type: object
+      properties:
+        id:
+          type: integer
+        brandName:
+          type: string
+        navHomeLabel:
+          type: string
+        heroTitle:
+          type: string
+        heroSubtitle:
+          type: string
+        ctaLabel:
+          type: string
+        ctaUrl:
+          type: string
+        coverImageUrl:
+          type: string
+        aboutHeading:
+          type: string
+        aboutBody:
+          type: string
+        authorsLine:
+          type: string
+        illustratorLine:
+          type: string
+        footerNote:
+          type: string
+        accentColor:
+          type: string
+        updatedAt:
+          type: string
       required:
-        - status
-
+        - id
+        - brandName
+        - navHomeLabel
+        - heroTitle
+        - heroSubtitle
+        - ctaLabel
+        - ctaUrl
+        - coverImageUrl
+        - aboutHeading
+        - aboutBody
+        - authorsLine
+        - illustratorLine
+        - footerNote
+        - accentColor
+        - updatedAt
+    UpdateSiteContent:
+      type: object
+      properties:
+        brandName:
+          type: string
+        navHomeLabel:
+          type: string
+        heroTitle:
+          type: string
+        heroSubtitle:
+          type: string
+        ctaLabel:
+          type: string
+        ctaUrl:
+          type: string
+        coverImageUrl:
+          type: string
+        aboutHeading:
+          type: string
+        aboutBody:
+          type: string
+        authorsLine:
+          type: string
+        illustratorLine:
+          type: string
+        footerNote:
+          type: string
+        accentColor:
+          type: string
+      required:
+        - brandName
+        - navHomeLabel
+        - heroTitle
+        - heroSubtitle
+        - ctaLabel
+        - ctaUrl
+        - coverImageUrl
+        - aboutHeading
+        - aboutBody
+        - authorsLine
+        - illustratorLine
+        - footerNote
+        - accentColor
+    Preorder:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        quantity:
+          type: integer
+        message:
+          type: string
+        createdAt:
+          type: string
+      required: [id, name, email, quantity, createdAt]
+    CreatePreorder:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          minLength: 3
+        quantity:
+          type: integer
+          minimum: 1
+        message:
+          type: string
+      required: [name, email, quantity]
+    PreordersSummary:
+      type: object
+      properties:
+        totalOrders:
+          type: integer
+        totalCopies:
+          type: integer
+        latestOrderAt:
+          type: string
+      required: [totalOrders, totalCopies]

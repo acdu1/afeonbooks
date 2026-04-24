@@ -8,3 +8,62 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface SiteContent {
+  id: number;
+  brandName: string;
+  navHomeLabel: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  ctaLabel: string;
+  ctaUrl: string;
+  coverImageUrl: string;
+  aboutHeading: string;
+  aboutBody: string;
+  authorsLine: string;
+  illustratorLine: string;
+  footerNote: string;
+  accentColor: string;
+  updatedAt: string;
+}
+
+export interface UpdateSiteContent {
+  brandName: string;
+  navHomeLabel: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  ctaLabel: string;
+  ctaUrl: string;
+  coverImageUrl: string;
+  aboutHeading: string;
+  aboutBody: string;
+  authorsLine: string;
+  illustratorLine: string;
+  footerNote: string;
+  accentColor: string;
+}
+
+export interface Preorder {
+  id: number;
+  name: string;
+  email: string;
+  quantity: number;
+  message?: string;
+  createdAt: string;
+}
+
+export interface CreatePreorder {
+  /** @minLength 1 */
+  name: string;
+  /** @minLength 3 */
+  email: string;
+  /** @minimum 1 */
+  quantity: number;
+  message?: string;
+}
+
+export interface PreordersSummary {
+  totalOrders: number;
+  totalCopies: number;
+  latestOrderAt?: string;
+}

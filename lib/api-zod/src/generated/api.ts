@@ -8,9 +8,101 @@
 import * as zod from "zod";
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
+});
+
+/**
+ * @summary Get site content
+ */
+export const GetContentResponse = zod.object({
+  id: zod.number(),
+  brandName: zod.string(),
+  navHomeLabel: zod.string(),
+  heroTitle: zod.string(),
+  heroSubtitle: zod.string(),
+  ctaLabel: zod.string(),
+  ctaUrl: zod.string(),
+  coverImageUrl: zod.string(),
+  aboutHeading: zod.string(),
+  aboutBody: zod.string(),
+  authorsLine: zod.string(),
+  illustratorLine: zod.string(),
+  footerNote: zod.string(),
+  accentColor: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Update site content
+ */
+export const UpdateContentBody = zod.object({
+  brandName: zod.string(),
+  navHomeLabel: zod.string(),
+  heroTitle: zod.string(),
+  heroSubtitle: zod.string(),
+  ctaLabel: zod.string(),
+  ctaUrl: zod.string(),
+  coverImageUrl: zod.string(),
+  aboutHeading: zod.string(),
+  aboutBody: zod.string(),
+  authorsLine: zod.string(),
+  illustratorLine: zod.string(),
+  footerNote: zod.string(),
+  accentColor: zod.string(),
+});
+
+export const UpdateContentResponse = zod.object({
+  id: zod.number(),
+  brandName: zod.string(),
+  navHomeLabel: zod.string(),
+  heroTitle: zod.string(),
+  heroSubtitle: zod.string(),
+  ctaLabel: zod.string(),
+  ctaUrl: zod.string(),
+  coverImageUrl: zod.string(),
+  aboutHeading: zod.string(),
+  aboutBody: zod.string(),
+  authorsLine: zod.string(),
+  illustratorLine: zod.string(),
+  footerNote: zod.string(),
+  accentColor: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary List preorder submissions
+ */
+export const ListPreordersResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  quantity: zod.number(),
+  message: zod.string().optional(),
+  createdAt: zod.string(),
+});
+export const ListPreordersResponse = zod.array(ListPreordersResponseItem);
+
+/**
+ * @summary Submit a preorder
+ */
+
+export const createPreorderBodyEmailMin = 3;
+
+export const CreatePreorderBody = zod.object({
+  name: zod.string().min(1),
+  email: zod.string().min(createPreorderBodyEmailMin),
+  quantity: zod.number().min(1),
+  message: zod.string().optional(),
+});
+
+/**
+ * @summary Aggregate preorder stats
+ */
+export const GetPreordersSummaryResponse = zod.object({
+  totalOrders: zod.number(),
+  totalCopies: zod.number(),
+  latestOrderAt: zod.string().optional(),
 });
