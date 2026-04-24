@@ -1,0 +1,250 @@
+import { logger } from "./logger";
+import type { OrderRow, OrderItemRow, SiteContentRow } from "@workspace/db";
+
+const RESEND_API = "https://api.resend.com/emails";
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function formatPrice(cents: number, currency: string = "USD"): string {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
+}
+
+export interface TemplateVars {
+  customerName: string;
+  customerEmail: string;
+  orderId: string;
+  total: string;
+  paymentMethod: string;
+  shippingAddress: string;
+  classroom: string;
+  brandName: string;
+  orderUrl: string;
+}
+
+export function applyVars(template: string, vars: TemplateVars): string {
+  const map = vars as unknown as Record<string, string>;
+  return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key: string) => {
+    const v = map[key];
+    return v === undefined ? `{{${key}}}` : v;
+  });
+}
+
+export interface RenderEmailInput {
+  content: SiteContentRow;
+  order: OrderRow;
+  items: OrderItemRow[];
+  orderUrl: string;
+}
+
+export function buildVars({ content, order, orderUrl }: { content: SiteContentRow; order: OrderRow; orderUrl: string }): TemplateVars {
+  const useDefault = order.useDefaultAddress === "true";
+  const shippingLines: string[] = [];
+  if (useDefault && order.classroom) shippingLines.push(`Classroom ${order.classroom}`);
+  shippingLines.push(order.shippingAddress);
+  shippingLines.push(`${order.city}, ${order.postalCode}`);
+  shippingLines.push(order.country);
+  return {
+    customerName: order.customerName,
+    customerEmail: order.customerEmail,
+    orderId: String(order.id),
+    total: formatPrice(order.totalCents, order.currency),
+    paymentMethod: order.paymentMethod === "cash_on_delivery" ? "Cash on Delivery" : order.paymentMethod,
+    shippingAddress: shippingLines.filter(Boolean).join(", "),
+    classroom: order.classroom ?? "",
+    brandName: content.brandName,
+    orderUrl,
+  };
+}
+
+export function renderEmailHtml(input: RenderEmailInput): string {
+  const { content, order, items, orderUrl } = input;
+  const vars = buildVars({ content, order, orderUrl });
+  const accent = content.emailAccentColor || content.accentColor || "#E2553B";
+  const heading = applyVars(content.emailHeading, vars);
+  const intro = applyVars(content.emailIntro, vars);
+  const footer = applyVars(content.emailFooter, vars);
+  const buttonLabel = applyVars(content.emailButtonLabel, vars);
+
+  const useDefault = order.useDefaultAddress === "true";
+  const shippingHtml = [
+    useDefault && order.classroom ? `<strong>Classroom ${escapeHtml(order.classroom)}</strong>` : "",
+    escapeHtml(order.shippingAddress),
+    `${escapeHtml(order.city)}, ${escapeHtml(order.postalCode)}`,
+    escapeHtml(order.country),
+  ]
+    .filter(Boolean)
+    .join("<br>");
+
+  const itemsRows = items
+    .map(
+      (it) => `
+      <tr>
+        <td style="padding:12px 0;border-bottom:1px solid #eee;font-size:14px;">
+          <strong>${escapeHtml(it.productName)}</strong><br>
+          <span style="color:#666;font-size:12px;">Qty ${it.quantity} × ${formatPrice(it.unitPriceCents, order.currency)}</span>
+        </td>
+        <td style="padding:12px 0;border-bottom:1px solid #eee;font-size:14px;text-align:right;font-weight:bold;">
+          ${formatPrice(it.unitPriceCents * it.quantity, order.currency)}
+        </td>
+      </tr>`,
+    )
+    .join("");
+
+  const introHtml = escapeHtml(intro).replace(/\n/g, "<br>");
+  const footerHtml = escapeHtml(footer).replace(/\n/g, "<br>");
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escapeHtml(applyVars(content.emailSubject, vars))}</title>
+</head>
+<body style="margin:0;padding:0;background:#FAF7F2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#111;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FAF7F2;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border:1px solid #eee;">
+          <tr>
+            <td style="padding:32px 32px 8px 32px;">
+              <div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#888;font-weight:bold;">${escapeHtml(content.brandName)}</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 32px 0 32px;">
+              <h1 style="margin:0;font-size:28px;line-height:1.2;font-weight:800;letter-spacing:-0.5px;">${escapeHtml(heading)}</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 32px 0 32px;font-size:15px;line-height:1.6;color:#333;">
+              ${introHtml}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 32px 0 32px;">
+              <a href="${escapeHtml(orderUrl)}" style="display:inline-block;background:${escapeHtml(accent)};color:#fff;text-decoration:none;padding:14px 28px;font-weight:bold;font-size:13px;letter-spacing:2px;text-transform:uppercase;">
+                ${escapeHtml(buttonLabel)}
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px 32px 0 32px;">
+              <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#888;font-weight:bold;margin-bottom:12px;">Order Summary</div>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #eee;">
+                ${itemsRows}
+                <tr>
+                  <td style="padding:16px 0 0 0;font-size:14px;color:#666;">Subtotal</td>
+                  <td style="padding:16px 0 0 0;font-size:14px;text-align:right;">${formatPrice(order.subtotalCents, order.currency)}</td>
+                </tr>
+                <tr>
+                  <td style="padding:6px 0;font-size:14px;color:#666;">Shipping</td>
+                  <td style="padding:6px 0;font-size:14px;text-align:right;">${order.shippingCents === 0 ? "Free" : formatPrice(order.shippingCents, order.currency)}</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 0 0 0;font-size:16px;font-weight:bold;border-top:1px solid #eee;">Total</td>
+                  <td style="padding:12px 0 0 0;font-size:16px;text-align:right;font-weight:bold;border-top:1px solid #eee;">${formatPrice(order.totalCents, order.currency)}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 32px 0 32px;">
+              <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#888;font-weight:bold;margin-bottom:12px;">Shipping To</div>
+              <div style="font-size:14px;line-height:1.6;color:#333;">${shippingHtml}</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 32px 0 32px;">
+              <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#888;font-weight:bold;margin-bottom:12px;">Payment</div>
+              <div style="font-size:14px;color:#333;">${escapeHtml(vars.paymentMethod)}</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;font-size:13px;line-height:1.6;color:#666;border-top:1px solid #eee;margin-top:24px;">
+              ${footerHtml}
+            </td>
+          </tr>
+        </table>
+        <div style="max-width:600px;margin-top:16px;font-size:11px;color:#999;text-align:center;">
+          ${escapeHtml(content.footerNote)}
+        </div>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+export interface SendEmailArgs {
+  from: string;
+  to: string | string[];
+  replyTo?: string;
+  subject: string;
+  html: string;
+}
+
+export async function sendEmail(args: SendEmailArgs): Promise<{ id: string }> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error("RESEND_API_KEY is not configured");
+  }
+  const body: Record<string, unknown> = {
+    from: args.from,
+    to: args.to,
+    subject: args.subject,
+    html: args.html,
+  };
+  if (args.replyTo) body.reply_to = args.replyTo;
+
+  const res = await fetch(RESEND_API, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  const json = (await res.json().catch(() => ({}))) as { id?: string; message?: string; name?: string };
+  if (!res.ok) {
+    const msg = json.message || json.name || `Resend HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  return { id: json.id ?? "" };
+}
+
+export async function sendOrderConfirmation(input: RenderEmailInput): Promise<void> {
+  const { content, order } = input;
+  if (content.emailEnabled !== "true") {
+    logger.info({ orderId: order.id }, "order confirmation email skipped (disabled)");
+    return;
+  }
+  if (!process.env.RESEND_API_KEY) {
+    logger.warn({ orderId: order.id }, "order confirmation email skipped: RESEND_API_KEY missing");
+    return;
+  }
+  const vars = buildVars({ content, order, orderUrl: input.orderUrl });
+  const subject = applyVars(content.emailSubject, vars);
+  const html = renderEmailHtml(input);
+  const fromName = content.emailFromName || content.brandName || "Store";
+  const fromAddress = content.emailFromAddress || "onboarding@resend.dev";
+  const from = `${fromName} <${fromAddress}>`;
+  try {
+    const result = await sendEmail({
+      from,
+      to: order.customerEmail,
+      replyTo: content.emailReplyTo || undefined,
+      subject,
+      html,
+    });
+    logger.info({ orderId: order.id, emailId: result.id }, "order confirmation email sent");
+  } catch (err) {
+    logger.error({ err, orderId: order.id }, "failed to send order confirmation email");
+  }
+}

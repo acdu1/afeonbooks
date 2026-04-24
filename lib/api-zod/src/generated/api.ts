@@ -31,6 +31,16 @@ export const GetContentResponse = zod.object({
   defaultShippingCity: zod.string(),
   defaultShippingPostalCode: zod.string(),
   defaultShippingCountry: zod.string(),
+  emailEnabled: zod.boolean(),
+  emailFromName: zod.string(),
+  emailFromAddress: zod.string(),
+  emailReplyTo: zod.string(),
+  emailSubject: zod.string(),
+  emailHeading: zod.string(),
+  emailIntro: zod.string(),
+  emailButtonLabel: zod.string(),
+  emailFooter: zod.string(),
+  emailAccentColor: zod.string(),
   updatedAt: zod.string(),
 });
 
@@ -53,6 +63,16 @@ export const UpdateContentBody = zod.object({
   defaultShippingCity: zod.string(),
   defaultShippingPostalCode: zod.string(),
   defaultShippingCountry: zod.string(),
+  emailEnabled: zod.boolean(),
+  emailFromName: zod.string(),
+  emailFromAddress: zod.string(),
+  emailReplyTo: zod.string(),
+  emailSubject: zod.string(),
+  emailHeading: zod.string(),
+  emailIntro: zod.string(),
+  emailButtonLabel: zod.string(),
+  emailFooter: zod.string(),
+  emailAccentColor: zod.string(),
 });
 
 export const UpdateContentResponse = zod.object({
@@ -75,6 +95,16 @@ export const UpdateContentResponse = zod.object({
   defaultShippingCity: zod.string(),
   defaultShippingPostalCode: zod.string(),
   defaultShippingCountry: zod.string(),
+  emailEnabled: zod.boolean(),
+  emailFromName: zod.string(),
+  emailFromAddress: zod.string(),
+  emailReplyTo: zod.string(),
+  emailSubject: zod.string(),
+  emailHeading: zod.string(),
+  emailIntro: zod.string(),
+  emailButtonLabel: zod.string(),
+  emailFooter: zod.string(),
+  emailAccentColor: zod.string(),
   updatedAt: zod.string(),
 });
 
@@ -255,6 +285,18 @@ export const GetOrderResponse = zod.object({
       unitPriceCents: zod.number(),
     }),
   ),
+});
+
+export const sendTestEmailBodyToMin = 3;
+
+export const SendTestEmailBody = zod.object({
+  to: zod.string().min(sendTestEmailBodyToMin),
+});
+
+export const SendTestEmailResponse = zod.object({
+  ok: zod.boolean(),
+  emailId: zod.string().optional(),
+  message: zod.string().optional(),
 });
 
 export const GetOrdersSummaryResponse = zod.object({

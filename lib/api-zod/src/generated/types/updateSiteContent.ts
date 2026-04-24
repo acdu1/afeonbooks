@@ -25,4 +25,14 @@ export interface UpdateSiteContent {
   defaultShippingCity: string;
   defaultShippingPostalCode: string;
   defaultShippingCountry: string;
+  emailEnabled: boolean;
+  emailFromName: string;
+  emailFromAddress: string;
+  emailReplyTo: string;
+  emailSubject: string;
+  emailHeading: string;
+  emailIntro: string;
+  emailButtonLabel: string;
+  emailFooter: string;
+  emailAccentColor: string;
 }

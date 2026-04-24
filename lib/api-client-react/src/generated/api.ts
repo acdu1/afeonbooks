@@ -19,10 +19,12 @@ import type {
 import type {
   CreateOrder,
   CreateProduct,
+  EmailTestResult,
   HealthStatus,
   Order,
   OrdersSummary,
   Product,
+  SendTestEmail,
   SiteContent,
   UpdateSiteContent,
 } from "./api.schemas";
@@ -862,6 +864,86 @@ export function useGetOrder<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+export const getSendTestEmailUrl = () => {
+  return `/api/email/test`;
+};
+
+export const sendTestEmail = async (
+  sendTestEmail: SendTestEmail,
+  options?: RequestInit,
+): Promise<EmailTestResult> => {
+  return customFetch<EmailTestResult>(getSendTestEmailUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(sendTestEmail),
+  });
+};
+
+export const getSendTestEmailMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendTestEmail>>,
+    TError,
+    { data: BodyType<SendTestEmail> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof sendTestEmail>>,
+  TError,
+  { data: BodyType<SendTestEmail> },
+  TContext
+> => {
+  const mutationKey = ["sendTestEmail"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof sendTestEmail>>,
+    { data: BodyType<SendTestEmail> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return sendTestEmail(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SendTestEmailMutationResult = NonNullable<
+  Awaited<ReturnType<typeof sendTestEmail>>
+>;
+export type SendTestEmailMutationBody = BodyType<SendTestEmail>;
+export type SendTestEmailMutationError = ErrorType<unknown>;
+
+export const useSendTestEmail = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendTestEmail>>,
+    TError,
+    { data: BodyType<SendTestEmail> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof sendTestEmail>>,
+  TError,
+  { data: BodyType<SendTestEmail> },
+  TContext
+> => {
+  return useMutation(getSendTestEmailMutationOptions(options));
+};
 
 export const getGetOrdersSummaryUrl = () => {
   return `/api/orders/summary`;

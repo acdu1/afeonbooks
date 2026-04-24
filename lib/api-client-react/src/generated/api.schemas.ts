@@ -29,6 +29,16 @@ export interface SiteContent {
   defaultShippingCity: string;
   defaultShippingPostalCode: string;
   defaultShippingCountry: string;
+  emailEnabled: boolean;
+  emailFromName: string;
+  emailFromAddress: string;
+  emailReplyTo: string;
+  emailSubject: string;
+  emailHeading: string;
+  emailIntro: string;
+  emailButtonLabel: string;
+  emailFooter: string;
+  emailAccentColor: string;
   updatedAt: string;
 }
 
@@ -51,6 +61,16 @@ export interface UpdateSiteContent {
   defaultShippingCity: string;
   defaultShippingPostalCode: string;
   defaultShippingCountry: string;
+  emailEnabled: boolean;
+  emailFromName: string;
+  emailFromAddress: string;
+  emailReplyTo: string;
+  emailSubject: string;
+  emailHeading: string;
+  emailIntro: string;
+  emailButtonLabel: string;
+  emailFooter: string;
+  emailAccentColor: string;
 }
 
 export interface Product {
@@ -134,6 +154,17 @@ export interface CreateOrder {
   notes?: string;
   /** @minItems 1 */
   items: CreateOrderItem[];
+}
+
+export interface SendTestEmail {
+  /** @minLength 3 */
+  to: string;
+}
+
+export interface EmailTestResult {
+  ok: boolean;
+  emailId?: string;
+  message?: string;
 }
 
 export interface OrdersSummary {

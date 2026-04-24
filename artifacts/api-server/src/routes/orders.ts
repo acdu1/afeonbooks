@@ -16,6 +16,7 @@ import {
   GetOrdersSummaryResponse,
 } from "@workspace/api-zod";
 import { asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { sendOrderConfirmation } from "../lib/email";
 
 const router: IRouter = Router();
 
@@ -244,6 +245,23 @@ router.post("/orders", async (req, res): Promise<void> => {
     }
     return { order, items };
   });
+
+  const content = (
+    await db
+      .select()
+      .from(siteContentTable)
+      .orderBy(asc(siteContentTable.id))
+      .limit(1)
+  )[0];
+  if (content) {
+    const orderUrl = `${req.protocol}://${req.get("host")}/order/${created.order.id}`;
+    void sendOrderConfirmation({
+      content,
+      order: created.order,
+      items: created.items,
+      orderUrl,
+    });
+  }
 
   res.status(201).json(GetOrderResponse.parse(serializeOrder(created.order, created.items)));
 });

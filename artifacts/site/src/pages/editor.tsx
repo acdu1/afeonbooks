@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,17 +11,19 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatPrice } from "@/lib/format";
-import { Plus, Edit2, Trash2 } from "lucide-react";
-import { 
-  useGetContent, 
-  useUpdateContent, 
+import { renderEmailPreview } from "@/lib/email-preview";
+import { Edit2, Trash2, Send } from "lucide-react";
+import {
+  useGetContent,
+  useUpdateContent,
   useListProducts,
   useCreateProduct,
   useUpdateProduct,
   useDeleteProduct,
   useListOrders,
+  useSendTestEmail,
   getGetContentQueryKey,
-  getListProductsQueryKey
+  getListProductsQueryKey,
 } from "@workspace/api-client-react";
 
 // --- Content Editor Schema ---
@@ -44,6 +46,16 @@ const contentSchema = z.object({
   defaultShippingCity: z.string(),
   defaultShippingPostalCode: z.string(),
   defaultShippingCountry: z.string(),
+  emailEnabled: z.boolean(),
+  emailFromName: z.string().min(1, "From name is required"),
+  emailFromAddress: z.string().email("Must be a valid email address"),
+  emailReplyTo: z.string().refine((v) => v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), "Must be a valid email or empty"),
+  emailSubject: z.string().min(1, "Subject is required"),
+  emailHeading: z.string().min(1, "Heading is required"),
+  emailIntro: z.string().min(1, "Intro is required"),
+  emailButtonLabel: z.string().min(1, "Button label is required"),
+  emailFooter: z.string(),
+  emailAccentColor: z.string().min(1),
 });
 
 // --- Product Editor Schema ---
@@ -58,8 +70,9 @@ const productSchema = z.object({
 });
 
 export default function Editor() {
-  const [activeTab, setActiveTab] = useState<"content" | "products" | "orders">("content");
+  const [activeTab, setActiveTab] = useState<"content" | "products" | "orders" | "email">("content");
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
+  const [testEmailTo, setTestEmailTo] = useState<string>("");
 
   const { data: content, isLoading: contentLoading } = useGetContent();
   const { data: products } = useListProducts();
@@ -69,21 +82,32 @@ export default function Editor() {
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
-  
+  const sendTestEmail = useSendTestEmail();
+
   const queryClient = useQueryClient();
 
   // --- Content Form ---
   const contentForm = useForm<z.infer<typeof contentSchema>>({
     resolver: zodResolver(contentSchema),
     defaultValues: {
-      brandName: "", navHomeLabel: "", heroTitle: "", heroSubtitle: "", 
-      ctaLabel: "", ctaUrl: "", coverImageUrl: "", aboutHeading: "", 
+      brandName: "", navHomeLabel: "", heroTitle: "", heroSubtitle: "",
+      ctaLabel: "", ctaUrl: "", coverImageUrl: "", aboutHeading: "",
       aboutBody: "", authorsLine: "", illustratorLine: "", footerNote: "", accentColor: "#000",
       defaultShippingLabel: "",
       defaultShippingAddress: "",
       defaultShippingCity: "",
       defaultShippingPostalCode: "",
       defaultShippingCountry: "",
+      emailEnabled: false,
+      emailFromName: "AFEON Books",
+      emailFromAddress: "onboarding@resend.dev",
+      emailReplyTo: "",
+      emailSubject: "Your order #{{orderId}} is confirmed!",
+      emailHeading: "Thank you for your order!",
+      emailIntro: "",
+      emailButtonLabel: "View your order",
+      emailFooter: "",
+      emailAccentColor: "#E2553B",
     },
   });
 
@@ -175,6 +199,74 @@ export default function Editor() {
 
   const coverImageUrl = contentForm.watch("coverImageUrl");
 
+  const emailWatch = contentForm.watch([
+    "brandName",
+    "footerNote",
+    "emailFromName",
+    "emailSubject",
+    "emailHeading",
+    "emailIntro",
+    "emailButtonLabel",
+    "emailFooter",
+    "emailAccentColor",
+    "defaultShippingLabel",
+    "defaultShippingAddress",
+    "defaultShippingCity",
+    "defaultShippingPostalCode",
+    "defaultShippingCountry",
+  ]);
+
+  const emailPreviewHtml = useMemo(() => {
+    const [
+      brandName, footerNote, emailFromName, emailSubject, emailHeading,
+      emailIntro, emailButtonLabel, emailFooter, emailAccentColor,
+      defaultShippingLabel, defaultShippingAddress, defaultShippingCity,
+      defaultShippingPostalCode, defaultShippingCountry,
+    ] = emailWatch;
+    return renderEmailPreview({
+      brandName: brandName || "",
+      footerNote: footerNote || "",
+      emailFromName: emailFromName || "",
+      emailSubject: emailSubject || "",
+      emailHeading: emailHeading || "",
+      emailIntro: emailIntro || "",
+      emailButtonLabel: emailButtonLabel || "",
+      emailFooter: emailFooter || "",
+      emailAccentColor: emailAccentColor || "#E2553B",
+      defaultShippingLabel: defaultShippingLabel || "",
+      defaultShippingAddress: defaultShippingAddress || "",
+      defaultShippingCity: defaultShippingCity || "",
+      defaultShippingPostalCode: defaultShippingPostalCode || "",
+      defaultShippingCountry: defaultShippingCountry || "",
+    });
+  }, [emailWatch]);
+
+  const handleSendTestEmail = () => {
+    const to = testEmailTo.trim();
+    if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    contentForm.handleSubmit((values) => {
+      updateContent.mutate({ data: values }, {
+        onSuccess: (data) => {
+          queryClient.setQueryData(getGetContentQueryKey(), data);
+          sendTestEmail.mutate({ data: { to } }, {
+            onSuccess: (res) => {
+              if (res.ok) {
+                toast.success(res.message || `Test email sent to ${to}`);
+              } else {
+                toast.error(res.message || "Failed to send test email.");
+              }
+            },
+            onError: () => toast.error("Failed to send test email."),
+          });
+        },
+        onError: () => toast.error("Couldn't save template before sending test."),
+      });
+    })();
+  };
+
   if (contentLoading) {
     return <div className="min-h-screen flex items-center justify-center"><p>Loading...</p></div>;
   }
@@ -191,13 +283,13 @@ export default function Editor() {
             <Button variant="outline" asChild className="rounded-none border-black/20 hover:bg-black/5">
               <Link href="/">View Site</Link>
             </Button>
-            {activeTab === "content" && (
-              <Button 
+            {(activeTab === "content" || activeTab === "email") && (
+              <Button
                 onClick={contentForm.handleSubmit(onContentSubmit)}
                 disabled={updateContent.isPending}
                 className="rounded-none bg-black text-white hover:bg-black/80 uppercase tracking-widest text-xs font-bold"
               >
-                {updateContent.isPending ? "Saving..." : "Save Content"}
+                {updateContent.isPending ? "Saving..." : activeTab === "email" ? "Save Email Template" : "Save Content"}
               </Button>
             )}
           </div>
@@ -218,7 +310,13 @@ export default function Editor() {
           >
             Products
           </button>
-          <button 
+          <button
+            className={`pb-4 font-bold text-sm tracking-widest uppercase border-b-2 transition-colors ${activeTab === "email" ? "border-black text-black" : "border-transparent text-black/40 hover:text-black/80"}`}
+            onClick={() => setActiveTab("email")}
+          >
+            Email
+          </button>
+          <button
             className={`pb-4 font-bold text-sm tracking-widest uppercase border-b-2 transition-colors ${activeTab === "orders" ? "border-black text-black" : "border-transparent text-black/40 hover:text-black/80"}`}
             onClick={() => setActiveTab("orders")}
           >
@@ -404,6 +502,114 @@ export default function Editor() {
               </div>
             </div>
           </div>
+        )}
+
+        {activeTab === "email" && (
+          <Form {...contentForm}>
+            <form className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="space-y-8">
+                <div className="bg-white p-8 border border-black/5 shadow-sm space-y-6">
+                  <div className="flex items-start justify-between gap-4 border-b border-black/10 pb-4">
+                    <div>
+                      <h2 className="text-xl font-bold">Order Confirmation Email</h2>
+                      <p className="text-sm text-black/50 mt-1">Sent to customers automatically when they place an order.</p>
+                    </div>
+                    <FormField control={contentForm.control} name="emailEnabled" render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0 shrink-0">
+                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} className="rounded-none data-[state=checked]:bg-black data-[state=checked]:text-white" /></FormControl>
+                        <FormLabel className="text-xs uppercase tracking-widest font-bold">Enabled</FormLabel>
+                      </FormItem>
+                    )} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-6">
+                    <FormField control={contentForm.control} name="emailFromName" render={({ field }) => (
+                      <FormItem><FormLabel>From Name</FormLabel><FormControl><Input {...field} className="rounded-none" /></FormControl><FormMessage/></FormItem>
+                    )} />
+                    <FormField control={contentForm.control} name="emailFromAddress" render={({ field }) => (
+                      <FormItem><FormLabel>From Email</FormLabel><FormControl><Input {...field} placeholder="onboarding@resend.dev" className="rounded-none" /></FormControl><FormMessage/></FormItem>
+                    )} />
+                  </div>
+                  <FormField control={contentForm.control} name="emailReplyTo" render={({ field }) => (
+                    <FormItem><FormLabel>Reply-To Email <span className="text-black/40 font-normal">(optional)</span></FormLabel><FormControl><Input {...field} placeholder="hello@yourstore.com" className="rounded-none" /></FormControl><FormMessage/></FormItem>
+                  )} />
+                  <FormField control={contentForm.control} name="emailAccentColor" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Button / Accent Color</FormLabel>
+                      <div className="flex gap-2">
+                        <FormControl><Input type="color" className="w-12 h-10 p-1 rounded-none cursor-pointer" {...field} /></FormControl>
+                        <FormControl><Input {...field} className="rounded-none font-mono" /></FormControl>
+                      </div>
+                    </FormItem>
+                  )} />
+                </div>
+
+                <div className="bg-white p-8 border border-black/5 shadow-sm space-y-6">
+                  <h2 className="text-xl font-bold border-b border-black/10 pb-4">Email Content</h2>
+                  <div className="bg-[#FAF7F2] border border-black/10 p-4 text-xs">
+                    <div className="font-bold uppercase tracking-widest text-black/60 mb-2">Available Variables</div>
+                    <div className="font-mono text-black/70 leading-relaxed">
+                      <code>{"{{customerName}}"}</code> · <code>{"{{orderId}}"}</code> · <code>{"{{total}}"}</code> · <code>{"{{paymentMethod}}"}</code> · <code>{"{{shippingAddress}}"}</code> · <code>{"{{classroom}}"}</code> · <code>{"{{brandName}}"}</code> · <code>{"{{orderUrl}}"}</code>
+                    </div>
+                  </div>
+                  <FormField control={contentForm.control} name="emailSubject" render={({ field }) => (
+                    <FormItem><FormLabel>Subject Line</FormLabel><FormControl><Input {...field} className="rounded-none font-mono text-sm" /></FormControl><FormMessage/></FormItem>
+                  )} />
+                  <FormField control={contentForm.control} name="emailHeading" render={({ field }) => (
+                    <FormItem><FormLabel>Headline</FormLabel><FormControl><Input {...field} className="rounded-none" /></FormControl><FormMessage/></FormItem>
+                  )} />
+                  <FormField control={contentForm.control} name="emailIntro" render={({ field }) => (
+                    <FormItem><FormLabel>Intro Paragraph</FormLabel><FormControl><Textarea {...field} className="rounded-none min-h-[140px]" /></FormControl><FormMessage/></FormItem>
+                  )} />
+                  <FormField control={contentForm.control} name="emailButtonLabel" render={({ field }) => (
+                    <FormItem><FormLabel>Button Label</FormLabel><FormControl><Input {...field} className="rounded-none" /></FormControl><FormMessage/></FormItem>
+                  )} />
+                  <FormField control={contentForm.control} name="emailFooter" render={({ field }) => (
+                    <FormItem><FormLabel>Footer Text</FormLabel><FormControl><Textarea {...field} className="rounded-none min-h-[80px]" /></FormControl><FormMessage/></FormItem>
+                  )} />
+                </div>
+
+                <div className="bg-white p-8 border border-black/5 shadow-sm space-y-4">
+                  <h2 className="text-xl font-bold border-b border-black/10 pb-4">Send Test Email</h2>
+                  <p className="text-sm text-black/50">Saves your template, then sends a sample order confirmation to the address below. If you're using <code className="font-mono text-xs bg-[#FAF7F2] px-1">onboarding@resend.dev</code>, you can only send to your verified Resend account email.</p>
+                  <div className="flex gap-2">
+                    <Input
+                      type="email"
+                      placeholder="you@example.com"
+                      value={testEmailTo}
+                      onChange={(e) => setTestEmailTo(e.target.value)}
+                      className="rounded-none flex-1"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleSendTestEmail}
+                      disabled={sendTestEmail.isPending || updateContent.isPending}
+                      className="rounded-none bg-black text-white hover:bg-black/80 uppercase tracking-widest text-xs font-bold gap-2"
+                    >
+                      <Send className="w-3 h-3" />
+                      {sendTestEmail.isPending || updateContent.isPending ? "Sending..." : "Send Test"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="sticky top-24 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs uppercase tracking-widest text-black/50 font-bold">Live Preview</div>
+                    <div className="text-xs text-black/40">updates as you type</div>
+                  </div>
+                  <div className="bg-white border border-black/10 shadow-sm overflow-hidden">
+                    <iframe
+                      title="Email preview"
+                      srcDoc={emailPreviewHtml}
+                      className="w-full h-[800px] border-0 bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            </form>
+          </Form>
         )}
 
         {activeTab === "orders" && (

@@ -159,6 +159,21 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Order" }
+  /email/test:
+    post:
+      operationId: sendTestEmail
+      tags: [content]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SendTestEmail" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EmailTestResult" }
   /orders/summary:
     get:
       operationId: getOrdersSummary
@@ -197,8 +212,18 @@ components:
         defaultShippingCity: { type: string }
         defaultShippingPostalCode: { type: string }
         defaultShippingCountry: { type: string }
+        emailEnabled: { type: boolean }
+        emailFromName: { type: string }
+        emailFromAddress: { type: string }
+        emailReplyTo: { type: string }
+        emailSubject: { type: string }
+        emailHeading: { type: string }
+        emailIntro: { type: string }
+        emailButtonLabel: { type: string }
+        emailFooter: { type: string }
+        emailAccentColor: { type: string }
         updatedAt: { type: string }
-      required: [id, brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, updatedAt]
+      required: [id, brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor, updatedAt]
     UpdateSiteContent:
       type: object
       properties:
@@ -220,7 +245,17 @@ components:
         defaultShippingCity: { type: string }
         defaultShippingPostalCode: { type: string }
         defaultShippingCountry: { type: string }
-      required: [brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry]
+        emailEnabled: { type: boolean }
+        emailFromName: { type: string }
+        emailFromAddress: { type: string }
+        emailReplyTo: { type: string }
+        emailSubject: { type: string }
+        emailHeading: { type: string }
+        emailIntro: { type: string }
+        emailButtonLabel: { type: string }
+        emailFooter: { type: string }
+        emailAccentColor: { type: string }
+      required: [brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor]
     Product:
       type: object
       properties:
@@ -303,6 +338,18 @@ components:
           minItems: 1
           items: { $ref: "#/components/schemas/CreateOrderItem" }
       required: [customerName, customerEmail, customerPhone, useDefaultAddress, items]
+    SendTestEmail:
+      type: object
+      properties:
+        to: { type: string, minLength: 3 }
+      required: [to]
+    EmailTestResult:
+      type: object
+      properties:
+        ok: { type: boolean }
+        emailId: { type: string }
+        message: { type: string }
+      required: [ok]
     OrdersSummary:
       type: object
       properties:

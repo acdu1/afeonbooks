@@ -12,7 +12,8 @@ const DEFAULT_CONTENT = {
   heroSubtitle: "Written by 6th Graders.",
   ctaLabel: "Shop Now",
   ctaUrl: "/shop",
-  coverImageUrl:   "https://static.wixstatic.com/media/91d5eb_b2c9e6441ca74cf0ad33c5b8935b9ffe~mv2.jpg/v1/fill/w_584,h_751,al_c,q_85,usm_0.66_1.00_0.01/91d5eb_b2c9e6441ca74cf0ad33c5b8935b9ffe~mv2.jpg",
+  coverImageUrl:
+    "https://static.wixstatic.com/media/91d5eb_b2c9e6441ca74cf0ad33c5b8935b9ffe~mv2.jpg/v1/fill/w_584,h_751,al_c,q_85,usm_0.66_1.00_0.01/91d5eb_b2c9e6441ca74cf0ad33c5b8935b9ffe~mv2.jpg",
   aboutHeading: "The Terror Of The Evil Capybara - Book 1",
   aboutBody:
     "When terror reveals itself to the detectives, it comes in the form of a fury little capybara with glasses. What happens when these two enemies go head to head? Who will win the duel? Good? Or evil? Join the detectives, White Dragon, Evanzilla, Naomi Da Apple and Kevin as they try to win the battle against evil and also do dangerous things while at it, like jumping off skyscrapers.",
@@ -27,7 +28,7 @@ const DEFAULT_CONTENT = {
   defaultShippingCountry: "",
 };
 
-function serialize(row: SiteContentRow) {
+export function serializeContent(row: SiteContentRow) {
   return {
     id: row.id,
     brandName: row.brandName,
@@ -48,11 +49,21 @@ function serialize(row: SiteContentRow) {
     defaultShippingCity: row.defaultShippingCity,
     defaultShippingPostalCode: row.defaultShippingPostalCode,
     defaultShippingCountry: row.defaultShippingCountry,
+    emailEnabled: row.emailEnabled === "true",
+    emailFromName: row.emailFromName,
+    emailFromAddress: row.emailFromAddress,
+    emailReplyTo: row.emailReplyTo,
+    emailSubject: row.emailSubject,
+    emailHeading: row.emailHeading,
+    emailIntro: row.emailIntro,
+    emailButtonLabel: row.emailButtonLabel,
+    emailFooter: row.emailFooter,
+    emailAccentColor: row.emailAccentColor,
     updatedAt: row.updatedAt.toISOString(),
   };
 }
 
-async function getOrCreate(): Promise<SiteContentRow> {
+export async function getOrCreateContent(): Promise<SiteContentRow> {
   const existing = await db
     .select()
     .from(siteContentTable)
@@ -67,19 +78,24 @@ async function getOrCreate(): Promise<SiteContentRow> {
 }
 
 router.get("/content", async (_req, res) => {
-  const row = await getOrCreate();
-  res.json(GetContentResponse.parse(serialize(row)));
+  const row = await getOrCreateContent();
+  res.json(GetContentResponse.parse(serializeContent(row)));
 });
 
 router.put("/content", async (req, res) => {
   const body = UpdateContentBody.parse(req.body);
-  const current = await getOrCreate();
+  const current = await getOrCreateContent();
+  const { emailEnabled, ...rest } = body;
   const updated = await db
     .update(siteContentTable)
-    .set({ ...body, updatedAt: new Date() })
+    .set({
+      ...rest,
+      emailEnabled: emailEnabled ? "true" : "false",
+      updatedAt: new Date(),
+    })
     .where(eq(siteContentTable.id, current.id))
     .returning();
-  res.json(GetContentResponse.parse(serialize(updated[0]!)));
+  res.json(GetContentResponse.parse(serializeContent(updated[0]!)));
 });
 
 export default router;

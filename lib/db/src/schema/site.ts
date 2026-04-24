@@ -20,6 +20,16 @@ export const siteContentTable = pgTable("site_content", {
   defaultShippingCity: text("default_shipping_city").notNull().default(""),
   defaultShippingPostalCode: text("default_shipping_postal_code").notNull().default(""),
   defaultShippingCountry: text("default_shipping_country").notNull().default(""),
+  emailEnabled: text("email_enabled").notNull().default("false"),
+  emailFromName: text("email_from_name").notNull().default("AFEON Books"),
+  emailFromAddress: text("email_from_address").notNull().default("onboarding@resend.dev"),
+  emailReplyTo: text("email_reply_to").notNull().default(""),
+  emailSubject: text("email_subject").notNull().default("Your order #{{orderId}} is confirmed!"),
+  emailHeading: text("email_heading").notNull().default("Thank you for your order!"),
+  emailIntro: text("email_intro").notNull().default("Hi {{customerName}},\n\nThanks for ordering from AFEON Books! Your order #{{orderId}} has been received and is being prepared. You'll pay {{total}} in cash on delivery."),
+  emailButtonLabel: text("email_button_label").notNull().default("View your order"),
+  emailFooter: text("email_footer").notNull().default("Questions about your order? Just reply to this email."),
+  emailAccentColor: text("email_accent_color").notNull().default("#E2553B"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
