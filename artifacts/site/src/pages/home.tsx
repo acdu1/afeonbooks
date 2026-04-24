@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { ShoppingBag } from "lucide-react";
 
 const preorderSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -55,10 +56,9 @@ export default function Home() {
 
   if (isLoading || !content) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center">
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#FAF7F2]">
         <div className="animate-pulse flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
-          <p className="text-muted-foreground font-serif italic">Loading storybook...</p>
         </div>
       </div>
     );
@@ -66,73 +66,69 @@ export default function Home() {
 
   return (
     <div 
-      className="min-h-screen w-full flex flex-col"
-      style={{ "--theme-accent": content.accentColor } as React.CSSProperties}
+      className="min-h-screen w-full flex flex-col font-sans"
+      style={{ "--theme-accent": content.accentColor, backgroundColor: "#FAF7F2" } as React.CSSProperties}
     >
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border/40 px-6 py-4">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="font-serif font-bold text-xl tracking-tight" style={{ color: "var(--theme-accent)" }}>
-            {content.brandName}
-          </div>
-          <nav className="flex items-center gap-6">
-            <Link href="/" className="text-sm font-medium hover:text-foreground/80 transition-colors">
-              {content.navHomeLabel}
+      {/* Minimal Header */}
+      <header className="px-6 py-8">
+        <div className="max-w-[1400px] mx-auto flex items-center justify-between">
+          <div className="w-9 h-9 bg-black rounded-full" aria-label="Logo"></div>
+          <nav className="flex items-center gap-8 text-black">
+            <Link href="/" className="text-[15px] font-medium tracking-wide hover:opacity-70 transition-opacity">
+              Home
             </Link>
-            <Button 
-              onClick={scrollToPreorder} 
-              className="rounded-full shadow-sm hover:shadow-md transition-all font-serif"
-              style={{ backgroundColor: "var(--theme-accent)", color: "#fff" }}
-            >
-              Preorder Now
-            </Button>
+            <div className="relative cursor-pointer hover:opacity-70 transition-opacity">
+              <ShoppingBag className="w-5 h-5 stroke-[1.5]" />
+              <span className="absolute -top-1.5 -right-2 bg-transparent text-[11px] font-bold">0</span>
+            </div>
           </nav>
         </div>
       </header>
 
-      <main className="flex-1">
+      <main className="flex-1 w-full">
         {/* Hero Section */}
-        <section className="px-6 py-16 md:py-24 lg:py-32">
-          <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8 order-2 md:order-1 text-center md:text-left">
-              <h1 className="font-serif text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] tracking-tight text-foreground">
+        <section className="w-full min-h-[85vh] flex items-center">
+          <div className="w-full max-w-[1600px] mx-auto flex flex-col md:flex-row items-stretch md:items-center">
+            {/* Left Column - Text */}
+            <div className="w-full md:w-[45%] px-6 md:pl-[12%] py-12 md:py-0 flex flex-col justify-center z-10">
+              <h1 className="text-black text-6xl md:text-[5.5rem] lg:text-[6.5rem] font-bold leading-[1.05] tracking-tight">
                 {content.heroTitle}
               </h1>
-              <p className="text-lg md:text-xl text-muted-foreground max-w-lg mx-auto md:mx-0 font-medium leading-relaxed">
+              <p className="mt-8 text-black/60 text-base md:text-lg max-w-sm font-medium">
                 {content.heroSubtitle}
               </p>
-              <div className="pt-4">
+              <div className="mt-12">
                 <Button 
                   size="lg" 
                   onClick={scrollToPreorder}
-                  className="rounded-full text-lg px-8 py-6 shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 font-serif"
-                  style={{ backgroundColor: "var(--theme-accent)", color: "#fff" }}
+                  className="rounded-full bg-white text-black border border-black hover:text-white transition-all duration-300 px-12 py-7 text-[15px] tracking-wide font-medium shadow-none h-auto w-fit hover:bg-[var(--theme-accent)] hover:border-[var(--theme-accent)]"
                 >
                   {content.ctaLabel}
                 </Button>
               </div>
             </div>
             
-            <div className="order-1 md:order-2 relative mx-auto w-full max-w-[400px]">
-              <div className="absolute -inset-4 rounded-3xl opacity-20 blur-2xl" style={{ backgroundColor: "var(--theme-accent)" }}></div>
+            {/* Right Column - Image */}
+            <div className="w-full md:w-[55%] flex justify-center items-center px-6 md:px-0 pb-12 md:pb-0 h-[60vh] md:h-[85vh]">
               <img 
                 src={content.coverImageUrl} 
                 alt="Book Cover" 
-                className="w-full h-auto rounded-xl shadow-2xl relative z-10 rotate-2 hover:rotate-0 transition-transform duration-500"
+                className="w-full h-full object-contain max-h-[800px]"
               />
             </div>
           </div>
         </section>
 
         {/* About Section */}
-        <section className="px-6 py-20 bg-black/[0.02]">
-          <div className="max-w-3xl mx-auto text-center space-y-8">
-            <h2 className="font-serif text-3xl md:text-4xl font-bold" style={{ color: "var(--theme-accent)" }}>
+        <section className="px-6 py-32 bg-white">
+          <div className="max-w-2xl mx-auto text-center space-y-10">
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-black">
               {content.aboutHeading}
             </h2>
-            <div className="prose prose-lg mx-auto text-muted-foreground leading-relaxed">
+            <div className="text-lg md:text-xl text-black/70 leading-relaxed font-medium">
               <p>{content.aboutBody}</p>
             </div>
-            <div className="pt-8 border-t border-border/50 flex flex-col sm:flex-row justify-center gap-4 sm:gap-12 text-sm font-serif italic text-muted-foreground">
+            <div className="pt-12 flex flex-col sm:flex-row justify-center gap-4 sm:gap-12 text-sm text-black/50 uppercase tracking-widest font-bold">
               <span>By {content.authorsLine}</span>
               <span>Illustrated by {content.illustratorLine}</span>
             </div>
@@ -140,32 +136,34 @@ export default function Home() {
         </section>
 
         {/* Preorder Section */}
-        <section id="preorder" className="px-6 py-24">
+        <section id="preorder" className="px-6 py-32 bg-[#FAF7F2]">
           <div className="max-w-xl mx-auto">
-            <div className="text-center mb-10 space-y-4">
-              <h2 className="font-serif text-3xl md:text-4xl font-bold">Reserve Your Copy</h2>
-              <p className="text-muted-foreground">Be among the first to get this charming story.</p>
+            <div className="text-center mb-16 space-y-4">
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-black">Reserve Your Copy</h2>
+              <p className="text-black/60 text-lg">Be among the first to get this charming story.</p>
               
-              {summary && (
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/50 text-sm font-medium border border-border/50">
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: "var(--theme-accent)" }}></span>
-                  Joined {summary.totalOrders} readers · {summary.totalCopies} copies pledged
+              {summary && summary.totalOrders > 0 && (
+                <div className="inline-flex items-center gap-2 mt-6 text-sm font-bold tracking-widest uppercase text-black/40">
+                  {summary.totalOrders} readers · {summary.totalCopies} copies pledged
                 </div>
               )}
             </div>
 
-            <div className="bg-card border border-border shadow-xl rounded-2xl p-6 md:p-8">
+            <div className="bg-white rounded-none p-8 md:p-12 shadow-sm border border-black/5">
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="grid sm:grid-cols-2 gap-6">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                  <div className="grid sm:grid-cols-2 gap-8">
                     <FormField
                       control={form.control}
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-serif">Full Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Jane Doe" {...field} className="bg-background" />
+                            <Input 
+                              placeholder="Full Name" 
+                              {...field} 
+                              className="bg-transparent border-0 border-b border-black/20 rounded-none px-0 focus-visible:ring-0 focus-visible:border-black text-lg h-12 shadow-none placeholder:text-black/30" 
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -176,9 +174,13 @@ export default function Home() {
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-serif">Email Address</FormLabel>
                           <FormControl>
-                            <Input type="email" placeholder="jane@example.com" {...field} className="bg-background" />
+                            <Input 
+                              type="email" 
+                              placeholder="Email Address" 
+                              {...field} 
+                              className="bg-transparent border-0 border-b border-black/20 rounded-none px-0 focus-visible:ring-0 focus-visible:border-black text-lg h-12 shadow-none placeholder:text-black/30" 
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -191,9 +193,14 @@ export default function Home() {
                     name="quantity"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-serif">Number of Copies</FormLabel>
                         <FormControl>
-                          <Input type="number" min="1" {...field} className="bg-background" />
+                          <Input 
+                            type="number" 
+                            min="1" 
+                            placeholder="Number of Copies" 
+                            {...field} 
+                            className="bg-transparent border-0 border-b border-black/20 rounded-none px-0 focus-visible:ring-0 focus-visible:border-black text-lg h-12 shadow-none placeholder:text-black/30" 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -205,23 +212,27 @@ export default function Home() {
                     name="message"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-serif">Message for the Authors (Optional)</FormLabel>
                         <FormControl>
-                          <Textarea placeholder="Can't wait to read this to my kids!" {...field} className="bg-background min-h-[100px]" />
+                          <Textarea 
+                            placeholder="Message for the Authors (Optional)" 
+                            {...field} 
+                            className="bg-transparent border-0 border-b border-black/20 rounded-none px-0 focus-visible:ring-0 focus-visible:border-black text-lg min-h-[100px] shadow-none placeholder:text-black/30 resize-none" 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  <Button 
-                    type="submit" 
-                    className="w-full py-6 text-lg rounded-xl shadow-md transition-all hover:shadow-lg font-serif"
-                    style={{ backgroundColor: "var(--theme-accent)", color: "#fff" }}
-                    disabled={createPreorder.isPending}
-                  >
-                    {createPreorder.isPending ? "Submitting..." : "Complete Preorder"}
-                  </Button>
+                  <div className="pt-8">
+                    <Button 
+                      type="submit" 
+                      className="w-full py-8 text-base tracking-wide rounded-none bg-black text-white hover:bg-[var(--theme-accent)] hover:border-[var(--theme-accent)] transition-colors uppercase font-bold shadow-none"
+                      disabled={createPreorder.isPending}
+                    >
+                      {createPreorder.isPending ? "Submitting..." : "Complete Preorder"}
+                    </Button>
+                  </div>
                 </form>
               </Form>
             </div>
@@ -229,10 +240,10 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="border-t border-border/50 py-12 text-center text-muted-foreground">
-        <p className="font-serif text-sm">{content.footerNote}</p>
-        <div className="mt-4">
-          <Link href="/editor" className="text-xs hover:underline opacity-50 hover:opacity-100 transition-opacity">
+      <footer className="bg-white border-t border-black/5 py-16 text-center text-black/40">
+        <p className="text-sm font-medium tracking-wide">{content.footerNote}</p>
+        <div className="mt-8">
+          <Link href="/editor" className="text-[11px] uppercase tracking-widest font-bold hover:text-black transition-colors">
             Admin Area
           </Link>
         </div>
