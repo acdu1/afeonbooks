@@ -15,6 +15,11 @@ export const siteContentTable = pgTable("site_content", {
   illustratorLine: text("illustrator_line").notNull(),
   footerNote: text("footer_note").notNull(),
   accentColor: text("accent_color").notNull(),
+  defaultShippingLabel: text("default_shipping_label").notNull().default(""),
+  defaultShippingAddress: text("default_shipping_address").notNull().default(""),
+  defaultShippingCity: text("default_shipping_city").notNull().default(""),
+  defaultShippingPostalCode: text("default_shipping_postal_code").notNull().default(""),
+  defaultShippingCountry: text("default_shipping_country").notNull().default(""),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

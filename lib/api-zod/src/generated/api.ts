@@ -26,6 +26,11 @@ export const GetContentResponse = zod.object({
   illustratorLine: zod.string(),
   footerNote: zod.string(),
   accentColor: zod.string(),
+  defaultShippingLabel: zod.string(),
+  defaultShippingAddress: zod.string(),
+  defaultShippingCity: zod.string(),
+  defaultShippingPostalCode: zod.string(),
+  defaultShippingCountry: zod.string(),
   updatedAt: zod.string(),
 });
 
@@ -43,6 +48,11 @@ export const UpdateContentBody = zod.object({
   illustratorLine: zod.string(),
   footerNote: zod.string(),
   accentColor: zod.string(),
+  defaultShippingLabel: zod.string(),
+  defaultShippingAddress: zod.string(),
+  defaultShippingCity: zod.string(),
+  defaultShippingPostalCode: zod.string(),
+  defaultShippingCountry: zod.string(),
 });
 
 export const UpdateContentResponse = zod.object({
@@ -60,6 +70,11 @@ export const UpdateContentResponse = zod.object({
   illustratorLine: zod.string(),
   footerNote: zod.string(),
   accentColor: zod.string(),
+  defaultShippingLabel: zod.string(),
+  defaultShippingAddress: zod.string(),
+  defaultShippingCity: zod.string(),
+  defaultShippingPostalCode: zod.string(),
+  defaultShippingCountry: zod.string(),
   updatedAt: zod.string(),
 });
 
@@ -161,6 +176,8 @@ export const ListOrdersResponseItem = zod.object({
   city: zod.string(),
   postalCode: zod.string(),
   country: zod.string(),
+  classroom: zod.string().optional(),
+  useDefaultAddress: zod.boolean(),
   notes: zod.string().optional(),
   paymentMethod: zod.string(),
   status: zod.string(),
@@ -189,10 +206,12 @@ export const CreateOrderBody = zod.object({
   customerName: zod.string().min(1),
   customerEmail: zod.string().min(createOrderBodyCustomerEmailMin),
   customerPhone: zod.string().min(createOrderBodyCustomerPhoneMin),
-  shippingAddress: zod.string().min(1),
-  city: zod.string().min(1),
-  postalCode: zod.string().min(1),
-  country: zod.string().min(1),
+  useDefaultAddress: zod.boolean(),
+  shippingAddress: zod.string().optional(),
+  city: zod.string().optional(),
+  postalCode: zod.string().optional(),
+  country: zod.string().optional(),
+  classroom: zod.string().optional(),
   notes: zod.string().optional(),
   items: zod
     .array(
@@ -217,6 +236,8 @@ export const GetOrderResponse = zod.object({
   city: zod.string(),
   postalCode: zod.string(),
   country: zod.string(),
+  classroom: zod.string().optional(),
+  useDefaultAddress: zod.boolean(),
   notes: zod.string().optional(),
   paymentMethod: zod.string(),
   status: zod.string(),

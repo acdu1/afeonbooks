@@ -20,6 +20,11 @@ const DEFAULT_CONTENT = {
   illustratorLine: "Janis Vong",
   footerNote: "© 2026 AFR Group. All Rights Reserved.",
   accentColor: "#E2553B",
+  defaultShippingLabel: "School Delivery",
+  defaultShippingAddress: "",
+  defaultShippingCity: "",
+  defaultShippingPostalCode: "",
+  defaultShippingCountry: "",
 };
 
 function serialize(row: SiteContentRow) {
@@ -38,6 +43,11 @@ function serialize(row: SiteContentRow) {
     illustratorLine: row.illustratorLine,
     footerNote: row.footerNote,
     accentColor: row.accentColor,
+    defaultShippingLabel: row.defaultShippingLabel,
+    defaultShippingAddress: row.defaultShippingAddress,
+    defaultShippingCity: row.defaultShippingCity,
+    defaultShippingPostalCode: row.defaultShippingPostalCode,
+    defaultShippingCountry: row.defaultShippingCountry,
     updatedAt: row.updatedAt.toISOString(),
   };
 }

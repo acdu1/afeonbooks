@@ -39,6 +39,11 @@ const contentSchema = z.object({
   illustratorLine: z.string().min(1),
   footerNote: z.string().min(1),
   accentColor: z.string().min(1),
+  defaultShippingLabel: z.string(),
+  defaultShippingAddress: z.string(),
+  defaultShippingCity: z.string(),
+  defaultShippingPostalCode: z.string(),
+  defaultShippingCountry: z.string(),
 });
 
 // --- Product Editor Schema ---
@@ -74,6 +79,11 @@ export default function Editor() {
       brandName: "", navHomeLabel: "", heroTitle: "", heroSubtitle: "", 
       ctaLabel: "", ctaUrl: "", coverImageUrl: "", aboutHeading: "", 
       aboutBody: "", authorsLine: "", illustratorLine: "", footerNote: "", accentColor: "#000",
+      defaultShippingLabel: "",
+      defaultShippingAddress: "",
+      defaultShippingCity: "",
+      defaultShippingPostalCode: "",
+      defaultShippingCountry: "",
     },
   });
 
@@ -254,6 +264,28 @@ export default function Editor() {
                       <FormItem><FormLabel>CTA URL</FormLabel><FormControl><Input {...field} className="rounded-none" /></FormControl></FormItem>
                     )} />
                   </div>
+                </div>
+
+                <div className="bg-white p-8 border border-black/5 shadow-sm space-y-6">
+                  <h2 className="text-xl font-bold border-b border-black/10 pb-4">Default Shipping Address</h2>
+                  <p className="text-sm text-black/50 -mt-2">Used when customers choose "Ship to default address" at checkout. They will only enter their classroom number.</p>
+                  <FormField control={contentForm.control} name="defaultShippingLabel" render={({ field }) => (
+                    <FormItem><FormLabel>Display Label</FormLabel><FormControl><Input {...field} placeholder="e.g. School Delivery" className="rounded-none" /></FormControl></FormItem>
+                  )} />
+                  <FormField control={contentForm.control} name="defaultShippingAddress" render={({ field }) => (
+                    <FormItem><FormLabel>Street Address</FormLabel><FormControl><Input {...field} placeholder="e.g. 123 Lincoln Avenue" className="rounded-none" /></FormControl></FormItem>
+                  )} />
+                  <div className="grid grid-cols-2 gap-6">
+                    <FormField control={contentForm.control} name="defaultShippingCity" render={({ field }) => (
+                      <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} className="rounded-none" /></FormControl></FormItem>
+                    )} />
+                    <FormField control={contentForm.control} name="defaultShippingPostalCode" render={({ field }) => (
+                      <FormItem><FormLabel>Postal Code</FormLabel><FormControl><Input {...field} className="rounded-none" /></FormControl></FormItem>
+                    )} />
+                  </div>
+                  <FormField control={contentForm.control} name="defaultShippingCountry" render={({ field }) => (
+                    <FormItem><FormLabel>Country</FormLabel><FormControl><Input {...field} className="rounded-none" /></FormControl></FormItem>
+                  )} />
                 </div>
 
                 <div className="bg-white p-8 border border-black/5 shadow-sm space-y-6">

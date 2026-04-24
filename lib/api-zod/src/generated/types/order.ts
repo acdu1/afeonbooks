@@ -16,6 +16,8 @@ export interface Order {
   city: string;
   postalCode: string;
   country: string;
+  classroom?: string;
+  useDefaultAddress: boolean;
   notes?: string;
   paymentMethod: string;
   status: string;

@@ -192,8 +192,13 @@ components:
         illustratorLine: { type: string }
         footerNote: { type: string }
         accentColor: { type: string }
+        defaultShippingLabel: { type: string }
+        defaultShippingAddress: { type: string }
+        defaultShippingCity: { type: string }
+        defaultShippingPostalCode: { type: string }
+        defaultShippingCountry: { type: string }
         updatedAt: { type: string }
-      required: [id, brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, updatedAt]
+      required: [id, brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, updatedAt]
     UpdateSiteContent:
       type: object
       properties:
@@ -210,7 +215,12 @@ components:
         illustratorLine: { type: string }
         footerNote: { type: string }
         accentColor: { type: string }
-      required: [brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor]
+        defaultShippingLabel: { type: string }
+        defaultShippingAddress: { type: string }
+        defaultShippingCity: { type: string }
+        defaultShippingPostalCode: { type: string }
+        defaultShippingCountry: { type: string }
+      required: [brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry]
     Product:
       type: object
       properties:
@@ -255,6 +265,8 @@ components:
         city: { type: string }
         postalCode: { type: string }
         country: { type: string }
+        classroom: { type: string }
+        useDefaultAddress: { type: boolean }
         notes: { type: string }
         paymentMethod: { type: string }
         status: { type: string }
@@ -266,7 +278,7 @@ components:
         items:
           type: array
           items: { $ref: "#/components/schemas/OrderItem" }
-      required: [id, customerName, customerEmail, customerPhone, shippingAddress, city, postalCode, country, paymentMethod, status, subtotalCents, shippingCents, totalCents, currency, createdAt, items]
+      required: [id, customerName, customerEmail, customerPhone, shippingAddress, city, postalCode, country, useDefaultAddress, paymentMethod, status, subtotalCents, shippingCents, totalCents, currency, createdAt, items]
     CreateOrderItem:
       type: object
       properties:
@@ -279,16 +291,18 @@ components:
         customerName: { type: string, minLength: 1 }
         customerEmail: { type: string, minLength: 3 }
         customerPhone: { type: string, minLength: 3 }
-        shippingAddress: { type: string, minLength: 1 }
-        city: { type: string, minLength: 1 }
-        postalCode: { type: string, minLength: 1 }
-        country: { type: string, minLength: 1 }
+        useDefaultAddress: { type: boolean }
+        shippingAddress: { type: string }
+        city: { type: string }
+        postalCode: { type: string }
+        country: { type: string }
+        classroom: { type: string }
         notes: { type: string }
         items:
           type: array
           minItems: 1
           items: { $ref: "#/components/schemas/CreateOrderItem" }
-      required: [customerName, customerEmail, customerPhone, shippingAddress, city, postalCode, country, items]
+      required: [customerName, customerEmail, customerPhone, useDefaultAddress, items]
     OrdersSummary:
       type: object
       properties:

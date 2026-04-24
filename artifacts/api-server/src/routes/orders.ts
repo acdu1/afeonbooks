@@ -4,6 +4,7 @@ import {
   ordersTable,
   orderItemsTable,
   productsTable,
+  siteContentTable,
   type OrderRow,
   type OrderItemRow,
 } from "@workspace/db";
@@ -14,7 +15,7 @@ import {
   ListOrdersResponse,
   GetOrdersSummaryResponse,
 } from "@workspace/api-zod";
-import { desc, eq, inArray, sql } from "drizzle-orm";
+import { asc, desc, eq, inArray, sql } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -28,6 +29,8 @@ function serializeOrder(o: OrderRow, items: OrderItemRow[]) {
     city: o.city,
     postalCode: o.postalCode,
     country: o.country,
+    classroom: o.classroom ?? undefined,
+    useDefaultAddress: o.useDefaultAddress === "true",
     notes: o.notes ?? undefined,
     paymentMethod: o.paymentMethod,
     status: o.status,
@@ -102,7 +105,10 @@ router.get("/orders/summary", async (_req, res) => {
 router.get("/orders/:id", async (req, res): Promise<void> => {
   const { id } = GetOrderParams.parse(req.params);
   const found = await db.select().from(ordersTable).where(eq(ordersTable.id, id)).limit(1);
-  if (!found[0]) res.status(404).json({ error: "not found" }); return;
+  if (!found[0]) {
+    res.status(404).json({ error: "not found" });
+    return;
+  }
   const items = await db
     .select()
     .from(orderItemsTable)
@@ -112,6 +118,62 @@ router.get("/orders/:id", async (req, res): Promise<void> => {
 
 router.post("/orders", async (req, res): Promise<void> => {
   const body = CreateOrderBody.parse(req.body);
+
+  let shippingAddress: string;
+  let city: string;
+  let postalCode: string;
+  let country: string;
+  let classroom: string | null = null;
+
+  if (body.useDefaultAddress) {
+    const content = (
+      await db
+        .select()
+        .from(siteContentTable)
+        .orderBy(asc(siteContentTable.id))
+        .limit(1)
+    )[0];
+    if (
+      !content ||
+      !content.defaultShippingAddress ||
+      !content.defaultShippingCity ||
+      !content.defaultShippingPostalCode ||
+      !content.defaultShippingCountry
+    ) {
+      res.status(400).json({
+        error:
+          "Default shipping address is not configured. Please ask the admin to set it up.",
+      });
+      return;
+    }
+    const trimmedClassroom = (body.classroom ?? "").trim();
+    if (!trimmedClassroom) {
+      res.status(400).json({ error: "Classroom number is required." });
+      return;
+    }
+    shippingAddress = content.defaultShippingAddress;
+    city = content.defaultShippingCity;
+    postalCode = content.defaultShippingPostalCode;
+    country = content.defaultShippingCountry;
+    classroom = trimmedClassroom;
+  } else {
+    const sa = (body.shippingAddress ?? "").trim();
+    const ci = (body.city ?? "").trim();
+    const pc = (body.postalCode ?? "").trim();
+    const co = (body.country ?? "").trim();
+    if (!sa || !ci || !pc || !co) {
+      res.status(400).json({
+        error:
+          "Shipping address, city, postal code, and country are required for custom addresses.",
+      });
+      return;
+    }
+    shippingAddress = sa;
+    city = ci;
+    postalCode = pc;
+    country = co;
+  }
+
   const productIds = body.items.map((i) => i.productId);
   const products = await db
     .select()
@@ -154,10 +216,12 @@ router.post("/orders", async (req, res): Promise<void> => {
         customerName: body.customerName,
         customerEmail: body.customerEmail,
         customerPhone: body.customerPhone,
-        shippingAddress: body.shippingAddress,
-        city: body.city,
-        postalCode: body.postalCode,
-        country: body.country,
+        shippingAddress,
+        city,
+        postalCode,
+        country,
+        classroom,
+        useDefaultAddress: body.useDefaultAddress ? "true" : "false",
         notes: body.notes ?? null,
         paymentMethod: "cash_on_delivery",
         status: "pending",

@@ -14,18 +14,46 @@ import { SiteFooter } from "@/components/site-footer";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
-import { Truck } from "lucide-react";
 
-const checkoutSchema = z.object({
-  customerName: z.string().min(1, "Name is required"),
-  customerEmail: z.string().email("Invalid email address"),
-  customerPhone: z.string().min(3, "Phone number is required"),
-  shippingAddress: z.string().min(1, "Address is required"),
-  city: z.string().min(1, "City is required"),
-  postalCode: z.string().min(1, "Postal code is required"),
-  country: z.string().min(1, "Country is required"),
-  notes: z.string().optional(),
-});
+const checkoutSchema = z
+  .object({
+    customerName: z.string().min(1, "Name is required"),
+    customerEmail: z.string().email("Invalid email address"),
+    customerPhone: z.string().min(3, "Phone number is required"),
+    useDefaultAddress: z.boolean(),
+    classroom: z.string().optional(),
+    shippingAddress: z.string().optional(),
+    city: z.string().optional(),
+    postalCode: z.string().optional(),
+    country: z.string().optional(),
+    notes: z.string().optional(),
+  })
+  .superRefine((values, ctx) => {
+    if (values.useDefaultAddress) {
+      if (!values.classroom || values.classroom.trim().length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["classroom"],
+          message: "Classroom Number is required",
+        });
+      }
+    } else {
+      if (!values.shippingAddress || values.shippingAddress.trim().length === 0) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["shippingAddress"], message: "Address is required" });
+      }
+      if (!values.city || values.city.trim().length === 0) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["city"], message: "City is required" });
+      }
+      if (!values.postalCode || values.postalCode.trim().length === 0) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["postalCode"], message: "Postal code is required" });
+      }
+      if (!values.country || values.country.trim().length === 0) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["country"], message: "Country is required" });
+      }
+    }
+  });
+
+type CheckoutValues = z.infer<typeof checkoutSchema>;
 
 export default function Checkout() {
   const [, setLocation] = useLocation();
@@ -34,17 +62,26 @@ export default function Checkout() {
   const createOrder = useCreateOrder();
   const queryClient = useQueryClient();
 
+  const hasDefaultAddress = Boolean(
+    content?.defaultShippingAddress &&
+      content?.defaultShippingCity &&
+      content?.defaultShippingPostalCode &&
+      content?.defaultShippingCountry,
+  );
+
   const subtotalCents = enrichedItems.reduce((sum, item) => {
     const price = item.product?.priceCents || 0;
     return sum + price * item.quantity;
   }, 0);
 
-  const form = useForm<z.infer<typeof checkoutSchema>>({
+  const form = useForm<CheckoutValues>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
       customerName: "",
       customerEmail: "",
       customerPhone: "",
+      useDefaultAddress: hasDefaultAddress,
+      classroom: "",
       shippingAddress: "",
       city: "",
       postalCode: "",
@@ -53,7 +90,9 @@ export default function Checkout() {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof checkoutSchema>) => {
+  const useDefaultAddress = form.watch("useDefaultAddress");
+
+  const onSubmit = (values: CheckoutValues) => {
     if (itemCount === 0) {
       toast.error("Your cart is empty");
       return;
@@ -64,7 +103,30 @@ export default function Checkout() {
       quantity: item.quantity,
     }));
 
-    createOrder.mutate({ data: { ...values, items } }, {
+    const payload = values.useDefaultAddress
+      ? {
+          customerName: values.customerName,
+          customerEmail: values.customerEmail,
+          customerPhone: values.customerPhone,
+          useDefaultAddress: true,
+          classroom: values.classroom?.trim() ?? "",
+          notes: values.notes,
+          items,
+        }
+      : {
+          customerName: values.customerName,
+          customerEmail: values.customerEmail,
+          customerPhone: values.customerPhone,
+          useDefaultAddress: false,
+          shippingAddress: values.shippingAddress?.trim() ?? "",
+          city: values.city?.trim() ?? "",
+          postalCode: values.postalCode?.trim() ?? "",
+          country: values.country?.trim() ?? "",
+          notes: values.notes,
+          items,
+        };
+
+    createOrder.mutate({ data: payload }, {
       onSuccess: (order) => {
         clear();
         queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
@@ -91,6 +153,8 @@ export default function Checkout() {
       </div>
     );
   }
+
+  const defaultLabel = content?.defaultShippingLabel?.trim() || "Ship to default address";
 
   return (
     <div 
@@ -146,29 +210,102 @@ export default function Checkout() {
 
                 <div className="bg-white p-8 md:p-10 border border-black/5 space-y-8">
                   <h2 className="text-xl font-bold border-b border-black/10 pb-4">Shipping Address</h2>
-                  <div className="space-y-6">
-                    <FormField control={form.control} name="shippingAddress" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs uppercase tracking-widest text-black/50 font-bold">Street Address</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-12 bg-transparent border-black/20 rounded-none focus-visible:ring-0 focus-visible:border-black shadow-none" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <FormField control={form.control} name="city" render={({ field }) => (
+
+                  <div className="space-y-4">
+                    <button
+                      type="button"
+                      onClick={() => hasDefaultAddress && form.setValue("useDefaultAddress", true, { shouldValidate: true })}
+                      disabled={!hasDefaultAddress}
+                      className={`w-full text-left p-6 flex items-start gap-4 transition-colors ${
+                        useDefaultAddress
+                          ? "border-2 border-black bg-[#FAF7F2]/50"
+                          : "border border-black/15 hover:border-black/40 bg-white"
+                      } ${!hasDefaultAddress ? "opacity-50 cursor-not-allowed" : ""}`}
+                    >
+                      <div className={`mt-1 w-5 h-5 rounded-full border-4 flex items-center justify-center shrink-0 ${useDefaultAddress ? "border-black" : "border-black/30"}`}>
+                        {useDefaultAddress && <div className="w-2 h-2 bg-black rounded-full"></div>}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-lg mb-1">{defaultLabel}</h3>
+                        {hasDefaultAddress ? (
+                          <p className="text-black/60 font-medium leading-relaxed text-sm">
+                            {content?.defaultShippingAddress}, {content?.defaultShippingCity}, {content?.defaultShippingPostalCode}, {content?.defaultShippingCountry}
+                          </p>
+                        ) : (
+                          <p className="text-black/50 font-medium leading-relaxed text-sm italic">
+                            No default address has been configured yet.
+                          </p>
+                        )}
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => form.setValue("useDefaultAddress", false, { shouldValidate: true })}
+                      className={`w-full text-left p-6 flex items-start gap-4 transition-colors ${
+                        !useDefaultAddress
+                          ? "border-2 border-black bg-[#FAF7F2]/50"
+                          : "border border-black/15 hover:border-black/40 bg-white"
+                      }`}
+                    >
+                      <div className={`mt-1 w-5 h-5 rounded-full border-4 flex items-center justify-center shrink-0 ${!useDefaultAddress ? "border-black" : "border-black/30"}`}>
+                        {!useDefaultAddress && <div className="w-2 h-2 bg-black rounded-full"></div>}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-lg mb-1">Custom address</h3>
+                        <p className="text-black/60 font-medium leading-relaxed text-sm">
+                          Ship to a different address you enter yourself.
+                        </p>
+                      </div>
+                    </button>
+                  </div>
+
+                  {useDefaultAddress ? (
+                    <div className="space-y-6 pt-2">
+                      <FormField control={form.control} name="classroom" render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs uppercase tracking-widest text-black/50 font-bold">City</FormLabel>
+                          <FormLabel className="text-xs uppercase tracking-widest text-black/50 font-bold">Classroom Number</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g. Room 204" className="h-12 bg-transparent border-black/20 rounded-none focus-visible:ring-0 focus-visible:border-black shadow-none" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                    </div>
+                  ) : (
+                    <div className="space-y-6 pt-2">
+                      <FormField control={form.control} name="shippingAddress" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs uppercase tracking-widest text-black/50 font-bold">Street Address</FormLabel>
                           <FormControl>
                             <Input {...field} className="h-12 bg-transparent border-black/20 rounded-none focus-visible:ring-0 focus-visible:border-black shadow-none" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )} />
-                      <FormField control={form.control} name="postalCode" render={({ field }) => (
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <FormField control={form.control} name="city" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs uppercase tracking-widest text-black/50 font-bold">City</FormLabel>
+                            <FormControl>
+                              <Input {...field} className="h-12 bg-transparent border-black/20 rounded-none focus-visible:ring-0 focus-visible:border-black shadow-none" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                        <FormField control={form.control} name="postalCode" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs uppercase tracking-widest text-black/50 font-bold">Postal Code</FormLabel>
+                            <FormControl>
+                              <Input {...field} className="h-12 bg-transparent border-black/20 rounded-none focus-visible:ring-0 focus-visible:border-black shadow-none" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                      </div>
+                      <FormField control={form.control} name="country" render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs uppercase tracking-widest text-black/50 font-bold">Postal Code</FormLabel>
+                          <FormLabel className="text-xs uppercase tracking-widest text-black/50 font-bold">Country</FormLabel>
                           <FormControl>
                             <Input {...field} className="h-12 bg-transparent border-black/20 rounded-none focus-visible:ring-0 focus-visible:border-black shadow-none" />
                           </FormControl>
@@ -176,16 +313,7 @@ export default function Checkout() {
                         </FormItem>
                       )} />
                     </div>
-                    <FormField control={form.control} name="country" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs uppercase tracking-widest text-black/50 font-bold">Country</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-12 bg-transparent border-black/20 rounded-none focus-visible:ring-0 focus-visible:border-black shadow-none" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                  </div>
+                  )}
                 </div>
 
                 <div className="bg-white p-8 md:p-10 border border-black/5 space-y-8">

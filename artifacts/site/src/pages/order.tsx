@@ -77,6 +77,9 @@ export default function Order() {
             <div>
               <h3 className="text-xs uppercase tracking-widest text-black/50 font-bold mb-4">Shipping Address</h3>
               <div className="font-medium space-y-1">
+                {order.useDefaultAddress && order.classroom && (
+                  <p className="font-bold">Classroom {order.classroom}</p>
+                )}
                 <p>{order.shippingAddress}</p>
                 <p>{order.city}, {order.postalCode}</p>
                 <p>{order.country}</p>

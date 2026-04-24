@@ -14,14 +14,12 @@ export interface CreateOrder {
   customerEmail: string;
   /** @minLength 3 */
   customerPhone: string;
-  /** @minLength 1 */
-  shippingAddress: string;
-  /** @minLength 1 */
-  city: string;
-  /** @minLength 1 */
-  postalCode: string;
-  /** @minLength 1 */
-  country: string;
+  useDefaultAddress: boolean;
+  shippingAddress?: string;
+  city?: string;
+  postalCode?: string;
+  country?: string;
+  classroom?: string;
   notes?: string;
   /** @minItems 1 */
   items: CreateOrderItem[];

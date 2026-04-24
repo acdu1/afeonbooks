@@ -21,5 +21,10 @@ export interface SiteContent {
   illustratorLine: string;
   footerNote: string;
   accentColor: string;
+  defaultShippingLabel: string;
+  defaultShippingAddress: string;
+  defaultShippingCity: string;
+  defaultShippingPostalCode: string;
+  defaultShippingCountry: string;
   updatedAt: string;
 }

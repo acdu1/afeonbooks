@@ -24,6 +24,11 @@ export interface SiteContent {
   illustratorLine: string;
   footerNote: string;
   accentColor: string;
+  defaultShippingLabel: string;
+  defaultShippingAddress: string;
+  defaultShippingCity: string;
+  defaultShippingPostalCode: string;
+  defaultShippingCountry: string;
   updatedAt: string;
 }
 
@@ -41,6 +46,11 @@ export interface UpdateSiteContent {
   illustratorLine: string;
   footerNote: string;
   accentColor: string;
+  defaultShippingLabel: string;
+  defaultShippingAddress: string;
+  defaultShippingCity: string;
+  defaultShippingPostalCode: string;
+  defaultShippingCountry: string;
 }
 
 export interface Product {
@@ -89,6 +99,8 @@ export interface Order {
   city: string;
   postalCode: string;
   country: string;
+  classroom?: string;
+  useDefaultAddress: boolean;
   notes?: string;
   paymentMethod: string;
   status: string;
@@ -113,14 +125,12 @@ export interface CreateOrder {
   customerEmail: string;
   /** @minLength 3 */
   customerPhone: string;
-  /** @minLength 1 */
-  shippingAddress: string;
-  /** @minLength 1 */
-  city: string;
-  /** @minLength 1 */
-  postalCode: string;
-  /** @minLength 1 */
-  country: string;
+  useDefaultAddress: boolean;
+  shippingAddress?: string;
+  city?: string;
+  postalCode?: string;
+  country?: string;
+  classroom?: string;
   notes?: string;
   /** @minItems 1 */
   items: CreateOrderItem[];
