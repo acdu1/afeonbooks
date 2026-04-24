@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "Editable Site"
+title = "AFEON Books"
 version = "1.0.0"
 id = "artifacts/site"
 router = "path"
