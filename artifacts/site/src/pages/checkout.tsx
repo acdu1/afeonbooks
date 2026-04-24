@@ -198,7 +198,7 @@ export default function Checkout() {
                     )} />
                     <FormField control={form.control} name="customerPhone" render={({ field }) => (
                       <FormItem className="md:col-span-2">
-                        <FormLabel className="text-xs uppercase tracking-widest text-black/50 font-bold">Phone Number</FormLabel>
+                        <FormLabel className="text-xs uppercase tracking-widest text-black/50 font-bold">Student ID (s100)</FormLabel>
                         <FormControl>
                           <Input type="tel" {...field} className="h-12 bg-transparent border-black/20 rounded-none focus-visible:ring-0 focus-visible:border-black shadow-none" />
                         </FormControl>
