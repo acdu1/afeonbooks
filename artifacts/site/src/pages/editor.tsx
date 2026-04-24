@@ -623,6 +623,7 @@ export default function Editor() {
                     <th className="pb-4 pr-4">Order ID</th>
                     <th className="pb-4 px-4">Date</th>
                     <th className="pb-4 px-4">Customer</th>
+                    <th className="pb-4 px-4">Source</th>
                     <th className="pb-4 px-4">Total</th>
                     <th className="pb-4 px-4">Status</th>
                     <th className="pb-4 pl-4 text-right">Action</th>
@@ -636,6 +637,23 @@ export default function Editor() {
                       <td className="py-4 px-4">
                         <p>{o.customerName}</p>
                         <p className="text-xs text-black/50">{o.city}, {o.country}</p>
+                      </td>
+                      <td className="py-4 px-4">
+                        {o.utmSource ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-[11px] uppercase tracking-wider font-bold">
+                              {o.utmSource}
+                              {o.utmMedium ? ` · ${o.utmMedium}` : ""}
+                            </span>
+                            {o.utmCampaign && (
+                              <span className="text-xs text-black/50 truncate max-w-[160px]" title={o.utmCampaign}>
+                                {o.utmCampaign}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-black/30">Direct</span>
+                        )}
                       </td>
                       <td className="py-4 px-4">{formatPrice(o.totalCents, o.currency)}</td>
                       <td className="py-4 px-4">
@@ -652,7 +670,7 @@ export default function Editor() {
                   ))}
                   {(!orders || orders.length === 0) && (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-black/50">No orders yet.</td>
+                      <td colSpan={7} className="py-12 text-center text-black/50">No orders yet.</td>
                     </tr>
                   )}
                 </tbody>

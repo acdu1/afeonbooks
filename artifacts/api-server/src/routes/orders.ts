@@ -39,6 +39,13 @@ function serializeOrder(o: OrderRow, items: OrderItemRow[]) {
     shippingCents: o.shippingCents,
     totalCents: o.totalCents,
     currency: o.currency,
+    utmSource: o.utmSource ?? undefined,
+    utmMedium: o.utmMedium ?? undefined,
+    utmCampaign: o.utmCampaign ?? undefined,
+    utmTerm: o.utmTerm ?? undefined,
+    utmContent: o.utmContent ?? undefined,
+    referrer: o.referrer ?? undefined,
+    landingPage: o.landingPage ?? undefined,
     createdAt: o.createdAt.toISOString(),
     items: items.map((it) => ({
       id: it.id,
@@ -230,6 +237,13 @@ router.post("/orders", async (req, res): Promise<void> => {
         shippingCents: shipping,
         totalCents: total,
         currency,
+        utmSource: body.utmSource ?? null,
+        utmMedium: body.utmMedium ?? null,
+        utmCampaign: body.utmCampaign ?? null,
+        utmTerm: body.utmTerm ?? null,
+        utmContent: body.utmContent ?? null,
+        referrer: body.referrer ?? null,
+        landingPage: body.landingPage ?? null,
       })
       .returning();
     const order = inserted[0]!;

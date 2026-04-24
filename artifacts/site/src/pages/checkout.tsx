@@ -13,6 +13,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart";
+import { useUtm, utmPayload } from "@/lib/utm";
 import { toast } from "sonner";
 
 const checkoutSchema = z
@@ -59,6 +60,7 @@ export default function Checkout() {
   const [, setLocation] = useLocation();
   const { data: content } = useGetContent();
   const { enrichedItems, itemCount, clear } = useCart();
+  const { utm, clear: clearUtm } = useUtm();
   const createOrder = useCreateOrder();
   const queryClient = useQueryClient();
 
@@ -103,6 +105,7 @@ export default function Checkout() {
       quantity: item.quantity,
     }));
 
+    const utmFields = utmPayload(utm);
     const payload = values.useDefaultAddress
       ? {
           customerName: values.customerName,
@@ -112,6 +115,7 @@ export default function Checkout() {
           classroom: values.classroom?.trim() ?? "",
           notes: values.notes,
           items,
+          ...utmFields,
         }
       : {
           customerName: values.customerName,
@@ -124,11 +128,13 @@ export default function Checkout() {
           country: values.country?.trim() ?? "",
           notes: values.notes,
           items,
+          ...utmFields,
         };
 
     createOrder.mutate({ data: payload }, {
       onSuccess: (order) => {
         clear();
+        clearUtm();
         queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetOrdersSummaryQueryKey() });
         setLocation(`/order/${order.id}`);

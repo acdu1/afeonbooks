@@ -216,6 +216,13 @@ export const ListOrdersResponseItem = zod.object({
   totalCents: zod.number(),
   currency: zod.string(),
   createdAt: zod.string(),
+  utmSource: zod.string().optional(),
+  utmMedium: zod.string().optional(),
+  utmCampaign: zod.string().optional(),
+  utmTerm: zod.string().optional(),
+  utmContent: zod.string().optional(),
+  referrer: zod.string().optional(),
+  landingPage: zod.string().optional(),
   items: zod.array(
     zod.object({
       id: zod.number(),
@@ -243,6 +250,13 @@ export const CreateOrderBody = zod.object({
   country: zod.string().optional(),
   classroom: zod.string().optional(),
   notes: zod.string().optional(),
+  utmSource: zod.string().optional(),
+  utmMedium: zod.string().optional(),
+  utmCampaign: zod.string().optional(),
+  utmTerm: zod.string().optional(),
+  utmContent: zod.string().optional(),
+  referrer: zod.string().optional(),
+  landingPage: zod.string().optional(),
   items: zod
     .array(
       zod.object({
@@ -276,6 +290,13 @@ export const GetOrderResponse = zod.object({
   totalCents: zod.number(),
   currency: zod.string(),
   createdAt: zod.string(),
+  utmSource: zod.string().optional(),
+  utmMedium: zod.string().optional(),
+  utmCampaign: zod.string().optional(),
+  utmTerm: zod.string().optional(),
+  utmContent: zod.string().optional(),
+  referrer: zod.string().optional(),
+  landingPage: zod.string().optional(),
   items: zod.array(
     zod.object({
       id: zod.number(),

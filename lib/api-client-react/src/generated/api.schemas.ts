@@ -129,6 +129,13 @@ export interface Order {
   totalCents: number;
   currency: string;
   createdAt: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmTerm?: string;
+  utmContent?: string;
+  referrer?: string;
+  landingPage?: string;
   items: OrderItem[];
 }
 
@@ -152,6 +159,13 @@ export interface CreateOrder {
   country?: string;
   classroom?: string;
   notes?: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmTerm?: string;
+  utmContent?: string;
+  referrer?: string;
+  landingPage?: string;
   /** @minItems 1 */
   items: CreateOrderItem[];
 }
