@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -30,7 +31,35 @@ function Router() {
   );
 }
 
+function useImageProtection() {
+  useEffect(() => {
+    const onContextMenu = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (target.closest(".allow-select")) return;
+      if (target.tagName === "IMG" || target.closest("img")) {
+        e.preventDefault();
+      }
+    };
+    const onDragStart = (e: DragEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (target.closest(".allow-select")) return;
+      if (target.tagName === "IMG") {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener("contextmenu", onContextMenu);
+    document.addEventListener("dragstart", onDragStart);
+    return () => {
+      document.removeEventListener("contextmenu", onContextMenu);
+      document.removeEventListener("dragstart", onDragStart);
+    };
+  }, []);
+}
+
 function App() {
+  useImageProtection();
   return (
     <QueryClientProvider client={queryClient}>
       <UtmProvider>
