@@ -1,9 +1,14 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { useListProducts } from "@workspace/api-client-react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import { useListProducts, type Product } from "@workspace/api-client-react";
+import { MiniCart } from "@/components/mini-cart";
 
 export interface CartItem {
   productId: number;
   quantity: number;
+}
+
+export interface EnrichedCartItem extends CartItem {
+  product?: Product;
 }
 
 interface CartContextValue {
@@ -13,7 +18,11 @@ interface CartContextValue {
   updateQty: (productId: number, quantity: number) => void;
   clear: () => void;
   itemCount: number;
-  enrichedItems: Array<CartItem & { product?: any }>;
+  enrichedItems: EnrichedCartItem[];
+  isOpen: boolean;
+  openCart: () => void;
+  closeCart: () => void;
+  lastAddedId: number | null;
 }
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
@@ -27,12 +36,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return [];
     }
   });
+  const [isOpen, setIsOpen] = useState(false);
+  const [lastAddedId, setLastAddedId] = useState<number | null>(null);
+  const isFirstRender = useRef(true);
 
   const { data: products } = useListProducts();
 
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(items));
   }, [items]);
+
+  // Skip auto-open on initial mount (loading from localStorage shouldn't pop the cart)
+  useEffect(() => {
+    isFirstRender.current = false;
+  }, []);
 
   const addItem = (productId: number, quantity: number = 1) => {
     setItems((prev) => {
@@ -44,6 +61,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
       return [...prev, { productId, quantity }];
     });
+    setLastAddedId(productId);
+    setIsOpen(true);
   };
 
   const removeItem = (productId: number) => {
@@ -60,14 +79,32 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
-  const enrichedItems = items.map((item) => ({
+  const enrichedItems: EnrichedCartItem[] = items.map((item) => ({
     ...item,
     product: products?.find((p) => p.id === item.productId),
   }));
 
+  const openCart = () => setIsOpen(true);
+  const closeCart = () => setIsOpen(false);
+
   return (
-    <CartContext.Provider value={{ items, addItem, removeItem, updateQty, clear, itemCount, enrichedItems }}>
+    <CartContext.Provider
+      value={{
+        items,
+        addItem,
+        removeItem,
+        updateQty,
+        clear,
+        itemCount,
+        enrichedItems,
+        isOpen,
+        openCart,
+        closeCart,
+        lastAddedId,
+      }}
+    >
       {children}
+      <MiniCart />
     </CartContext.Provider>
   );
 }

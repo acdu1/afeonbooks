@@ -7,7 +7,7 @@ interface SiteHeaderProps {
 }
 
 export function SiteHeader({ simple = false }: SiteHeaderProps) {
-  const { itemCount } = useCart();
+  const { itemCount, openCart } = useCart();
 
   return (
     <header className="px-6 py-8">
@@ -24,14 +24,19 @@ export function SiteHeader({ simple = false }: SiteHeaderProps) {
               <Link href="/shop" className="text-[15px] font-medium tracking-wide hover:opacity-70 transition-opacity">
                 Shop
               </Link>
-              <Link href="/cart" className="relative cursor-pointer hover:opacity-70 transition-opacity flex items-center">
+              <button
+                type="button"
+                onClick={openCart}
+                aria-label="Open cart"
+                className="relative cursor-pointer hover:opacity-70 transition-opacity flex items-center"
+              >
                 <ShoppingBag className="w-5 h-5 stroke-[1.5]" />
                 {itemCount > 0 && (
                   <span className="absolute -top-1.5 -right-2 bg-[var(--theme-accent,black)] text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
                     {itemCount}
                   </span>
                 )}
-              </Link>
+              </button>
             </>
           ) : (
             <Link href="/" className="text-[15px] font-medium tracking-wide hover:opacity-70 transition-opacity">
