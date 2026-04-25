@@ -14,6 +14,10 @@ import {
   GetOrderResponse,
   ListOrdersResponse,
   GetOrdersSummaryResponse,
+  UpdateOrderStatusParams,
+  UpdateOrderStatusBody,
+  UpdateOrderStatusResponse,
+  DeleteOrderParams,
 } from "@workspace/api-zod";
 import { asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { sendOrderConfirmation } from "../lib/email";
@@ -278,6 +282,38 @@ router.post("/orders", async (req, res): Promise<void> => {
   }
 
   res.status(201).json(GetOrderResponse.parse(serializeOrder(created.order, created.items)));
+});
+
+router.patch("/orders/:id", async (req, res): Promise<void> => {
+  const { id } = UpdateOrderStatusParams.parse(req.params);
+  const body = UpdateOrderStatusBody.parse(req.body);
+  const updated = await db
+    .update(ordersTable)
+    .set({ status: body.status })
+    .where(eq(ordersTable.id, id))
+    .returning();
+  if (!updated[0]) {
+    res.status(404).json({ error: "not found" });
+    return;
+  }
+  const items = await db
+    .select()
+    .from(orderItemsTable)
+    .where(eq(orderItemsTable.orderId, id));
+  res.json(UpdateOrderStatusResponse.parse(serializeOrder(updated[0], items)));
+});
+
+router.delete("/orders/:id", async (req, res): Promise<void> => {
+  const { id } = DeleteOrderParams.parse(req.params);
+  const deleted = await db
+    .delete(ordersTable)
+    .where(eq(ordersTable.id, id))
+    .returning({ id: ordersTable.id });
+  if (!deleted[0]) {
+    res.status(404).json({ error: "not found" });
+    return;
+  }
+  res.status(204).send();
 });
 
 export default router;

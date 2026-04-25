@@ -17,4 +17,6 @@ export * from "./ordersSummary";
 export * from "./product";
 export * from "./sendTestEmail";
 export * from "./siteContent";
+export * from "./updateOrderStatus";
+export * from "./updateOrderStatusStatus";
 export * from "./updateSiteContent";

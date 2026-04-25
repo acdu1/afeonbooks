@@ -308,6 +308,61 @@ export const GetOrderResponse = zod.object({
   ),
 });
 
+export const UpdateOrderStatusParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateOrderStatusBody = zod.object({
+  status: zod.enum([
+    "pending",
+    "confirmed",
+    "shipped",
+    "delivered",
+    "cancelled",
+  ]),
+});
+
+export const UpdateOrderStatusResponse = zod.object({
+  id: zod.number(),
+  customerName: zod.string(),
+  customerEmail: zod.string(),
+  customerPhone: zod.string(),
+  shippingAddress: zod.string(),
+  city: zod.string(),
+  postalCode: zod.string(),
+  country: zod.string(),
+  classroom: zod.string().optional(),
+  useDefaultAddress: zod.boolean(),
+  notes: zod.string().optional(),
+  paymentMethod: zod.string(),
+  status: zod.string(),
+  subtotalCents: zod.number(),
+  shippingCents: zod.number(),
+  totalCents: zod.number(),
+  currency: zod.string(),
+  createdAt: zod.string(),
+  utmSource: zod.string().optional(),
+  utmMedium: zod.string().optional(),
+  utmCampaign: zod.string().optional(),
+  utmTerm: zod.string().optional(),
+  utmContent: zod.string().optional(),
+  referrer: zod.string().optional(),
+  landingPage: zod.string().optional(),
+  items: zod.array(
+    zod.object({
+      id: zod.number(),
+      productId: zod.number(),
+      productName: zod.string(),
+      quantity: zod.number(),
+      unitPriceCents: zod.number(),
+    }),
+  ),
+});
+
+export const DeleteOrderParams = zod.object({
+  id: zod.coerce.number(),
+});
+
 export const sendTestEmailBodyToMin = 3;
 
 export const SendTestEmailBody = zod.object({

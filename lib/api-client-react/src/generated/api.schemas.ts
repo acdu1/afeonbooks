@@ -170,6 +170,21 @@ export interface CreateOrder {
   items: CreateOrderItem[];
 }
 
+export type UpdateOrderStatusStatus =
+  (typeof UpdateOrderStatusStatus)[keyof typeof UpdateOrderStatusStatus];
+
+export const UpdateOrderStatusStatus = {
+  pending: "pending",
+  confirmed: "confirmed",
+  shipped: "shipped",
+  delivered: "delivered",
+  cancelled: "cancelled",
+} as const;
+
+export interface UpdateOrderStatus {
+  status: UpdateOrderStatusStatus;
+}
+
 export interface SendTestEmail {
   /** @minLength 3 */
   to: string;

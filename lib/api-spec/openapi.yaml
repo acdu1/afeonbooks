@@ -159,6 +159,36 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Order" }
+    patch:
+      operationId: updateOrderStatus
+      tags: [orders]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateOrderStatus" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+    delete:
+      operationId: deleteOrder
+      tags: [orders]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
   /email/test:
     post:
       operationId: sendTestEmail
@@ -352,6 +382,13 @@ components:
           minItems: 1
           items: { $ref: "#/components/schemas/CreateOrderItem" }
       required: [customerName, customerEmail, customerPhone, useDefaultAddress, items]
+    UpdateOrderStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, confirmed, shipped, delivered, cancelled]
+      required: [status]
     SendTestEmail:
       type: object
       properties:

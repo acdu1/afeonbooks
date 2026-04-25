@@ -22,10 +22,31 @@ import {
   useUpdateProduct,
   useDeleteProduct,
   useListOrders,
+  useUpdateOrderStatus,
+  useDeleteOrder,
   useSendTestEmail,
   getGetContentQueryKey,
   getListProductsQueryKey,
+  getListOrdersQueryKey,
+  getGetOrdersSummaryQueryKey,
 } from "@workspace/api-client-react";
+import type { UpdateOrderStatusStatus } from "@workspace/api-client-react";
+
+const ORDER_STATUSES: UpdateOrderStatusStatus[] = [
+  "pending",
+  "confirmed",
+  "shipped",
+  "delivered",
+  "cancelled",
+];
+
+const STATUS_STYLES: Record<string, string> = {
+  pending: "bg-amber-100 text-amber-800 border-amber-200",
+  confirmed: "bg-blue-100 text-blue-800 border-blue-200",
+  shipped: "bg-indigo-100 text-indigo-800 border-indigo-200",
+  delivered: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  cancelled: "bg-red-100 text-red-700 border-red-200",
+};
 
 // --- Content Editor Schema ---
 const contentSchema = z.object({
@@ -83,7 +104,38 @@ export default function Editor() {
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
+  const updateOrderStatus = useUpdateOrderStatus();
+  const deleteOrder = useDeleteOrder();
   const sendTestEmail = useSendTestEmail();
+
+  const handleStatusChange = (orderId: number, status: UpdateOrderStatusStatus) => {
+    updateOrderStatus.mutate(
+      { id: orderId, data: { status } },
+      {
+        onSuccess: () => {
+          toast.success(`Order #${orderId} marked as ${status}`);
+          queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetOrdersSummaryQueryKey() });
+        },
+        onError: () => toast.error("Failed to update status"),
+      }
+    );
+  };
+
+  const handleDeleteOrder = (orderId: number) => {
+    if (!confirm(`Permanently delete order #${orderId}? This cannot be undone.`)) return;
+    deleteOrder.mutate(
+      { id: orderId },
+      {
+        onSuccess: () => {
+          toast.success(`Order #${orderId} deleted`);
+          queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetOrdersSummaryQueryKey() });
+        },
+        onError: () => toast.error("Failed to delete order"),
+      }
+    );
+  };
 
   const queryClient = useQueryClient();
 
@@ -660,13 +712,32 @@ export default function Editor() {
                       </td>
                       <td className="py-4 px-4">{formatPrice(o.totalCents, o.currency)}</td>
                       <td className="py-4 px-4">
-                        <span className="bg-amber-100 text-amber-800 text-[10px] uppercase font-bold px-2 py-1 rounded-full">
-                          {o.status}
-                        </span>
+                        <select
+                          value={o.status}
+                          onChange={(e) => handleStatusChange(o.id, e.target.value as UpdateOrderStatusStatus)}
+                          disabled={updateOrderStatus.isPending}
+                          aria-label={`Status for order ${o.id}`}
+                          className={`text-[10px] uppercase font-bold px-2 py-1 rounded-full border cursor-pointer outline-none focus:ring-2 focus:ring-black/30 transition-colors ${STATUS_STYLES[o.status] ?? "bg-gray-100 text-gray-700 border-gray-200"}`}
+                        >
+                          {ORDER_STATUSES.map((s) => (
+                            <option key={s} value={s} className="bg-white text-black normal-case">
+                              {s}
+                            </option>
+                          ))}
+                        </select>
                       </td>
-                      <td className="py-4 pl-4 text-right">
+                      <td className="py-4 pl-4 text-right whitespace-nowrap">
                         <Button asChild variant="ghost" size="sm" className="rounded-none text-xs uppercase tracking-widest font-bold">
                           <Link href={`/order/${o.id}`}>View</Link>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteOrder(o.id)}
+                          disabled={deleteOrder.isPending}
+                          className="rounded-none text-xs uppercase tracking-widest font-bold text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </td>
                     </tr>
