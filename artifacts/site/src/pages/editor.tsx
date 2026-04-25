@@ -13,6 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { formatPrice } from "@/lib/format";
 import { renderEmailPreview } from "@/lib/email-preview";
 import { Edit2, Trash2, Send } from "lucide-react";
+import xlogo from "@assets/xlogo_1777093198435.png";
 import {
   useGetContent,
   useUpdateContent,
@@ -276,7 +277,9 @@ export default function Editor() {
       <header className="bg-white border-b border-black/10 sticky top-0 z-50 px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link href="/" className="w-8 h-8 bg-black rounded-full block"></Link>
+            <Link href="/" aria-label="Home" className="w-9 h-9 flex items-center justify-center hover:opacity-80 transition-opacity">
+              <img src={xlogo} alt="" className="w-full h-full object-contain" draggable={false} />
+            </Link>
             <h1 className="font-bold text-xl tracking-tight">Admin Dashboard</h1>
           </div>
           <div className="flex gap-4">
