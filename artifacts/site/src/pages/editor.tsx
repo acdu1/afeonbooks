@@ -273,7 +273,7 @@ export default function Editor() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF7F2] pb-20 font-sans">
+    <div className="min-h-screen bg-[#FAF7F2] pb-20 font-sans allow-select">
       <header className="bg-white border-b border-black/10 sticky top-0 z-50 px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-8">
