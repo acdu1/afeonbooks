@@ -1,20 +1,49 @@
-import { Link } from "wouter";
+import { useRef } from "react";
+import { Link, useLocation } from "wouter";
 import { ShoppingBag } from "lucide-react";
 import { useCart } from "@/lib/cart";
+import xlogo from "@assets/xlogo_1777093198435.png";
 
 interface SiteHeaderProps {
   simple?: boolean;
 }
 
+const SECRET_TAPS = 8;
+const TAP_WINDOW_MS = 800;
+
 export function SiteHeader({ simple = false }: SiteHeaderProps) {
   const { itemCount, openCart } = useCart();
+  const [, setLocation] = useLocation();
+  const tapCountRef = useRef(0);
+  const lastTapAtRef = useRef(0);
+
+  const handleLogoClick = () => {
+    const now = Date.now();
+    if (now - lastTapAtRef.current > TAP_WINDOW_MS) {
+      tapCountRef.current = 0;
+    }
+    lastTapAtRef.current = now;
+    tapCountRef.current += 1;
+
+    if (tapCountRef.current >= SECRET_TAPS) {
+      tapCountRef.current = 0;
+      setLocation("/editor");
+      return;
+    }
+    setLocation("/");
+  };
 
   return (
     <header className="px-6 py-8">
       <div className="max-w-[1400px] mx-auto flex items-center justify-between">
-        <Link href="/">
-          <div className="w-9 h-9 bg-black rounded-full cursor-pointer hover:opacity-80 transition-opacity" aria-label="Home"></div>
-        </Link>
+        <button
+          type="button"
+          onClick={handleLogoClick}
+          aria-label="Home"
+          className="w-10 h-10 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity focus:outline-none"
+        >
+          <img src={xlogo} alt="" className="w-full h-full object-contain" draggable={false} />
+        </button>
         <nav className="flex items-center gap-8 text-black">
           {!simple ? (
             <>
