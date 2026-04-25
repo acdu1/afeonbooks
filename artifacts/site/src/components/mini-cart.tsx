@@ -30,7 +30,7 @@ export function MiniCart() {
     <Sheet open={isOpen} onOpenChange={(o) => (o ? null : closeCart())}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-md p-0 bg-[#FAF7F2] border-l border-black/10 flex flex-col"
+        className="mini-cart-sheet w-full sm:max-w-md p-0 bg-[#FAF7F2] border-l border-black/10 flex flex-col"
         style={{ "--theme-accent": accent } as React.CSSProperties}
       >
         <SheetHeader className="px-6 py-5 border-b border-black/10 bg-white">
