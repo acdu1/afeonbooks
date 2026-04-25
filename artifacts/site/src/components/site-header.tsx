@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { ShoppingBag } from "lucide-react";
 import { useCart } from "@/lib/cart";
-import xlogo from "@assets/xlogo_1777093198435.png";
+import xlogo from "@assets/logo_web.png";
 
 interface SiteHeaderProps {
   simple?: boolean;
@@ -40,7 +40,7 @@ export function SiteHeader({ simple = false }: SiteHeaderProps) {
           type="button"
           onClick={handleLogoClick}
           aria-label="Home"
-          className="w-10 h-10 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity focus:outline-none"
+          className="h-10 flex items-center justify-center cursor-pointer hover:opacity-100 transition-opacity focus:outline-none"
         >
           <img src={xlogo} alt="" className="w-full h-full object-contain" draggable={false} />
         </button>

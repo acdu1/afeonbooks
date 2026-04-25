@@ -13,7 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { formatPrice } from "@/lib/format";
 import { renderEmailPreview } from "@/lib/email-preview";
 import { Edit2, Trash2, Send } from "lucide-react";
-import xlogo from "@assets/xlogo_1777093198435.png";
+import xlogo from "@assets/logo_web.png";
 import {
   useGetContent,
   useUpdateContent,
