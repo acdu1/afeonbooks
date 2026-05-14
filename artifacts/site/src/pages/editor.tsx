@@ -93,6 +93,103 @@ const productSchema = z.object({
 });
 
 export default function Editor() {
+  const [pinAuthed, setPinAuthed] = useState(() => sessionStorage.getItem("adminAuthed") === "1");
+  const [pinDigits, setPinDigits] = useState(["", "", "", ""]);
+  const [pinError, setPinError] = useState("");
+  const [pinShake, setPinShake] = useState(false);
+  const [pinLoading, setPinLoading] = useState(false);
+  const pinRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
+  const [newPinDigits, setNewPinDigits] = useState(["", "", "", ""]);
+  const [pinChangeMsg, setPinChangeMsg] = useState("");
+  const [pinChanging, setPinChanging] = useState(false);
+  const newPinRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
+
+  const submitPin = async (digits: string[]) => {
+    const pin = digits.join("");
+    if (pin.length !== 4) return;
+    setPinLoading(true);
+    setPinError("");
+    try {
+      const res = await fetch("/api/admin/verify-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin }),
+      });
+      const data = await res.json() as { success?: boolean; error?: string };
+      if (data.success) {
+        sessionStorage.setItem("adminAuthed", "1");
+        setPinAuthed(true);
+      } else {
+        setPinShake(true);
+        setPinError(data.error ?? "Incorrect PIN. Try again.");
+        setPinDigits(["", "", "", ""]);
+        setTimeout(() => { setPinShake(false); pinRefs[0].current?.focus(); }, 600);
+      }
+    } catch {
+      setPinError("Connection error. Please try again.");
+    } finally {
+      setPinLoading(false);
+    }
+  };
+
+  const handlePinKey = (idx: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !pinDigits[idx] && idx > 0) {
+      pinRefs[idx - 1].current?.focus();
+    }
+  };
+
+  const handlePinInput = (idx: number, val: string) => {
+    const digit = val.replace(/\D/g, "").slice(-1);
+    const next = [...pinDigits];
+    next[idx] = digit;
+    setPinDigits(next);
+    if (digit && idx < 3) {
+      pinRefs[idx + 1].current?.focus();
+    } else if (digit && idx === 3) {
+      submitPin(next);
+    }
+  };
+
+  const handleNewPinInput = (idx: number, val: string) => {
+    const digit = val.replace(/\D/g, "").slice(-1);
+    const next = [...newPinDigits];
+    next[idx] = digit;
+    setNewPinDigits(next);
+    if (digit && idx < 3) newPinRefs[idx + 1].current?.focus();
+  };
+
+  const handleNewPinKey = (idx: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !newPinDigits[idx] && idx > 0) {
+      newPinRefs[idx - 1].current?.focus();
+    }
+  };
+
+  const submitNewPin = async () => {
+    const pin = newPinDigits.join("");
+    if (pin.length !== 4) { setPinChangeMsg("Enter all 4 digits."); return; }
+    setPinChanging(true);
+    setPinChangeMsg("");
+    try {
+      const res = await fetch("/api/admin/pin", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newPin: pin }),
+      });
+      const data = await res.json() as { success?: boolean; error?: string };
+      if (data.success) {
+        setNewPinDigits(["", "", "", ""]);
+        setPinChangeMsg("PIN updated successfully.");
+        newPinRefs[0].current?.focus();
+      } else {
+        setPinChangeMsg(data.error ?? "Failed to update PIN.");
+      }
+    } catch {
+      setPinChangeMsg("Connection error.");
+    } finally {
+      setPinChanging(false);
+    }
+  };
+
   const [activeTab, setActiveTab] = useState<"content" | "products" | "orders" | "email">("content");
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [testEmailTo, setTestEmailTo] = useState<string>("");
@@ -322,6 +419,46 @@ export default function Editor() {
     })();
   };
 
+  if (!pinAuthed) {
+    return (
+      <div className="min-h-screen bg-[#FAF7F2] flex flex-col items-center justify-center px-6 allow-select">
+        <style>{`@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}`}</style>
+        <div className="w-full max-w-sm">
+          <div className="text-center mb-10">
+            <img src={xlogo} alt="" className="w-12 h-12 object-contain mx-auto mb-6" draggable={false} />
+            <h1 className="text-2xl font-bold tracking-tight">Admin Access</h1>
+            <p className="text-black/50 text-sm mt-2">Enter your 4-digit PIN to continue</p>
+          </div>
+          <div className={`flex justify-center gap-4 mb-6`} style={pinShake ? { animation: "shake 0.5s ease-in-out" } : {}}>
+            {pinDigits.map((d, i) => (
+              <input
+                key={i}
+                ref={pinRefs[i]}
+                type="tel"
+                inputMode="numeric"
+                maxLength={1}
+                value={d}
+                autoFocus={i === 0}
+                disabled={pinLoading}
+                onChange={(e) => handlePinInput(i, e.target.value)}
+                onKeyDown={(e) => handlePinKey(i, e)}
+                className="w-14 h-16 text-center text-2xl font-bold border-2 border-black/20 bg-white focus:border-black focus:outline-none rounded-none transition-colors disabled:opacity-50"
+              />
+            ))}
+          </div>
+          {pinError && <p className="text-center text-red-600 text-sm font-medium mb-4">{pinError}</p>}
+          <button
+            onClick={() => submitPin(pinDigits)}
+            disabled={pinLoading || pinDigits.join("").length !== 4}
+            className="w-full bg-black text-white py-3 text-sm font-bold uppercase tracking-widest disabled:opacity-40 transition-opacity"
+          >
+            {pinLoading ? "Verifying..." : "Enter"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (contentLoading) {
     return <div className="min-h-screen flex items-center justify-center"><p>Loading...</p></div>;
   }
@@ -499,6 +636,39 @@ export default function Editor() {
                       <img src={coverImageUrl} alt="Cover Preview" className="w-full h-full object-contain mix-blend-multiply" />
                     </div>
                   )}
+                </div>
+
+                <div className="bg-white p-8 border border-black/5 shadow-sm space-y-4">
+                  <h2 className="text-xl font-bold border-b border-black/10 pb-4">Admin PIN</h2>
+                  <p className="text-sm text-black/50">Set a new 4-digit PIN for admin access.</p>
+                  <div className="flex gap-3 justify-start">
+                    {newPinDigits.map((d, i) => (
+                      <input
+                        key={i}
+                        ref={newPinRefs[i]}
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={d}
+                        onChange={(e) => handleNewPinInput(i, e.target.value)}
+                        onKeyDown={(e) => handleNewPinKey(i, e)}
+                        className="w-10 h-12 text-center text-xl font-bold border-2 border-black/20 bg-[#FAF7F2] focus:border-black focus:outline-none rounded-none transition-colors"
+                      />
+                    ))}
+                  </div>
+                  {pinChangeMsg && (
+                    <p className={`text-sm font-medium ${pinChangeMsg.includes("success") ? "text-emerald-600" : "text-red-600"}`}>
+                      {pinChangeMsg}
+                    </p>
+                  )}
+                  <Button
+                    type="button"
+                    onClick={submitNewPin}
+                    disabled={pinChanging || newPinDigits.join("").length !== 4}
+                    className="w-full rounded-none bg-black text-white hover:bg-black/80 uppercase tracking-widest text-xs font-bold disabled:opacity-40"
+                  >
+                    {pinChanging ? "Saving..." : "Update PIN"}
+                  </Button>
                 </div>
               </div>
             </form>
