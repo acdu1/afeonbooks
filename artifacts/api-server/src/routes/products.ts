@@ -33,7 +33,7 @@ router.get("/products", async (_req, res) => {
 router.get("/products/:id", async (req, res): Promise<void> => {
   const { id } = GetProductParams.parse(req.params);
   const rows = await db.select().from(productsTable).where(eq(productsTable.id, id)).limit(1);
-  if (!rows[0]) res.status(404).json({ error: "not found" }); return;
+  if (!rows[0]) { res.status(404).json({ error: "not found" }); return; }
   res.json(GetProductResponse.parse(serialize(rows[0])));
 });
 
@@ -51,7 +51,7 @@ router.put("/products/:id", async (req, res): Promise<void> => {
     .set(body)
     .where(eq(productsTable.id, id))
     .returning();
-  if (!updated[0]) res.status(404).json({ error: "not found" }); return;
+  if (!updated[0]) { res.status(404).json({ error: "not found" }); return; }
   res.json(GetProductResponse.parse(serialize(updated[0])));
 });
 
