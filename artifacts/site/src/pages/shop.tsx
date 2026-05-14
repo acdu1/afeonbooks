@@ -22,9 +22,11 @@ export default function Shop() {
     );
   }
 
+  const ordersEnabled = content?.ordersEnabled !== false;
   const activeProducts = products?.filter((p) => p.active) || [];
 
   const handleAddToCart = (productId: number) => {
+    if (!ordersEnabled) return;
     addItem(productId);
     toast.success("Added to cart");
   };
@@ -35,6 +37,14 @@ export default function Shop() {
       style={{ "--theme-accent": content?.accentColor || "#000" } as React.CSSProperties}
     >
       <SiteHeader />
+
+      {!ordersEnabled && (
+        <div className="w-full bg-amber-50 border-b border-amber-200 px-6 py-4 text-center">
+          <p className="text-amber-800 font-semibold text-sm uppercase tracking-widest">
+            We are not accepting orders at this time. Check back soon!
+          </p>
+        </div>
+      )}
 
       <main className="flex-1 w-full px-6 py-20">
         <div className="max-w-[1400px] mx-auto">
@@ -60,10 +70,10 @@ export default function Shop() {
                   <div className="mt-auto">
                     <Button 
                       onClick={() => handleAddToCart(product.id)}
-                      className="w-full rounded-none bg-black hover:bg-[var(--theme-accent)] text-white py-6 font-bold uppercase tracking-widest text-xs transition-colors"
-                      disabled={product.stock <= 0}
+                      className="w-full rounded-none bg-black hover:bg-[var(--theme-accent)] text-white py-6 font-bold uppercase tracking-widest text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      disabled={product.stock <= 0 || !ordersEnabled}
                     >
-                      {product.stock > 0 ? "Add to Cart" : "Out of Stock"}
+                      {!ordersEnabled ? "Unavailable" : product.stock > 0 ? "Add to Cart" : "Out of Stock"}
                     </Button>
                   </div>
                 </div>

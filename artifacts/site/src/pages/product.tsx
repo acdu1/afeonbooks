@@ -45,7 +45,10 @@ export default function Product() {
     );
   }
 
+  const ordersEnabled = content?.ordersEnabled !== false;
+
   const handleAddToCart = () => {
+    if (!ordersEnabled) return;
     addItem(productId, quantity);
     toast.success(`Added ${quantity} to cart`);
   };
@@ -57,9 +60,16 @@ export default function Product() {
     >
       <SiteHeader />
 
+      {!ordersEnabled && (
+        <div className="w-full bg-amber-50 border-b border-amber-200 px-6 py-4 text-center">
+          <p className="text-amber-800 font-semibold text-sm uppercase tracking-widest">
+            We are not accepting orders at this time. Check back soon!
+          </p>
+        </div>
+      )}
+
       <main className="flex-1 w-full px-6 py-12 md:py-24">
         <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row gap-12 md:gap-24 items-start">
-          {/* Image */}
           <div className="w-full md:w-1/2 bg-white aspect-[3/4] p-8 md:p-16 flex items-center justify-center border border-black/5 sticky top-12">
             <img 
               src={product.imageUrl || "https://placehold.co/800x1200?text=No+Image"} 
@@ -68,7 +78,6 @@ export default function Product() {
             />
           </div>
 
-          {/* Details */}
           <div className="w-full md:w-1/2 flex flex-col pt-8 md:pt-16">
             <Link href="/shop" className="text-sm uppercase tracking-widest font-bold text-black/50 hover:text-black mb-8 transition-colors block">
               ← Back to Shop
@@ -86,7 +95,16 @@ export default function Product() {
               {product.description || "No description provided."}
             </div>
 
-            {product.stock > 0 ? (
+            {!ordersEnabled ? (
+              <div className="mt-auto">
+                <Button 
+                  disabled
+                  className="w-full h-14 rounded-none bg-black/10 text-black/40 font-bold uppercase tracking-widest text-sm"
+                >
+                  Not Available
+                </Button>
+              </div>
+            ) : product.stock > 0 ? (
               <div className="flex flex-col sm:flex-row gap-4 mt-auto">
                 <div className="flex items-center border border-black h-14 w-full sm:w-32 bg-white">
                   <button 
@@ -124,7 +142,7 @@ export default function Product() {
             
             <div className="mt-8 pt-8 border-t border-black/10 flex gap-8 text-sm font-medium text-black/50">
               <p>Free shipping on all orders.</p>
-              <p>{product.stock} in stock.</p>
+              {ordersEnabled && <p>{product.stock} in stock.</p>}
             </div>
           </div>
         </div>

@@ -26,6 +26,7 @@ export interface SiteContent {
   defaultShippingCity: string;
   defaultShippingPostalCode: string;
   defaultShippingCountry: string;
+  ordersEnabled: boolean;
   emailEnabled: boolean;
   emailFromName: string;
   emailFromAddress: string;

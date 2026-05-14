@@ -68,6 +68,7 @@ const contentSchema = z.object({
   defaultShippingCity: z.string(),
   defaultShippingPostalCode: z.string(),
   defaultShippingCountry: z.string(),
+  ordersEnabled: z.boolean(),
   emailEnabled: z.boolean(),
   emailFromName: z.string().min(1, "From name is required"),
   emailFromAddress: z.string().email("Must be a valid email address"),
@@ -151,6 +152,7 @@ export default function Editor() {
       defaultShippingCity: "",
       defaultShippingPostalCode: "",
       defaultShippingCountry: "",
+      ordersEnabled: true,
       emailEnabled: false,
       emailFromName: "AFEON Books",
       emailFromAddress: "onboarding@resend.dev",
@@ -334,9 +336,35 @@ export default function Editor() {
             </Link>
             <h1 className="font-bold text-xl tracking-tight">Admin Dashboard</h1>
           </div>
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
             <Button variant="outline" asChild className="rounded-none border-black/20 hover:bg-black/5">
               <Link href="/">View Site</Link>
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                const current = contentForm.getValues();
+                const newValue = !current.ordersEnabled;
+                contentForm.setValue("ordersEnabled", newValue);
+                updateContent.mutate(
+                  { data: { ...current, ordersEnabled: newValue } },
+                  {
+                    onSuccess: () => toast.success(newValue ? "Now accepting orders" : "Orders paused — store is closed"),
+                    onError: () => {
+                      contentForm.setValue("ordersEnabled", !newValue);
+                      toast.error("Failed to update");
+                    },
+                  }
+                );
+              }}
+              disabled={updateContent.isPending}
+              className={`rounded-none uppercase tracking-widest text-xs font-bold transition-colors ${
+                contentForm.watch("ordersEnabled")
+                  ? "bg-emerald-600 hover:bg-red-600 text-white"
+                  : "bg-red-600 hover:bg-emerald-600 text-white"
+              }`}
+            >
+              {contentForm.watch("ordersEnabled") ? "Accepting Orders" : "Orders Paused"}
             </Button>
             {(activeTab === "content" || activeTab === "email") && (
               <Button

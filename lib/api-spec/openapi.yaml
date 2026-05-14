@@ -242,6 +242,7 @@ components:
         defaultShippingCity: { type: string }
         defaultShippingPostalCode: { type: string }
         defaultShippingCountry: { type: string }
+        ordersEnabled: { type: boolean }
         emailEnabled: { type: boolean }
         emailFromName: { type: string }
         emailFromAddress: { type: string }
@@ -253,7 +254,7 @@ components:
         emailFooter: { type: string }
         emailAccentColor: { type: string }
         updatedAt: { type: string }
-      required: [id, brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor, updatedAt]
+      required: [id, brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, ordersEnabled, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor, updatedAt]
     UpdateSiteContent:
       type: object
       properties:
@@ -275,6 +276,7 @@ components:
         defaultShippingCity: { type: string }
         defaultShippingPostalCode: { type: string }
         defaultShippingCountry: { type: string }
+        ordersEnabled: { type: boolean }
         emailEnabled: { type: boolean }
         emailFromName: { type: string }
         emailFromAddress: { type: string }
@@ -285,7 +287,7 @@ components:
         emailButtonLabel: { type: string }
         emailFooter: { type: string }
         emailAccentColor: { type: string }
-      required: [brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor]
+      required: [brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, ordersEnabled, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor]
     Product:
       type: object
       properties:

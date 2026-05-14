@@ -145,6 +145,21 @@ export default function Checkout() {
     });
   };
 
+  if (content?.ordersEnabled === false) {
+    return (
+      <div className="min-h-screen w-full flex flex-col bg-[#FAF7F2]">
+        <SiteHeader simple />
+        <main className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+          <h1 className="text-3xl font-bold mb-4">Orders are currently paused</h1>
+          <p className="text-black/60 mb-8 max-w-sm">We're not accepting new orders right now. Please check back soon!</p>
+          <Button asChild className="rounded-full bg-black text-white px-8">
+            <Link href="/shop">Back to Shop</Link>
+          </Button>
+        </main>
+      </div>
+    );
+  }
+
   if (itemCount === 0) {
     return (
       <div className="min-h-screen w-full flex flex-col bg-[#FAF7F2]">

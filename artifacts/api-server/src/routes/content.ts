@@ -49,6 +49,7 @@ export function serializeContent(row: SiteContentRow) {
     defaultShippingCity: row.defaultShippingCity,
     defaultShippingPostalCode: row.defaultShippingPostalCode,
     defaultShippingCountry: row.defaultShippingCountry,
+    ordersEnabled: row.ordersEnabled === "true",
     emailEnabled: row.emailEnabled === "true",
     emailFromName: row.emailFromName,
     emailFromAddress: row.emailFromAddress,
@@ -85,11 +86,12 @@ router.get("/content", async (_req, res) => {
 router.put("/content", async (req, res) => {
   const body = UpdateContentBody.parse(req.body);
   const current = await getOrCreateContent();
-  const { emailEnabled, ...rest } = body;
+  const { ordersEnabled, emailEnabled, ...rest } = body;
   const updated = await db
     .update(siteContentTable)
     .set({
       ...rest,
+      ordersEnabled: ordersEnabled ? "true" : "false",
       emailEnabled: emailEnabled ? "true" : "false",
       updatedAt: new Date(),
     })
