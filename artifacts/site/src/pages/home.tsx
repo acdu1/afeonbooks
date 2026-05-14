@@ -36,6 +36,14 @@ export default function Home() {
     >
       <SiteHeader />
 
+      {content.ordersEnabled === false && (
+        <div className="w-full bg-amber-50 border-b border-amber-200 px-6 py-4 text-center">
+          <p className="text-amber-800 font-semibold text-sm uppercase tracking-widest">
+            We are not accepting orders at this time. Check back soon!
+          </p>
+        </div>
+      )}
+
       <main className="flex-1 w-full">
         {/* Hero Section */}
         <section className="w-full min-h-[85vh] flex items-center">
