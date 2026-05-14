@@ -12,8 +12,6 @@ import Product from "@/pages/product";
 import Cart from "@/pages/cart";
 import Checkout from "@/pages/checkout";
 import Order from "@/pages/order";
-import Editor from "@/pages/editor";
-
 const queryClient = new QueryClient();
 
 function Router() {
@@ -25,7 +23,6 @@ function Router() {
       <Route path="/cart" component={Cart} />
       <Route path="/checkout" component={Checkout} />
       <Route path="/order/:id" component={Order} />
-      <Route path="/editor" component={Editor} />
       <Route component={NotFound} />
     </Switch>
   );
