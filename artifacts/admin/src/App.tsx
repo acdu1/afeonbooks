@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Editor from "@/pages/editor";
+import Pos from "@/pages/pos";
 
 const queryClient = new QueryClient();
 
@@ -11,6 +12,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Editor} />
+      <Route path="/pos" component={Pos} />
       <Route component={NotFound} />
     </Switch>
   );
