@@ -20,7 +20,7 @@ export const siteContentTable = pgTable("site_content", {
   defaultShippingCity: text("default_shipping_city").notNull().default(""),
   defaultShippingPostalCode: text("default_shipping_postal_code").notNull().default(""),
   defaultShippingCountry: text("default_shipping_country").notNull().default(""),
-  adminPin: text("admin_pin").notNull().default("1234"),
+  adminPin: text("admin_pin").notNull().default("2026"),
   ordersEnabled: text("orders_enabled").notNull().default("true"),
   emailEnabled: text("email_enabled").notNull().default("false"),
   emailFromName: text("email_from_name").notNull().default("AFEON Books"),
