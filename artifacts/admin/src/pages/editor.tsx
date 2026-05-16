@@ -11,7 +11,8 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatPrice } from "@/lib/format";
 import { renderEmailPreview } from "@/lib/email-preview";
-import { Edit2, Trash2, Send } from "lucide-react";
+import { Edit2, Trash2, Send, Download } from "lucide-react";
+import * as XLSX from "xlsx";
 import xlogo from "@assets/logo_web.png";
 import {
   useGetContent,
@@ -215,6 +216,68 @@ export default function Editor() {
         onError: () => toast.error("Failed to update status"),
       }
     );
+  };
+
+  const exportOrdersToExcel = () => {
+    if (!orders?.length) { toast.error("No orders to export"); return; }
+
+    const fmt = (cents: number) => (cents / 100).toFixed(2);
+    const fmtDate = (iso: string) => new Date(iso).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+
+    const ordersSheet = orders.map((o) => ({
+      "Order #": o.id,
+      "Date": fmtDate(o.createdAt),
+      "Status": o.status,
+      "Customer Name": o.customerName,
+      "Email": o.customerEmail,
+      "Student ID": o.customerPhone ?? "",
+      "Classroom": o.classroom ?? "",
+      "Shipping Address": o.shippingAddress,
+      "City": o.city,
+      "Postal Code": o.postalCode,
+      "Country": o.country,
+      "Use Default Address": o.useDefaultAddress ? "Yes" : "No",
+      "Notes": o.notes ?? "",
+      "Payment Method": o.paymentMethod,
+      "Subtotal ($)": parseFloat(fmt(o.subtotalCents)),
+      "Shipping ($)": parseFloat(fmt(o.shippingCents)),
+      "Total ($)": parseFloat(fmt(o.totalCents)),
+      "Currency": o.currency,
+      "UTM Source": o.utmSource ?? "",
+      "UTM Medium": o.utmMedium ?? "",
+      "UTM Campaign": o.utmCampaign ?? "",
+      "Landing Page": o.landingPage ?? "",
+    }));
+
+    const itemsSheet = orders.flatMap((o) =>
+      o.items.map((it) => ({
+        "Order #": o.id,
+        "Customer": o.customerName,
+        "Product Name": it.productName,
+        "Quantity": it.quantity,
+        "Unit Price ($)": parseFloat(fmt(it.unitPriceCents)),
+        "Line Total ($)": parseFloat(fmt(it.unitPriceCents * it.quantity)),
+      }))
+    );
+
+    const wb = XLSX.utils.book_new();
+
+    const wsOrders = XLSX.utils.json_to_sheet(ordersSheet);
+    wsOrders["!cols"] = [
+      {wch:10},{wch:22},{wch:12},{wch:22},{wch:28},{wch:14},{wch:12},
+      {wch:28},{wch:16},{wch:12},{wch:8},{wch:20},{wch:20},{wch:18},
+      {wch:12},{wch:12},{wch:12},{wch:8},{wch:14},{wch:14},{wch:16},{wch:40},
+    ];
+
+    const wsItems = XLSX.utils.json_to_sheet(itemsSheet);
+    wsItems["!cols"] = [{wch:10},{wch:22},{wch:40},{wch:10},{wch:14},{wch:14}];
+
+    XLSX.utils.book_append_sheet(wb, wsOrders, "Orders");
+    XLSX.utils.book_append_sheet(wb, wsItems, "Order Items");
+
+    const date = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `afeon-orders-${date}.xlsx`);
+    toast.success(`Exported ${orders.length} orders`);
   };
 
   const handleDeleteOrder = (orderId: number) => {
@@ -848,13 +911,24 @@ export default function Editor() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold">Recent Orders ({orders?.length ?? 0})</h2>
-              <a
-                href="/admin/pos"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-widest transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-                POS Checkout
-              </a>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  onClick={exportOrdersToExcel}
+                  disabled={!orders?.length}
+                  className="rounded-none bg-white border border-black/20 text-black hover:bg-black/5 uppercase tracking-widest text-xs font-bold gap-2 h-9 px-4"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Export Excel
+                </Button>
+                <a
+                  href="/admin/pos"
+                  className="inline-flex items-center gap-2 px-4 h-9 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-widest transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                  POS Checkout
+                </a>
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm bg-white border border-black/5 shadow-sm">
