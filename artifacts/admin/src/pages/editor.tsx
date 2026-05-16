@@ -102,6 +102,76 @@ export default function Editor() {
   const [pinChanging, setPinChanging] = useState(false);
   const newPinRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
 
+  const [devTesting, setDevTesting] = useState(false);
+  const [devTestExpiresAt, setDevTestExpiresAt] = useState<Date | null>(null);
+  const [devTestCountdown, setDevTestCountdown] = useState("");
+  const [devTestLoading, setDevTestLoading] = useState(false);
+
+  const fetchDevTestStatus = async () => {
+    try {
+      const res = await fetch("/api/dev-testing/status");
+      const data = await res.json() as { active: boolean; expiresAt: string | null };
+      setDevTesting(data.active);
+      setDevTestExpiresAt(data.active && data.expiresAt ? new Date(data.expiresAt) : null);
+    } catch { /* ignore */ }
+  };
+
+  useEffect(() => {
+    void fetchDevTestStatus();
+    const poll = setInterval(() => void fetchDevTestStatus(), 30_000);
+    return () => clearInterval(poll);
+  }, []);
+
+  useEffect(() => {
+    if (!devTestExpiresAt) { setDevTestCountdown(""); return; }
+    const tick = () => {
+      const remaining = devTestExpiresAt.getTime() - Date.now();
+      if (remaining <= 0) {
+        setDevTesting(false);
+        setDevTestExpiresAt(null);
+        setDevTestCountdown("");
+        queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
+        return;
+      }
+      const m = Math.floor(remaining / 60_000);
+      const s = Math.floor((remaining % 60_000) / 1000);
+      setDevTestCountdown(`${m}:${String(s).padStart(2, "0")}`);
+    };
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, [devTestExpiresAt]);
+
+  const startDevTesting = async () => {
+    if (!confirm("Start a 10-minute dev testing session?\n\nAll changes to orders and product stock will be automatically reverted when the session ends or you click Stop.")) return;
+    setDevTestLoading(true);
+    try {
+      const res = await fetch("/api/dev-testing/start", { method: "POST" });
+      const data = await res.json() as { active?: boolean; expiresAt?: string; error?: string };
+      if (!res.ok) { toast.error(data.error ?? "Failed to start"); return; }
+      setDevTesting(true);
+      setDevTestExpiresAt(data.expiresAt ? new Date(data.expiresAt) : null);
+      toast.success("Dev testing mode active — changes will be reverted on stop");
+    } catch { toast.error("Connection error"); }
+    finally { setDevTestLoading(false); }
+  };
+
+  const stopDevTesting = async () => {
+    if (!confirm("Stop dev testing and revert all changes made during this session?")) return;
+    setDevTestLoading(true);
+    try {
+      const res = await fetch("/api/dev-testing/stop", { method: "POST" });
+      const data = await res.json() as { restored?: boolean; orderCount?: number; error?: string };
+      if (!res.ok) { toast.error(data.error ?? "Failed to stop"); return; }
+      setDevTesting(false);
+      setDevTestExpiresAt(null);
+      toast.success(`Testing session ended — ${data.orderCount ?? 0} orders restored`);
+      queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetOrdersSummaryQueryKey() });
+    } catch { toast.error("Connection error"); }
+    finally { setDevTestLoading(false); }
+  };
+
   const submitPin = async (digits: string[]) => {
     const pin = digits.join("");
     if (pin.length !== 4) return;
@@ -909,9 +979,44 @@ export default function Editor() {
 
         {activeTab === "orders" && (
           <div className="space-y-6">
+            {devTesting && (
+              <div className="flex items-center justify-between gap-4 px-4 py-3 bg-amber-50 border border-amber-300 text-amber-900">
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-xs font-bold uppercase tracking-widest animate-pulse">
+                    ● Testing Active
+                  </span>
+                  <span className="text-sm">
+                    All changes to orders and stock will be reverted when you stop.
+                    {devTestCountdown && (
+                      <span className="ml-2 font-mono font-bold">{devTestCountdown} remaining</span>
+                    )}
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  onClick={stopDevTesting}
+                  disabled={devTestLoading}
+                  className="rounded-none bg-amber-600 hover:bg-amber-700 text-white uppercase tracking-widest text-xs font-bold h-8 px-4 shrink-0"
+                >
+                  Stop & Revert
+                </Button>
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold">Recent Orders ({orders?.length ?? 0})</h2>
               <div className="flex items-center gap-2">
+                {!devTesting && (
+                  <Button
+                    type="button"
+                    onClick={startDevTesting}
+                    disabled={devTestLoading}
+                    className="rounded-none bg-amber-500 hover:bg-amber-600 text-white uppercase tracking-widest text-xs font-bold gap-2 h-9 px-4"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+                    Dev Testing
+                  </Button>
+                )}
                 <Button
                   type="button"
                   onClick={exportOrdersToExcel}
