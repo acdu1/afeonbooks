@@ -608,6 +608,27 @@ export default function Editor() {
             >
               View Site
             </a>
+            {devTesting ? (
+              <Button
+                type="button"
+                onClick={stopDevTesting}
+                disabled={devTestLoading}
+                className="rounded-none bg-amber-500 hover:bg-amber-600 text-white uppercase tracking-widest text-xs font-bold gap-2"
+              >
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                {devTestCountdown ? `Stop Testing (${devTestCountdown})` : "Stop Testing"}
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={startDevTesting}
+                disabled={devTestLoading}
+                className="rounded-none bg-amber-500 hover:bg-amber-600 text-white uppercase tracking-widest text-xs font-bold gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+                Dev Testing
+              </Button>
+            )}
             <Button
               type="button"
               onClick={() => {
@@ -1006,17 +1027,6 @@ export default function Editor() {
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold">Recent Orders ({orders?.length ?? 0})</h2>
               <div className="flex items-center gap-2">
-                {!devTesting && (
-                  <Button
-                    type="button"
-                    onClick={startDevTesting}
-                    disabled={devTestLoading}
-                    className="rounded-none bg-amber-500 hover:bg-amber-600 text-white uppercase tracking-widest text-xs font-bold gap-2 h-9 px-4"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
-                    Dev Testing
-                  </Button>
-                )}
                 <Button
                   type="button"
                   onClick={exportOrdersToExcel}
