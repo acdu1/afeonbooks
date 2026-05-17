@@ -14,6 +14,9 @@ import Checkout from "@/pages/checkout";
 import Order from "@/pages/order";
 const queryClient = new QueryClient();
 
+import React from 'react';
+
+
 function Router() {
   return (
     <Switch>
