@@ -164,7 +164,7 @@ importers:
         specifier: ~5.9.2
         version: 5.9.3
 
-  artifacts/admin:
+  artifacts/backend:
     dependencies:
       xlsx:
         specifier: ^0.18.5
