@@ -4,7 +4,7 @@ import contentRouter from "./content";
 import productsRouter from "./products";
 import ordersRouter from "./orders";
 import emailRouter from "./email";
-import adminRouter from "./backend";
+import adminRouter from "./admin";
 import devTestingRouter from "./dev-testing";
 
 const router: IRouter = Router();

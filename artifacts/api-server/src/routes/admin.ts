@@ -7,7 +7,7 @@ const router: IRouter = Router();
 
 const attempts: Map<string, { count: number; lockedUntil: number }> = new Map();
 
-router.post("/backend/verify-pin", async (req, res): Promise<void> => {
+router.post("/admin/verify-pin", async (req, res): Promise<void> => {
   const ip = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "unknown";
   const now = Date.now();
   const record = attempts.get(ip) ?? { count: 0, lockedUntil: 0 };
@@ -41,7 +41,7 @@ router.post("/backend/verify-pin", async (req, res): Promise<void> => {
   }
 });
 
-router.put("/backend/pin", async (req, res): Promise<void> => {
+router.put("/admin/pin", async (req, res): Promise<void> => {
   const { newPin } = req.body as { newPin?: unknown };
   if (typeof newPin !== "string" || !/^\d{4}$/.test(newPin)) {
     res.status(400).json({ error: "PIN must be exactly 4 digits" });

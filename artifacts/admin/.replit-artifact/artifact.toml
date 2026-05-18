@@ -1,8 +1,8 @@
 kind = "web"
-previewPath = "/backend/"
+previewPath = "/admin/"
 title = "AFEON Admin"
 version = "1.0.0"
-id = "artifacts/backend"
+id = "artifacts/admin"
 router = "path"
 
 [[integratedSkills]]
@@ -11,15 +11,15 @@ version = "1.0.0"
 
 [[services]]
 name = "web"
-paths = [ "/backend/" ]
+paths = [ "/admin/" ]
 localPort = 9000
 
 [services.development]
-run = "pnpm --filter @workspace/backend run dev"
+run = "pnpm --filter @workspace/admin run dev"
 
 [services.production]
-build = [ "pnpm", "--filter", "@workspace/backend", "run", "build" ]
-publicDir = "artifacts/backend/dist/public"
+build = [ "pnpm", "--filter", "@workspace/admin", "run", "build" ]
+publicDir = "artifacts/admin/dist/public"
 serve = "static"
 
 [[services.production.rewrites]]
@@ -28,4 +28,4 @@ to = "/index.html"
 
 [services.env]
 PORT = "9000"
-BASE_PATH = "/backend/"
+BASE_PATH = "/admin/"

@@ -12,24 +12,17 @@ env = { "CI" = "true" }
 runButton = "Project"
 
 [[workflows.workflow]]
-name = "artifacts/backend: web"
-mode = "sequential"
+name = "artifacts/admin: web"
 author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm --filter @workspace/backend run dev"
-cwd = "./artifacts/backend"
-waitForPort = 9000
-router = "path"
-
-[workflows.workflow.tasks.env]
-PORT = "9000"
-BASE_PATH = "/backend/"
+mode = "sequential"
 
 [workflows.workflow.metadata]
 outputType = "webview"
-artifactId = "artifacts/backend"
+artifactId = "artifacts/admin"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/admin run dev"
 
 [[workflows.workflow]]
 name = "artifacts/site: web"
@@ -88,26 +81,6 @@ waitForPort = 8080
 
 [workflows.workflow.tasks.env]
 PORT = "8080"
-
-[[workflows.workflow]]
-name = "artifacts/backend: web"
-author = "agent"
-mode = "sequential"
-
-[workflows.workflow.metadata]
-outputType = "webview"
-artifactId = "artifacts/backend"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm --filter @workspace/backend run dev"
-cwd = "./artifacts/admin"
-waitForPort = 9000
-router = "path"
-
-[workflows.workflow.tasks.env]
-PORT = "9000"
-BASE_PATH = "/backend/"
 
 [agent]
 stack = "PNPM_WORKSPACE"

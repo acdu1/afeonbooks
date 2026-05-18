@@ -110,7 +110,7 @@ export default function Editor() {
     setPinLoading(true);
     setPinError("");
     try {
-      const res = await fetch("/api/backend/verify-pin", {
+      const res = await fetch("/api/admin/verify-pin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pin }),
@@ -170,7 +170,7 @@ export default function Editor() {
     setPinChanging(true);
     setPinChangeMsg("");
     try {
-      const res = await fetch("/api/backend/pin", {
+      const res = await fetch("/api/admin/pin", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ newPin: pin }),

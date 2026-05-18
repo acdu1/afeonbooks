@@ -76,7 +76,7 @@ export default function Pos() {
     setPinLoading(true);
     setPinError("");
     try {
-      const res = await fetch("/api/backend/verify-pin", {
+      const res = await fetch("/api/admin/verify-pin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pin }),
