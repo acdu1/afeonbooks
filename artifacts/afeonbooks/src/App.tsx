@@ -7,7 +7,8 @@ import { SalesDashboard } from "./SalesDashboard";
 
 const queryClient = new QueryClient();
 
-const AFEONBOOKS_API = "https://afeonbooks--uncleadenusc.replit.app/api";
+const AFEONBOOKS_API = import.meta.env.VITE_API_BASE ?? "/api";
+const appBasePath = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
 type Step = "lookup" | "choose" | "confirm" | "success" | "not-found" | "error";
 
@@ -147,7 +148,7 @@ function PickupApp() {
       {/* Nav */}
       <header className="border-b border-black/10 px-6 md:px-12 h-16 flex items-center justify-between">
         <a
-          href="https://afeonbooks--uncleadenusc.replit.app"
+          href={import.meta.env.BASE_URL ?? "/pickup/"}
           className="flex items-center gap-3 text-base font-bold uppercase tracking-widest"
         >
           <Logo />
@@ -452,7 +453,7 @@ function Row({ label, value, bold }: { label: string; value: string; bold?: bool
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
+      <Router base={appBasePath}>
         <Switch>
           <Route path="/admin/pos" component={POSCheckout} />
           <Route path="/admin/sales" component={SalesDashboard} />

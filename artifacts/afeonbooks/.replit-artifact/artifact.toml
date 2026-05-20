@@ -1,5 +1,5 @@
 kind = "web"
-previewPath = "/"
+previewPath = "/pickup/"
 title = "Afeonbooks Pickup Notifier"
 version = "1.0.0"
 id = "artifacts/afeonbooks"
@@ -11,7 +11,7 @@ version = "1.0.0"
 
 [[services]]
 name = "web"
-paths = [ "/" ]
+paths = [ "/pickup/" ]
 localPort = 23360
 
 [services.development]
@@ -28,4 +28,4 @@ to = "/index.html"
 
 [services.env]
 PORT = "23360"
-BASE_PATH = "/"
+BASE_PATH = "/pickup/"
