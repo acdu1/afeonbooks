@@ -91,7 +91,7 @@ function parseOrderFromAlert(alert: PickupAlert): POSOrderData {
     items[0].priceCents = totalCents;
   }
 
-  return { alertId: alert.id, title: `Order #${orderId}`, customerName, items, totalCents };
+  return { alertId: alert.id, orderId, title: `Order #${orderId}`, customerName, items, totalCents };
 }
 
 export function StaffDashboard() {
@@ -188,7 +188,12 @@ export function StaffDashboard() {
   const handleHandOff = (alert: PickupAlert) => {
     const orderData = parseOrderFromAlert(alert);
     savePOSOrder(orderData);
-    navigate("/admin/pos#payment");
+    const orderIdMatch = alert.title.match(/Order\s*#?(\d+)/i);
+    const orderId = orderIdMatch ? orderIdMatch[1] : undefined;
+    const query = new URLSearchParams();
+    if (orderId) query.set("orderId", orderId);
+    query.set("step", "payment");
+    navigate(`/admin/pos?${query.toString()}`);
   };
 
   const pending = alerts.filter((a) => !a.done);

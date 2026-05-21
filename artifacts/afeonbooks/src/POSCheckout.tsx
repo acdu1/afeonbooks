@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 
 export interface POSOrderData {
   alertId: string;
+  orderId?: string;
   title: string;
   customerName: string;
   items: { name: string; qty: number; priceCents: number }[];
@@ -38,7 +39,10 @@ function loadPOSOrder(): POSOrderData | null {
 
 type POSStep = "payment" | "signature" | "done";
 
-function stepFromHash(): POSStep {
+function stepFromLocation(): POSStep {
+  const params = new URLSearchParams(window.location.search);
+  const step = params.get("step");
+  if (step === "signature" || step === "done") return step;
   const h = window.location.hash;
   if (h === "#signature") return "signature";
   if (h === "#done") return "done";
@@ -211,8 +215,9 @@ function printReceipt(order: POSOrderData, cashCents: number, changeCents: numbe
 
 export function POSCheckout() {
   const [, navigate] = useLocation();
-  const [order] = useState<POSOrderData | null>(loadPOSOrder);
-  const [step, setStep] = useState<POSStep>(stepFromHash);
+  const [order, setOrder] = useState<POSOrderData | null>(loadPOSOrder);
+  const [loadingOrder, setLoadingOrder] = useState(false);
+  const [step, setStep] = useState<POSStep>(stepFromLocation);
   const [cashCents, setCashCents] = useState(0);
 
   const goTo = (s: POSStep) => {
@@ -221,7 +226,41 @@ export function POSCheckout() {
   };
 
   useEffect(() => {
-    const handler = () => setStep(stepFromHash());
+    if (!order) {
+      const params = new URLSearchParams(window.location.search);
+      const orderId = params.get("orderId");
+      if (orderId) {
+        setLoadingOrder(true);
+        fetch(`/api/orders/${orderId}`)
+          .then(async (res) => {
+            if (!res.ok) throw new Error("Order not found");
+            return res.json();
+          })
+          .then((data) => {
+            const items = (data.items ?? []).map((item: any) => ({
+              name: item.productName || item.name || "Item",
+              qty: item.quantity || item.qty || 1,
+              priceCents: item.unitPriceCents || item.priceCents || 0,
+            }));
+            const loadedOrder: POSOrderData = {
+              alertId: data.id ? String(data.id) : `order-${orderId}`,
+              orderId,
+              title: `Order #${orderId}`,
+              customerName: data.customerName || "Customer",
+              items,
+              totalCents: data.totalCents || 0,
+            };
+            savePOSOrder(loadedOrder);
+            setOrder(loadedOrder);
+          })
+          .catch(() => {})
+          .finally(() => setLoadingOrder(false));
+      }
+    }
+  }, [order]);
+
+  useEffect(() => {
+    const handler = () => setStep(stepFromLocation());
     window.addEventListener("hashchange", handler);
     return () => window.removeEventListener("hashchange", handler);
   }, []);
