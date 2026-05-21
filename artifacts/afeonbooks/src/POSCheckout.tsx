@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+const appBasePath = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 import { Link, useLocation } from "wouter";
 
 export interface POSOrderData {
@@ -364,7 +365,7 @@ function Shell({
             </svg>
           </button>
           <img
-            src="/afeonbooks-logo.png"
+            src={`${appBasePath}/afeonbooks-logo.png`}
             alt="AFEON Books"
             className="h-7 w-7 rounded-full object-cover"
           />

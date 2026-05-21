@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
+    "prebuild": "bash ../../scripts/export_source.sh public/source",
     "build": "vite build --config vite.config.ts",
+    "export:source": "bash ../../scripts/export_source.sh dist/public/source",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

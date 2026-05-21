@@ -89,6 +89,7 @@ function isToday(d: Date) {
 }
 
 export function SalesDashboard() {
+  const appBasePath = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
   const [authenticated, setAuthenticated] = useState(false);
   const [pinError, setPinError] = useState(false);
 
@@ -113,7 +114,7 @@ export function SalesDashboard() {
             </svg>
           </Link>
           <img
-            src="/afeonbooks-logo.png"
+            src={`${appBasePath}/afeonbooks-logo.png`}
             alt="AFEON Books"
             className="h-7 w-7 rounded-full object-cover"
           />
@@ -419,6 +420,7 @@ function PinGate({
   pinError: boolean;
   setPinError: (v: boolean) => void;
 }) {
+  const appBasePath = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
   const [digits, setDigits] = useState(["", "", "", ""]);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([null, null, null, null]);
 
@@ -455,7 +457,7 @@ function PinGate({
     <div className="flex items-center justify-center py-24">
       <div className="flex flex-col items-center gap-6">
         <img
-          src="/afeonbooks-logo.png"
+          src={`${appBasePath}/afeonbooks-logo.png`}
           alt="AFEON Books"
           className="h-12 w-12 rounded-full object-cover"
         />

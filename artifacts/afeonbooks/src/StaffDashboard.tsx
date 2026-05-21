@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { savePOSOrder, type POSOrderData } from "./POSCheckout";
+const appBasePath = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
 function playChime() {
   try {
@@ -205,7 +206,7 @@ export function StaffDashboard() {
       <header className="border-b border-black/10 px-6 md:px-12 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <img
-            src="/afeonbooks-logo.png"
+            src={`${appBasePath}/afeonbooks-logo.png`}
             alt="AFEON Books"
             className="h-9 w-9 rounded-full object-cover"
           />
@@ -455,7 +456,7 @@ function PinGate({
   return (
     <div className="flex items-center justify-center py-24">
       <div className="flex flex-col items-center gap-6">
-        <img src="/afeonbooks-logo.png" alt="AFEON Books" className="h-12 w-12 rounded-full object-cover" />
+        <img src={`${appBasePath}/afeonbooks-logo.png`} alt="AFEON Books" className="h-12 w-12 rounded-full object-cover" />
         <div className="text-center">
           <h2 className="text-lg font-bold text-black mb-1">Admin Access</h2>
           <p className="text-xs text-black/40">Enter your 4-digit PIN to continue</p>

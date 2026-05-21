@@ -34,7 +34,7 @@ const inputClass =
 function Logo() {
   return (
     <img
-      src="/afeonbooks-logo.png"
+      src={`${appBasePath}/afeonbooks-logo.png`}
       alt="AFEON Books"
       className="h-9 w-9 rounded-full object-cover"
     />
