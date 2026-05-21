@@ -91,7 +91,7 @@ const productSchema = z.object({
 });
 
 export default function Editor() {
-  const [pinAuthed, setPinAuthed] = useState(() => sessionStorage.getItem("adminAuthed") === "1");
+  const [pinAuthed, setPinAuthed] = useState(() => sessionStorage.getItem("adminAuthed") === "0");
   const [pinDigits, setPinDigits] = useState(["", "", "", ""]);
   const [pinError, setPinError] = useState("");
   const [pinShake, setPinShake] = useState(false);
