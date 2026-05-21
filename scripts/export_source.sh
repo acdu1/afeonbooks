@@ -14,6 +14,8 @@ rsync -a --delete \
   --exclude='.git' \
   --exclude='dist' \
   --exclude='**/dist' \
+  --exclude='public' \
+  --exclude='**/public' \
   --exclude='artifacts/*/dist/public/source' \
   --exclude='artifacts/*/dist/public/assets' \
   --exclude='**/node_modules' \

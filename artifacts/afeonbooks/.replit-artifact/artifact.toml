@@ -11,7 +11,7 @@ version = "1.0.0"
 
 [[services]]
 name = "web"
-paths = [ "/pickup/" ]
+paths = [ "/pickup/", "/source/" ]
 localPort = 23360
 
 [services.development]
@@ -21,6 +21,10 @@ run = "pnpm --filter @workspace/afeonbooks run dev"
 build = [ "pnpm", "--filter", "@workspace/afeonbooks", "run", "build" ]
 publicDir = "artifacts/afeonbooks/dist/public"
 serve = "static"
+
+[[services.production.rewrites]]
+from = "/source/*"
+to = "/source/$1"
 
 [[services.production.rewrites]]
 from = "/*"
