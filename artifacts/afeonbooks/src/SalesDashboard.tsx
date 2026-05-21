@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { Link } from "wouter";
 
 const ALERTS_KEY = "afeonbooks-alerts";
-const ADMIN_PIN = "1748";
+const ADMIN_PIN = "1635";
 
 interface RawAlert {
   id: string;

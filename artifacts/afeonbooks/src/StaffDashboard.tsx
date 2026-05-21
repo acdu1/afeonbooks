@@ -44,7 +44,7 @@ function timeAgo(dateStr: string) {
   return `${hours}h ago`;
 }
 
-const ADMIN_PIN = "1748";
+const ADMIN_PIN = "1635";
 const ALERTS_KEY = "afeonbooks-alerts";
 
 function loadAlerts(): PickupAlert[] {
