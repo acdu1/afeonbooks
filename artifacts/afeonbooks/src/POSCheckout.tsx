@@ -226,8 +226,14 @@ export function POSCheckout() {
   };
 
   useEffect(() => {
+    // Ensure step reflects explicit query param when the page loads
+    const params = new URLSearchParams(window.location.search);
+    const stepParam = params.get("step");
+    if (stepParam === "signature" || stepParam === "done") setStep(stepParam);
+    else if (stepParam === "payment") setStep("payment");
+
+    // If no order in session, try to load by query `orderId` on mount
     if (!order) {
-      const params = new URLSearchParams(window.location.search);
       const orderId = params.get("orderId");
       if (orderId) {
         setLoadingOrder(true);
@@ -257,7 +263,8 @@ export function POSCheckout() {
           .finally(() => setLoadingOrder(false));
       }
     }
-  }, [order]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const handler = () => setStep(stepFromLocation());
