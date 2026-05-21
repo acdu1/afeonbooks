@@ -50,7 +50,7 @@ type Phase = "lookup" | "walkin-form" | "cart" | "payment" | "signature" | "done
 const CASH_PRESETS = [500, 1000, 2000, 5000, 10000];
 
 function isPinAuthed() {
-  return sessionStorage.getItem("adminAuthed") === "1";
+  return sessionStorage.getItem("adminAuthed") === "0";
 }
 
 export default function Pos() {
