@@ -193,7 +193,7 @@ export function StaffDashboard() {
     const query = new URLSearchParams();
     if (orderId) query.set("orderId", orderId);
     query.set("step", "payment");
-    navigate(`/admin/pos?${query.toString()}`);
+    window.location.href = `${window.location.origin}/admin/pos?${query.toString()}`;
   };
 
   const pending = alerts.filter((a) => !a.done);
