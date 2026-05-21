@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/pickup/"
-title = "Afeonbooks Pickup Notifier"
+title = "AFEON Pickup"
 version = "1.0.0"
 id = "artifacts/afeonbooks"
 router = "path"
