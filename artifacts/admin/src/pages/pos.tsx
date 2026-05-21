@@ -126,6 +126,29 @@ export default function Pos() {
   const [cashCents, setCashCents] = useState(0);
   const [completing, setCompleting] = useState(false);
   const [saleComplete, setSaleComplete] = useState(false);
+  const queryLoadedRef = useRef(false);
+
+  useEffect(() => {
+    if (queryLoadedRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const orderIdParam = params.get("orderId");
+    if (!orderIdParam || !orders) return;
+
+    const orderId = Number(orderIdParam);
+    if (Number.isNaN(orderId)) return;
+
+    const targetOrder = orders.find((it) => it.id === orderId);
+    if (!targetOrder) return;
+
+    loadOrderIntoCart(targetOrder);
+    const stepParam = params.get("step");
+    if (stepParam === "payment") {
+      setPhase("payment");
+    } else {
+      setPhase("cart");
+    }
+    queryLoadedRef.current = true;
+  }, [orders]);
 
   // ── SCANNER ──
   const [scannerActive, setScannerActive] = useState(false);
