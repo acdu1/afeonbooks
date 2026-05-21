@@ -1,0 +1,38 @@
+import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+
+export const siteContentTable = pgTable("site_content", {
+  id: serial("id").primaryKey(),
+  brandName: text("brand_name").notNull(),
+  navHomeLabel: text("nav_home_label").notNull(),
+  heroTitle: text("hero_title").notNull(),
+  heroSubtitle: text("hero_subtitle").notNull(),
+  ctaLabel: text("cta_label").notNull(),
+  ctaUrl: text("cta_url").notNull(),
+  coverImageUrl: text("cover_image_url").notNull(),
+  aboutHeading: text("about_heading").notNull(),
+  aboutBody: text("about_body").notNull(),
+  authorsLine: text("authors_line").notNull(),
+  illustratorLine: text("illustrator_line").notNull(),
+  footerNote: text("footer_note").notNull(),
+  accentColor: text("accent_color").notNull(),
+  defaultShippingLabel: text("default_shipping_label").notNull().default(""),
+  defaultShippingAddress: text("default_shipping_address").notNull().default(""),
+  defaultShippingCity: text("default_shipping_city").notNull().default(""),
+  defaultShippingPostalCode: text("default_shipping_postal_code").notNull().default(""),
+  defaultShippingCountry: text("default_shipping_country").notNull().default(""),
+  adminPin: text("admin_pin").notNull().default("2026"),
+  ordersEnabled: text("orders_enabled").notNull().default("true"),
+  emailEnabled: text("email_enabled").notNull().default("false"),
+  emailFromName: text("email_from_name").notNull().default("AFEON Books"),
+  emailFromAddress: text("email_from_address").notNull().default("onboarding@resend.dev"),
+  emailReplyTo: text("email_reply_to").notNull().default(""),
+  emailSubject: text("email_subject").notNull().default("Your order #{{orderId}} is confirmed!"),
+  emailHeading: text("email_heading").notNull().default("Thank you for your order!"),
+  emailIntro: text("email_intro").notNull().default("Hi {{customerName}},\n\nThanks for ordering from AFEON Books! Your order #{{orderId}} has been received and is being prepared. You'll pay {{total}} in cash on delivery."),
+  emailButtonLabel: text("email_button_label").notNull().default("View your order"),
+  emailFooter: text("email_footer").notNull().default("Questions about your order? Just reply to this email."),
+  emailAccentColor: text("email_accent_color").notNull().default("#E2553B"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type SiteContentRow = typeof siteContentTable.$inferSelect;

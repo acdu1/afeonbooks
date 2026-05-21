@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "hqRzyDkP9fSCG5ydDcpfT"
+uri = "file://afeon-books-production-export.xlsx"
+type = "table"
+title = "AFEON Books — Production Database Export"
