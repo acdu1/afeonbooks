@@ -45,7 +45,7 @@ interface CustomerInfo {
   preorderId?: number;
 }
 
-type Phase = "lookup" | "walkin-form" | "cart" | "payment";
+type Phase = "lookup" | "walkin-form" | "cart" | "payment" | "signature" | "done";
 
 const CASH_PRESETS = [500, 1000, 2000, 5000, 10000];
 
@@ -126,6 +126,7 @@ export default function Pos() {
   const [cashCents, setCashCents] = useState(0);
   const [completing, setCompleting] = useState(false);
   const [saleComplete, setSaleComplete] = useState(false);
+  const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const queryLoadedRef = useRef(false);
 
   useEffect(() => {
@@ -142,7 +143,9 @@ export default function Pos() {
 
     loadOrderIntoCart(targetOrder);
     const stepParam = params.get("step");
-    if (stepParam === "payment") {
+    if (stepParam === "signature") {
+      setPhase("signature");
+    } else if (stepParam === "payment") {
       setPhase("payment");
     } else {
       setPhase("cart");
@@ -335,6 +338,7 @@ export default function Pos() {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Unknown error";
       toast.error(`Sale failed: ${msg}. Check that the default shipping address is configured in Site Content.`);
+      throw e;
     } finally {
       setCompleting(false);
     }
@@ -390,6 +394,8 @@ export default function Pos() {
     phase === "lookup" ? "Select preorder or walk-in"
     : phase === "walkin-form" ? "Walk-in customer"
     : phase === "cart" ? `${customer.name}${customer.preorderId ? ` · Preorder #${customer.preorderId}` : " · Walk-in"}`
+    : phase === "signature" ? "Signature"
+    : phase === "done" ? "Complete"
     : "Payment";
 
   return (
@@ -665,100 +671,408 @@ export default function Pos() {
         {/* ── PAYMENT ── */}
         {phase === "payment" && (
           <div className="max-w-md mx-auto space-y-4">
-            {saleComplete ? (
-              <div className="bg-white border border-black/5 shadow-sm p-10 text-center space-y-4">
-                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
-                  <Check className="w-8 h-8 text-emerald-600" />
-                </div>
-                <h2 className="text-2xl font-bold">Sale Complete!</h2>
-                {changeCents > 0
-                  ? <p className="text-black/60">Give <span className="font-bold text-black text-lg">{formatPrice(changeCents, "USD")}</span> change</p>
-                  : <p className="text-black/50">Exact payment — no change</p>}
-                <p className="text-sm text-black/40">{customer.name} · {formatPrice(cartTotal, "USD")}</p>
-                <Button onClick={resetPOS}
-                  className="rounded-none bg-black text-white hover:bg-black/80 uppercase tracking-widest text-xs font-bold h-11 px-8">
-                  Next Customer
-                </Button>
+            <div className="bg-white border border-black/5 shadow-sm">
+              <div className="px-4 py-3 border-b border-black/5">
+                <p className="text-xs font-bold uppercase tracking-widest text-black/40">{customer.name}</p>
               </div>
-            ) : (
-              <>
-                {/* Order summary */}
-                <div className="bg-white border border-black/5 shadow-sm">
-                  <div className="px-4 py-3 border-b border-black/5">
-                    <p className="text-xs font-bold uppercase tracking-widest text-black/40">{customer.name}</p>
+              <div className="divide-y divide-black/5 px-4">
+                {cart.map((it) => (
+                  <div key={it.productId} className="flex justify-between py-2.5 text-sm">
+                    <span className="text-black/70">{it.quantity}× {it.productName}</span>
+                    <span className="font-medium tabular-nums">{formatPrice(it.unitPriceCents * it.quantity, "USD")}</span>
                   </div>
-                  <div className="divide-y divide-black/5 px-4">
-                    {cart.map((it) => (
-                      <div key={it.productId} className="flex justify-between py-2.5 text-sm">
-                        <span className="text-black/70">{it.quantity}× {it.productName}</span>
-                        <span className="font-medium tabular-nums">{formatPrice(it.unitPriceCents * it.quantity, "USD")}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="px-4 py-4 border-t border-black/10 flex items-center justify-between">
-                    <span className="font-bold text-xs uppercase tracking-widest">Total Due</span>
-                    <span className="text-3xl font-bold tabular-nums">{formatPrice(cartTotal, "USD")}</span>
-                  </div>
-                </div>
+                ))}
+              </div>
+              <div className="px-4 py-4 border-t border-black/10 flex items-center justify-between">
+                <span className="font-bold text-xs uppercase tracking-widest">Total Due</span>
+                <span className="text-3xl font-bold tabular-nums">{formatPrice(cartTotal, "USD")}</span>
+              </div>
+            </div>
 
-                {/* Cash received */}
-                <div className="bg-white border border-black/5 shadow-sm p-4 space-y-3">
-                  <p className="font-bold text-xs uppercase tracking-widest text-black/50">Cash Received</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {CASH_PRESETS.map((cents) => (
-                      <button key={cents} onClick={() => setCashCents(cents)}
-                        className={`py-3 text-sm font-bold border transition-colors ${
-                          cashCents === cents ? "bg-black text-white border-black" : "border-black/20 hover:bg-black/5"}`}>
-                        {formatPrice(cents, "USD")}
-                      </button>
-                    ))}
-                    <button onClick={() => setCashCents(cartTotal)}
-                      className={`py-3 text-sm font-bold border transition-colors ${
-                        cashCents === cartTotal && cartTotal > 0 ? "bg-black text-white border-black" : "border-black/20 hover:bg-black/5"}`}>
-                      Exact
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-black/40 font-medium shrink-0">$</span>
-                    <Input type="number" min={0} step={0.01}
-                      value={cashCents > 0 ? (cashCents / 100).toFixed(2) : ""}
-                      onChange={(e) => { const v = parseFloat(e.target.value); setCashCents(isNaN(v) ? 0 : Math.round(v * 100)); }}
-                      placeholder="0.00" className="rounded-none text-xl font-bold h-12 tabular-nums" />
-                  </div>
-                </div>
+            <div className="bg-white border border-black/5 shadow-sm p-4 space-y-3">
+              <p className="font-bold text-xs uppercase tracking-widest text-black/50">Cash Received</p>
+              <div className="grid grid-cols-3 gap-2">
+                {CASH_PRESETS.map((cents) => (
+                  <button key={cents} onClick={() => setCashCents(cents)}
+                    className={`py-3 text-sm font-bold border transition-colors ${
+                      cashCents === cents ? "bg-black text-white border-black" : "border-black/20 hover:bg-black/5"}`}>
+                    {formatPrice(cents, "USD")}
+                  </button>
+                ))}
+                <button onClick={() => setCashCents(cartTotal)}
+                  className={`py-3 text-sm font-bold border transition-colors ${
+                    cashCents === cartTotal && cartTotal > 0 ? "bg-black text-white border-black" : "border-black/20 hover:bg-black/5"}`}>
+                  Exact
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-black/40 font-medium shrink-0">$</span>
+                <Input type="number" min={0} step={0.01}
+                  value={cashCents > 0 ? (cashCents / 100).toFixed(2) : ""}
+                  onChange={(e) => { const v = parseFloat(e.target.value); setCashCents(isNaN(v) ? 0 : Math.round(v * 100)); }}
+                  placeholder="0.00" className="rounded-none text-xl font-bold h-12 tabular-nums" />
+              </div>
+            </div>
 
-                {/* Change display */}
-                <div className={`p-5 border text-center transition-colors ${
-                  cashCents === 0 ? "bg-white border-black/5"
-                  : changeCents < 0 ? "bg-red-50 border-red-200"
-                  : "bg-emerald-50 border-emerald-200"}`}>
-                  <p className="text-xs font-bold uppercase tracking-widest text-black/40 mb-1">Change Due</p>
-                  <p className={`text-4xl font-bold tabular-nums ${
-                    changeCents < 0 ? "text-red-600" : changeCents > 0 ? "text-emerald-600" : "text-black/30"}`}>
-                    {cashCents === 0 ? "—" : changeCents < 0 ? `-${formatPrice(-changeCents, "USD")}` : formatPrice(changeCents, "USD")}
-                  </p>
-                  {changeCents < 0 && (
-                    <p className="text-xs text-red-500 mt-1 font-medium">Short by {formatPrice(-changeCents, "USD")}</p>
-                  )}
-                </div>
+            <div className={`p-5 border text-center transition-colors ${
+              cashCents === 0 ? "bg-white border-black/5"
+              : changeCents < 0 ? "bg-red-50 border-red-200"
+              : "bg-emerald-50 border-emerald-200"}`}>
+              <p className="text-xs font-bold uppercase tracking-widest text-black/40 mb-1">Change Due</p>
+              <p className={`text-4xl font-bold tabular-nums ${
+                changeCents < 0 ? "text-red-600" : changeCents > 0 ? "text-emerald-600" : "text-black/30"}`}>
+                {cashCents === 0 ? "—" : changeCents < 0 ? `-${formatPrice(-changeCents, "USD")}` : formatPrice(changeCents, "USD")}
+              </p>
+              {changeCents < 0 && (
+                <p className="text-xs text-red-500 mt-1 font-medium">Short by {formatPrice(-changeCents, "USD")}</p>
+              )}
+            </div>
 
-                {/* Actions */}
-                <div className="flex gap-3">
-                  <Button onClick={() => { setPhase("cart"); setCashCents(0); }} variant="outline"
-                    className="flex-1 rounded-none h-12 border-black/20 uppercase tracking-widest text-xs font-bold gap-2">
-                    <X className="w-4 h-4" />Back
-                  </Button>
-                  <Button onClick={completeSale}
-                    disabled={completing || cashCents < cartTotal || cart.length === 0}
-                    className="flex-1 rounded-none h-12 bg-emerald-600 hover:bg-emerald-700 text-white uppercase tracking-widest text-xs font-bold gap-2 disabled:opacity-50">
-                    {completing ? "Processing…" : <><Check className="w-4 h-4" />Complete Sale</>}
-                  </Button>
-                </div>
-              </>
-            )}
+            <div className="flex gap-3">
+              <Button onClick={() => { setPhase("cart"); setCashCents(0); }} variant="outline"
+                className="flex-1 rounded-none h-12 border-black/20 uppercase tracking-widest text-xs font-bold gap-2">
+                <X className="w-4 h-4" />Back
+              </Button>
+              <Button onClick={() => setPhase("signature")}
+                disabled={completing || cashCents < cartTotal || cart.length === 0}
+                className="flex-1 rounded-none h-12 bg-emerald-600 hover:bg-emerald-700 text-white uppercase tracking-widest text-xs font-bold gap-2 disabled:opacity-50">
+                {completing ? "Processing…" : <><Check className="w-4 h-4" />Next: Signature</>}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {phase === "signature" && (
+          <div className="max-w-md mx-auto space-y-4">
+            <SignatureStep
+              customer={customer}
+              cart={cart}
+              onNext={async (signatureDataUrl) => {
+                await completeSale();
+                setSignatureDataUrl(signatureDataUrl);
+                setPhase("done");
+              }}
+              onBack={() => setPhase("payment")}
+            />
+          </div>
+        )}
+
+        {phase === "done" && (
+          <div className="max-w-md mx-auto space-y-4">
+            <DoneStep
+              customer={customer}
+              cart={cart}
+              cashCents={cashCents}
+              changeCents={changeCents}
+              signatureDataUrl={signatureDataUrl}
+              onPrint={() => printReceipt(customer, cart, cashCents, changeCents, signatureDataUrl)}
+              onComplete={resetPOS}
+            />
           </div>
         )}
       </div>
     </div>
   );
+}
+
+function SignatureStep({
+  customer,
+  cart,
+  onNext,
+  onBack,
+}: {
+  customer: CustomerInfo;
+  cart: CartItem[];
+  onNext: (signatureDataUrl: string) => void;
+  onBack: () => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const drawing = useRef(false);
+  const lastPos = useRef<{ x: number; y: number } | null>(null);
+  const [hasSignature, setHasSignature] = useState(false);
+
+  const getPointer = (e: MouseEvent | TouchEvent, canvas: HTMLCanvasElement) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    if ("touches" in e) {
+      const touch = e.touches[0];
+      return {
+        x: (touch.clientX - rect.left) * scaleX,
+        y: (touch.clientY - rect.top) * scaleY,
+      };
+    }
+    return {
+      x: ((e as MouseEvent).clientX - rect.left) * scaleX,
+      y: ((e as MouseEvent).clientY - rect.top) * scaleY,
+    };
+  };
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    const start = (event: MouseEvent | TouchEvent) => {
+      event.preventDefault();
+      drawing.current = true;
+      lastPos.current = getPointer(event, canvas);
+    };
+
+    const draw = (event: MouseEvent | TouchEvent) => {
+      event.preventDefault();
+      if (!drawing.current || !lastPos.current) return;
+      const pos = getPointer(event, canvas);
+      ctx.beginPath();
+      ctx.moveTo(lastPos.current.x, lastPos.current.y);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+      lastPos.current = pos;
+      setHasSignature(true);
+    };
+
+    const stop = () => {
+      drawing.current = false;
+      lastPos.current = null;
+    };
+
+    canvas.addEventListener("mousedown", start);
+    canvas.addEventListener("mousemove", draw);
+    canvas.addEventListener("mouseup", stop);
+    canvas.addEventListener("mouseleave", stop);
+    canvas.addEventListener("touchstart", start, { passive: false });
+    canvas.addEventListener("touchmove", draw, { passive: false });
+    canvas.addEventListener("touchend", stop);
+
+    return () => {
+      canvas.removeEventListener("mousedown", start);
+      canvas.removeEventListener("mousemove", draw);
+      canvas.removeEventListener("mouseup", stop);
+      canvas.removeEventListener("mouseleave", stop);
+      canvas.removeEventListener("touchstart", start);
+      canvas.removeEventListener("touchmove", draw);
+      canvas.removeEventListener("touchend", stop);
+    };
+  }, []);
+
+  const clearSignature = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    setHasSignature(false);
+  };
+
+  const handleSubmit = () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !hasSignature) return;
+    onNext(canvas.toDataURL("image/png"));
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="border border-black/12 bg-white px-5 py-4">
+        <p className="text-xs font-bold text-black/60 mb-1">
+          {customer.name
+            ? `Please have ${customer.name} sign below.`
+            : "Please have the customer sign below."}
+        </p>
+        <p className="text-xs text-black/30 mb-4">Total: {formatPrice(cart.reduce((sum, item) => sum + item.unitPriceCents * item.quantity, 0), "USD")}</p>
+        <div className="relative border border-black/15 bg-white select-none touch-none">
+          <canvas
+            ref={canvasRef}
+            width={700}
+            height={220}
+            className="w-full cursor-crosshair block"
+            style={{ height: "180px" }}
+          />
+          {!hasSignature && (
+            <p className="absolute inset-0 flex items-center justify-center text-xs text-black/25 font-medium pointer-events-none pb-4">
+              Sign here
+            </p>
+          )}
+        </div>
+        <div className="flex justify-end mt-2">
+          <button
+            onClick={clearSignature}
+            className="text-[10px] font-bold uppercase tracking-widest text-black/30 hover:text-black transition-colors"
+            type="button"
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+
+      <div className="flex gap-0 border border-black/15 overflow-hidden">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex-1 px-4 py-4 text-xs font-bold uppercase tracking-widest text-black/60 bg-white hover:bg-black/5 transition-colors flex items-center justify-center gap-2 border-r border-black/15"
+        >
+          ← Back
+        </button>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={!hasSignature}
+          className="flex-1 px-4 py-4 text-xs font-bold uppercase tracking-widest text-white bg-teal-600 hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+        >
+          <Check className="w-4 h-4" />Done & Print Receipt
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function DoneStep({
+  customer,
+  cart,
+  cashCents,
+  changeCents,
+  signatureDataUrl,
+  onPrint,
+  onComplete,
+}: {
+  customer: CustomerInfo;
+  cart: CartItem[];
+  cashCents: number;
+  changeCents: number;
+  signatureDataUrl: string | null;
+  onPrint: () => void;
+  onComplete: () => void;
+}) {
+  return (
+    <div className="border border-black/12 bg-white px-8 py-12 flex flex-col items-center text-center">
+      <div className="w-16 h-16 rounded-full bg-teal-600 flex items-center justify-center mb-6">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <path
+            d="M6 16L13 23L26 10"
+            stroke="white"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+
+      <p className="text-[10px] font-bold uppercase tracking-widest text-teal-600 mb-2">
+        Order Complete
+      </p>
+      <h2 className="text-2xl font-bold text-black mb-3">
+        {customer.name ? `Thank you, ${customer.name.split(" ")[0]}!` : "Thank you!"}
+      </h2>
+
+      <div className="w-full border border-black/10 divide-y divide-black/8 mb-8 text-left">
+        <div className="px-4 py-2.5 flex justify-between text-sm">
+          <span className="text-black/50 font-medium">Total</span>
+          <span className="font-bold text-black">{formatPrice(cart.reduce((sum, item) => sum + item.unitPriceCents * item.quantity, 0), "USD")}</span>
+        </div>
+        <div className="px-4 py-2.5 flex justify-between text-sm">
+          <span className="text-black/50 font-medium">Cash Received</span>
+          <span className="font-medium text-black">{formatPrice(cashCents, "USD")}</span>
+        </div>
+        <div className="px-4 py-2.5 flex justify-between text-sm">
+          <span className="text-black/50 font-medium">Change Given</span>
+          <span className="font-medium text-black">{formatPrice(Math.max(0, changeCents), "USD")}</span>
+        </div>
+      </div>
+
+      {signatureDataUrl && (
+        <div className="w-full max-w-xs border border-black/10 bg-white p-4 mb-4">
+          <p className="text-[10px] uppercase tracking-widest text-black/40 mb-2">Signature</p>
+          <img src={signatureDataUrl} alt="Signature" className="w-full h-32 object-contain" />
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={onPrint}
+        className="w-full mb-3 border border-black/20 bg-white hover:bg-black/5 text-black px-8 py-3.5 font-bold uppercase tracking-widest text-xs transition-colors flex items-center justify-center gap-2"
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className="shrink-0">
+          <path
+            d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        Print Receipt
+      </button>
+
+      <button
+        type="button"
+        onClick={onComplete}
+        className="w-full bg-black hover:bg-amber-800 text-white px-8 py-4 font-bold uppercase tracking-widest text-xs transition-colors"
+      >
+        Back to Queue
+      </button>
+    </div>
+  );
+}
+
+function printReceipt(
+  customer: CustomerInfo,
+  cart: CartItem[],
+  cashCents: number,
+  changeCents: number,
+  signatureDataUrl: string | null,
+) {
+  const now = new Date();
+  const rows = cart
+    .map(
+      (item) =>
+        `<tr><td style="padding:4px 0;">${item.quantity}× ${item.productName}</td><td style="padding:4px 0; text-align:right;">${formatPrice(item.unitPriceCents * item.quantity, "USD")}</td></tr>`,
+    )
+    .join("");
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>AFEON Books Receipt</title>
+<style>
+  body { font-family: 'Courier New', Courier, monospace; font-size: 12px; color: #000; padding: 24px; }
+  h1 { font-size: 18px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+  td { padding: 4px 0; }
+  .right { text-align: right; }
+  .total { font-weight: bold; }
+  .signature { margin-top: 16px; border-top: 1px dashed #000; padding-top: 10px; }
+  .footer { font-size: 11px; color: #555; margin-top: 14px; }
+</style>
+</head>
+<body>
+  <h1>AFEON Books</h1>
+  <p>Receipt — ${customer.name || "Customer"}</p>
+  <p>${now.toLocaleDateString()} ${now.toLocaleTimeString()}</p>
+  <table>
+    <tbody>
+      ${rows}
+      <tr><td class="total">Total</td><td class="right total">${formatPrice(cart.reduce((sum, item) => sum + item.unitPriceCents * item.quantity, 0), "USD")}</td></tr>
+      <tr><td>Cash</td><td class="right">${formatPrice(cashCents, "USD")}</td></tr>
+      <tr><td>Change</td><td class="right">${formatPrice(Math.max(0, changeCents), "USD")}</td></tr>
+    </tbody>
+  </table>
+  ${signatureDataUrl ? `<div class="signature"><p style="font-size:11px; margin-bottom: 8px;">Customer Signature:</p><img src="${signatureDataUrl}" alt="Signature" style="max-width:100%; height:auto; border:1px solid #000;"/></div>` : ""}
+  <p class="footer">Thank you for shopping with AFEON Books.</p>
+<script>window.onload=function(){window.print();setTimeout(function(){window.close();},1000);}</script>
+</body>
+</html>`;
+
+  const win = window.open("", "_blank", "width=620,height=700");
+  if (win) {
+    win.document.write(html);
+    win.document.close();
+  }
 }
