@@ -8,7 +8,7 @@ interface SiteHeaderProps {
   simple?: boolean;
 }
 
-const SECRET_TAPS = 8;
+const SECRET_TAPS = 5;
 const TAP_WINDOW_MS = 800;
 
 export function SiteHeader({ simple = false }: SiteHeaderProps) {
@@ -27,7 +27,7 @@ export function SiteHeader({ simple = false }: SiteHeaderProps) {
 
     if (tapCountRef.current >= SECRET_TAPS) {
       tapCountRef.current = 0;
-      setLocation("/editor");
+      window.location.assign("/admin/");
       return;
     }
     setLocation("/");
