@@ -111,12 +111,17 @@ localPort = 21238
 externalPort = 3000
 
 [[ports]]
-localPort = 23744
-externalPort = 3002
-
-[[ports]]
 localPort = 23360
 externalPort = 3003
 
+[[ports]]
+localPort = 23744
+externalPort = 3002
+
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+WAKE_DB = "true"
