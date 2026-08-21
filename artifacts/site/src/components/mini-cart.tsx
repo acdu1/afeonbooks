@@ -4,12 +4,14 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
 import { useGetContent } from "@workspace/api-client-react";
+import { useSchool } from "@/lib/school";
 import { formatPrice } from "@/lib/format";
 import { ShoppingBag, Plus, Minus, X, Check } from "lucide-react";
 
 export function MiniCart() {
   const { isOpen, closeCart, enrichedItems, itemCount, removeItem, updateQty, lastAddedId } = useCart();
-  const { data: content } = useGetContent();
+  const { school } = useSchool();
+  const { data: content } = useGetContent({ school: school ?? "alvarado" });
   const [highlightId, setHighlightId] = useState<number | null>(null);
 
   useEffect(() => {

@@ -14,6 +14,7 @@ const router: IRouter = Router();
 function serialize(p: ProductRow) {
   return {
     id: p.id,
+    school: p.school,
     name: p.name,
     description: p.description,
     priceCents: p.priceCents,
@@ -25,8 +26,9 @@ function serialize(p: ProductRow) {
   };
 }
 
-router.get("/products", async (_req, res) => {
-  const rows = await db.select().from(productsTable).orderBy(desc(productsTable.createdAt));
+router.get("/products", async (req, res) => {
+  const school = req.query.school === "shelyn" ? "shelyn" : "alvarado";
+  const rows = await db.select().from(productsTable).where(eq(productsTable.school, school)).orderBy(desc(productsTable.createdAt));
   res.json(ListProductsResponse.parse(rows.map(serialize)));
 });
 
@@ -39,7 +41,8 @@ router.get("/products/:id", async (req, res): Promise<void> => {
 
 router.post("/products", async (req, res) => {
   const body = CreateProductBody.parse(req.body);
-  const inserted = await db.insert(productsTable).values(body).returning();
+  const school = req.query.school === "shelyn" ? "shelyn" : "alvarado";
+  const inserted = await db.insert(productsTable).values({ ...body, school }).returning();
   res.status(201).json(GetProductResponse.parse(serialize(inserted[0]!)));
 });
 

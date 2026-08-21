@@ -22,6 +22,7 @@ router.post("/email/test", async (req, res): Promise<void> => {
 
   const sampleOrder: OrderRow = {
     id: 9999,
+    school: content.school,
     customerName: "Sample Customer",
     customerEmail: body.to,
     customerPhone: "555-0100",
@@ -32,6 +33,14 @@ router.post("/email/test", async (req, res): Promise<void> => {
     classroom: "Room 101",
     useDefaultAddress: content.defaultShippingAddress ? "true" : "false",
     notes: null,
+    customFields: "{}",
+    utmSource: null,
+    utmMedium: null,
+    utmCampaign: null,
+    utmTerm: null,
+    utmContent: null,
+    referrer: null,
+    landingPage: null,
     paymentMethod: "cash_on_delivery",
     status: "pending",
     subtotalCents: 1499,

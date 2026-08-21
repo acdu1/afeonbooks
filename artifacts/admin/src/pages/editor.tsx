@@ -31,6 +31,10 @@ import {
   getGetOrdersSummaryQueryKey,
 } from "@workspace/api-client-react";
 import type { UpdateOrderStatusStatus } from "@workspace/api-client-react";
+const SCHOOL_OPTIONS = {
+  alvarado: { label: "Alvarado Intermediate" },
+  shelyn: { label: "Shelyn Elementary" },
+} as const;
 
 const ORDER_STATUSES: UpdateOrderStatusStatus[] = [
   "pending",
@@ -49,6 +53,7 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 const contentSchema = z.object({
+  checkoutFields: z.array(z.object({ id: z.string(), label: z.string().min(1), required: z.boolean() })).default([]),
   brandName: z.string().min(1),
   navHomeLabel: z.string().min(1),
   heroTitle: z.string().min(1),
@@ -91,6 +96,7 @@ const productSchema = z.object({
 });
 
 export default function Editor() {
+  const [school, setSchool] = useState<"alvarado" | "shelyn">(() => localStorage.getItem("adminSchool") === "shelyn" ? "shelyn" : "alvarado");
   const [pinAuthed, setPinAuthed] = useState(() => sessionStorage.getItem("adminAuthed") === "0");
   const [pinDigits, setPinDigits] = useState(["", "", "", ""]);
   const [pinError, setPinError] = useState("");
@@ -262,9 +268,9 @@ export default function Editor() {
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [testEmailTo, setTestEmailTo] = useState<string>("");
 
-  const { data: content, isLoading: contentLoading } = useGetContent();
-  const { data: products } = useListProducts();
-  const { data: orders } = useListOrders();
+  const { data: content, isLoading: contentLoading } = useGetContent({ school });
+  const { data: products } = useListProducts({ school });
+  const { data: orders } = useListOrders({ school });
 
   const updateContent = useUpdateContent();
   const createProduct = useCreateProduct();
@@ -389,10 +395,12 @@ export default function Editor() {
       emailButtonLabel: "View your order",
       emailFooter: "",
       emailAccentColor: "#E2553B",
+      checkoutFields: [],
     },
   });
 
   const initialized = useRef(false);
+  useEffect(() => { initialized.current = false; localStorage.setItem("adminSchool", school); }, [school]);
   useEffect(() => {
     if (content && !initialized.current) {
       contentForm.reset(content);
@@ -401,10 +409,10 @@ export default function Editor() {
   }, [content, contentForm]);
 
   const onContentSubmit = (values: z.infer<typeof contentSchema>) => {
-    updateContent.mutate({ data: values }, {
+    updateContent.mutate({ data: values, params: { school } }, {
       onSuccess: (data) => {
         toast.success("Site content saved!");
-        queryClient.setQueryData(getGetContentQueryKey(), data);
+        queryClient.setQueryData(getGetContentQueryKey({ school }), data);
       },
       onError: () => toast.error("Failed to save site content.")
     });
@@ -433,17 +441,17 @@ export default function Editor() {
       updateProduct.mutate({ id: editingProductId, data: payload }, {
         onSuccess: () => {
           toast.success("Product updated!");
-          queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getListProductsQueryKey({ school }) });
           setEditingProductId(null);
           productForm.reset();
         },
         onError: () => toast.error("Failed to update product.")
       });
     } else {
-      createProduct.mutate({ data: payload }, {
+      createProduct.mutate({ data: payload, params: { school } }, {
         onSuccess: () => {
           toast.success("Product added!");
-          queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getListProductsQueryKey({ school }) });
           productForm.reset();
         },
         onError: () => toast.error("Failed to add product.")
@@ -470,7 +478,7 @@ export default function Editor() {
       deleteProduct.mutate({ id }, {
         onSuccess: () => {
           toast.success("Product deleted.");
-          queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getListProductsQueryKey({ school }) });
         },
         onError: () => toast.error("Failed to delete product.")
       });
@@ -602,6 +610,20 @@ export default function Editor() {
             <h1 className="font-bold text-xl tracking-tight">Admin Dashboard</h1>
           </div>
           <div className="flex gap-4 items-center">
+            <select
+              value={school}
+              onChange={(event) => {
+                const next = event.target.value as "alvarado" | "shelyn";
+                setSchool(next);
+                setEditingProductId(null);
+                productForm.reset();
+              }}
+              className="h-10 border border-black/20 bg-[#FAF7F2] px-3 text-sm font-bold"
+              aria-label="School"
+            >
+              <option value="alvarado">{SCHOOL_OPTIONS.alvarado.label}</option>
+              <option value="shelyn">{SCHOOL_OPTIONS.shelyn.label}</option>
+            </select>
             <a
               href="/"
               className="inline-flex items-center justify-center min-h-9 px-4 py-2 rounded-md text-sm font-medium border border-black/20 hover:bg-black/5 transition-colors"
@@ -636,7 +658,7 @@ export default function Editor() {
                 const newValue = !current.ordersEnabled;
                 contentForm.setValue("ordersEnabled", newValue);
                 updateContent.mutate(
-                  { data: { ...current, ordersEnabled: newValue } },
+                  { data: { ...current, ordersEnabled: newValue }, params: { school } },
                   {
                     onSuccess: () => toast.success(newValue ? "Now accepting orders" : "Orders paused — store is closed"),
                     onError: () => {
@@ -759,6 +781,53 @@ export default function Editor() {
                       <FormItem><FormLabel>Illustrator</FormLabel><FormControl><Input {...field} className="rounded-none" /></FormControl></FormItem>
                     )} />
                   </div>
+                </div>
+
+                <div className="bg-white p-8 border border-black/5 shadow-sm space-y-5">
+                  <div>
+                    <h2 className="text-xl font-bold">Checkout Fill-in Boxes</h2>
+                    <p className="text-sm text-black/50 mt-1">These fields appear only for {SCHOOL_OPTIONS[school].label} shoppers.</p>
+                  </div>
+                  {(contentForm.watch("checkoutFields") ?? []).map((field, index) => (
+                    <div key={field.id} className="flex gap-3 items-end">
+                      <FormItem className="flex-1">
+                        <FormLabel>Box label</FormLabel>
+                        <Input
+                          value={field.label}
+                          onChange={(event) => {
+                            const next = [...(contentForm.getValues("checkoutFields") ?? [])];
+                            next[index] = { ...next[index], label: event.target.value };
+                            contentForm.setValue("checkoutFields", next);
+                          }}
+                          className="rounded-none"
+                        />
+                      </FormItem>
+                      <label className="flex items-center gap-2 h-10 text-sm font-medium">
+                        <Checkbox
+                          checked={field.required}
+                          onCheckedChange={(checked) => {
+                            const next = [...(contentForm.getValues("checkoutFields") ?? [])];
+                            next[index] = { ...next[index], required: checked === true };
+                            contentForm.setValue("checkoutFields", next);
+                          }}
+                        />
+                        Required
+                      </label>
+                      <Button type="button" variant="outline" className="rounded-none" onClick={() => {
+                        const next = [...(contentForm.getValues("checkoutFields") ?? [])];
+                        next.splice(index, 1);
+                        contentForm.setValue("checkoutFields", next);
+                      }}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" className="rounded-none" onClick={() => {
+                    const next = [...(contentForm.getValues("checkoutFields") ?? []), { id: `field-${Date.now()}`, label: "New field", required: false }];
+                    contentForm.setValue("checkoutFields", next);
+                  }}>
+                    Add fill-in box
+                  </Button>
                 </div>
 
                 <div className="bg-white p-8 border border-black/5 shadow-sm space-y-6">

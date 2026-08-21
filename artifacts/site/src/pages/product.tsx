@@ -8,12 +8,14 @@ import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
 import { Minus, Plus } from "lucide-react";
+import { useSchool } from "@/lib/school";
 
 export default function Product() {
   const { id } = useParams();
+  const { school } = useSchool();
   const productId = parseInt(id || "0", 10);
   
-  const { data: content } = useGetContent();
+  const { data: content } = useGetContent({ school: school ?? "alvarado" });
   const { data: product, isLoading, isError } = useGetProduct(productId);
   const { addItem } = useCart();
   

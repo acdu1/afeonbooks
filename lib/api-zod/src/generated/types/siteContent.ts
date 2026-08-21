@@ -5,9 +5,13 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { SiteContentCheckoutFieldsItem } from "./siteContentCheckoutFieldsItem";
+import type { SiteContentSchool } from "./siteContentSchool";
 
 export interface SiteContent {
   id: number;
+  school: SiteContentSchool;
+  checkoutFields: SiteContentCheckoutFieldsItem[];
   brandName: string;
   navHomeLabel: string;
   heroTitle: string;

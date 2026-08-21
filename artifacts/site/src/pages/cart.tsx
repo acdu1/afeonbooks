@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { useGetContent } from "@workspace/api-client-react";
+import { useSchool } from "@/lib/school";
 import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -8,7 +9,8 @@ import { useCart } from "@/lib/cart";
 import { Minus, Plus, X } from "lucide-react";
 
 export default function Cart() {
-  const { data: content } = useGetContent();
+  const { school } = useSchool();
+  const { data: content } = useGetContent({ school: school ?? "alvarado" });
   const { enrichedItems, updateQty, removeItem, itemCount } = useCart();
 
   const subtotalCents = enrichedItems.reduce((sum, item) => {

@@ -15,6 +15,7 @@ import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart";
 import { useUtm, utmPayload } from "@/lib/utm";
 import { toast } from "sonner";
+import { useSchool } from "@/lib/school";
 
 const checkoutSchema = z
   .object({
@@ -28,6 +29,7 @@ const checkoutSchema = z
     postalCode: z.string().optional(),
     country: z.string().optional(),
     notes: z.string().optional(),
+    customFields: z.record(z.string(), z.string()).default({}),
   })
   .superRefine((values, ctx) => {
     if (values.useDefaultAddress) {
@@ -58,7 +60,8 @@ type CheckoutValues = z.infer<typeof checkoutSchema>;
 
 export default function Checkout() {
   const [, setLocation] = useLocation();
-  const { data: content } = useGetContent();
+  const { school } = useSchool();
+  const { data: content } = useGetContent({ school: school ?? "alvarado" });
   const { enrichedItems, itemCount, clear } = useCart();
   const { utm, clear: clearUtm } = useUtm();
   const createOrder = useCreateOrder();
@@ -89,6 +92,7 @@ export default function Checkout() {
       postalCode: "",
       country: "",
       notes: "",
+      customFields: {},
     },
   });
 
@@ -97,6 +101,12 @@ export default function Checkout() {
   const onSubmit = (values: CheckoutValues) => {
     if (itemCount === 0) {
       toast.error("Your cart is empty");
+      return;
+    }
+    const missingField = (content?.checkoutFields ?? []).find((field) => field.required && !(values.customFields?.[field.id] ?? "").trim());
+    if (missingField) {
+      form.setError(`customFields.${missingField.id}`, { message: `${missingField.label} is required` });
+      toast.error(`Please complete ${missingField.label}`);
       return;
     }
 
@@ -108,17 +118,20 @@ export default function Checkout() {
     const utmFields = utmPayload(utm);
     const payload = values.useDefaultAddress
       ? {
-          customerName: values.customerName,
+           school: school ?? "alvarado",
+           customerName: values.customerName,
           customerEmail: values.customerEmail,
           customerPhone: values.customerPhone,
           useDefaultAddress: true,
           classroom: values.classroom?.trim() ?? "",
           notes: values.notes,
+           customFields: values.customFields,
           items,
           ...utmFields,
         }
       : {
-          customerName: values.customerName,
+           school: school ?? "alvarado",
+           customerName: values.customerName,
           customerEmail: values.customerEmail,
           customerPhone: values.customerPhone,
           useDefaultAddress: false,
@@ -127,6 +140,7 @@ export default function Checkout() {
           postalCode: values.postalCode?.trim() ?? "",
           country: values.country?.trim() ?? "",
           notes: values.notes,
+           customFields: values.customFields,
           items,
           ...utmFields,
         };
@@ -196,6 +210,21 @@ export default function Checkout() {
 
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-10">
+                {(content?.checkoutFields ?? []).length > 0 && (
+                  <div className="bg-white p-8 md:p-10 border border-black/5 space-y-6">
+                    <h2 className="text-xl font-bold border-b border-black/10 pb-4">Additional Information</h2>
+                    {(content?.checkoutFields ?? []).map((field) => (
+                      <FormItem key={field.id}>
+                        <FormLabel className="text-xs uppercase tracking-widest text-black/50 font-bold">{field.label}{field.required ? " *" : " (Optional)"}</FormLabel>
+                        <FormControl>
+                          <Input {...form.register(`customFields.${field.id}`)} className="h-12 bg-transparent border-black/20 rounded-none focus-visible:ring-0 focus-visible:border-black shadow-none" />
+                        </FormControl>
+                        <FormMessage>{form.formState.errors.customFields?.[field.id]?.message}</FormMessage>
+                      </FormItem>
+                    ))}
+                  </div>
+                )}
+
                 <div className="bg-white p-8 md:p-10 border border-black/5 space-y-8">
                   <h2 className="text-xl font-bold border-b border-black/10 pb-4">Contact Information</h2>
                   <div className="grid md:grid-cols-2 gap-6">

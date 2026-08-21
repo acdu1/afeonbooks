@@ -15,6 +15,8 @@ import Order from "@/pages/order";
 const queryClient = new QueryClient();
 
 import React from 'react';
+import { SchoolProvider } from "@/lib/school";
+import { SchoolPicker } from "@/components/school-picker";
 
 
 function Router() {
@@ -63,14 +65,17 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <UtmProvider>
-        <CartProvider>
+        <SchoolProvider>
+          <CartProvider>
           <TooltipProvider>
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
               <Router />
             </WouterRouter>
-            <Toaster position="top-center" />
+            <Toaster />
           </TooltipProvider>
-        </CartProvider>
+          </CartProvider>
+          <SchoolPicker />
+        </SchoolProvider>
       </UtmProvider>
     </QueryClientProvider>
   );

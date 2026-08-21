@@ -315,6 +315,7 @@ export default function Pos() {
           createOrder.mutate(
             {
               data: {
+                school: "alvarado",
                 customerName: customer.name,
                 customerEmail: email,
                 customerPhone: customer.studentId || "pos-walkin",

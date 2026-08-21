@@ -27,6 +27,8 @@ paths:
     get:
       operationId: getContent
       tags: [content]
+      parameters:
+        - $ref: "#/components/parameters/School"
       responses:
         "200":
           description: OK
@@ -36,6 +38,8 @@ paths:
     put:
       operationId: updateContent
       tags: [content]
+      parameters:
+        - $ref: "#/components/parameters/School"
       requestBody:
         required: true
         content:
@@ -51,6 +55,8 @@ paths:
     get:
       operationId: listProducts
       tags: [products]
+      parameters:
+        - $ref: "#/components/parameters/School"
       responses:
         "200":
           description: OK
@@ -62,6 +68,8 @@ paths:
     post:
       operationId: createProduct
       tags: [products]
+      parameters:
+        - $ref: "#/components/parameters/School"
       requestBody:
         required: true
         content:
@@ -122,6 +130,8 @@ paths:
     get:
       operationId: listOrders
       tags: [orders]
+      parameters:
+        - $ref: "#/components/parameters/School"
       responses:
         "200":
           description: OK
@@ -133,6 +143,8 @@ paths:
     post:
       operationId: createOrder
       tags: [orders]
+      parameters:
+        - $ref: "#/components/parameters/School"
       requestBody:
         required: true
         content:
@@ -215,6 +227,14 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/OrdersSummary" }
 components:
+  parameters:
+    School:
+      name: school
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [alvarado, shelyn]
   schemas:
     HealthStatus:
       type: object
@@ -224,6 +244,16 @@ components:
       type: object
       properties:
         id: { type: integer }
+        school: { type: string, enum: [alvarado, shelyn] }
+        checkoutFields:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              label: { type: string }
+              required: { type: boolean }
+            required: [id, label, required]
         brandName: { type: string }
         navHomeLabel: { type: string }
         heroTitle: { type: string }
@@ -254,10 +284,19 @@ components:
         emailFooter: { type: string }
         emailAccentColor: { type: string }
         updatedAt: { type: string }
-      required: [id, brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, ordersEnabled, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor, updatedAt]
+      required: [id, school, checkoutFields, brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, ordersEnabled, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor, updatedAt]
     UpdateSiteContent:
       type: object
       properties:
+        checkoutFields:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              label: { type: string }
+              required: { type: boolean }
+            required: [id, label, required]
         brandName: { type: string }
         navHomeLabel: { type: string }
         heroTitle: { type: string }
@@ -292,6 +331,7 @@ components:
       type: object
       properties:
         id: { type: integer }
+        school: { type: string, enum: [alvarado, shelyn] }
         name: { type: string }
         description: { type: string }
         priceCents: { type: integer }
@@ -300,7 +340,7 @@ components:
         stock: { type: integer }
         active: { type: boolean }
         createdAt: { type: string }
-      required: [id, name, description, priceCents, currency, imageUrl, stock, active, createdAt]
+      required: [id, school, name, description, priceCents, currency, imageUrl, stock, active, createdAt]
     CreateProduct:
       type: object
       properties:
@@ -325,6 +365,7 @@ components:
       type: object
       properties:
         id: { type: integer }
+        school: { type: string, enum: [alvarado, shelyn] }
         customerName: { type: string }
         customerEmail: { type: string }
         customerPhone: { type: string }
@@ -335,6 +376,7 @@ components:
         classroom: { type: string }
         useDefaultAddress: { type: boolean }
         notes: { type: string }
+        customFields: { type: object, additionalProperties: { type: string } }
         paymentMethod: { type: string }
         status: { type: string }
         subtotalCents: { type: integer }
@@ -352,7 +394,7 @@ components:
         items:
           type: array
           items: { $ref: "#/components/schemas/OrderItem" }
-      required: [id, customerName, customerEmail, customerPhone, shippingAddress, city, postalCode, country, useDefaultAddress, paymentMethod, status, subtotalCents, shippingCents, totalCents, currency, createdAt, items]
+      required: [id, school, customerName, customerEmail, customerPhone, shippingAddress, city, postalCode, country, useDefaultAddress, paymentMethod, status, subtotalCents, shippingCents, totalCents, currency, createdAt, items]
     CreateOrderItem:
       type: object
       properties:
@@ -362,6 +404,7 @@ components:
     CreateOrder:
       type: object
       properties:
+        school: { type: string, enum: [alvarado, shelyn] }
         customerName: { type: string, minLength: 1 }
         customerEmail: { type: string, minLength: 3 }
         customerPhone: { type: string, minLength: 3 }
@@ -372,6 +415,7 @@ components:
         country: { type: string }
         classroom: { type: string }
         notes: { type: string }
+        customFields: { type: object, additionalProperties: { type: string } }
         utmSource: { type: string }
         utmMedium: { type: string }
         utmCampaign: { type: string }
@@ -383,7 +427,7 @@ components:
           type: array
           minItems: 1
           items: { $ref: "#/components/schemas/CreateOrderItem" }
-      required: [customerName, customerEmail, customerPhone, useDefaultAddress, items]
+      required: [school, customerName, customerEmail, customerPhone, useDefaultAddress, items]
     UpdateOrderStatus:
       type: object
       properties:

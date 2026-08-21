@@ -6,10 +6,12 @@ import { SiteFooter } from "@/components/site-footer";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
+import { useSchool, SCHOOL_OPTIONS } from "@/lib/school";
 
 export default function Home() {
-  const { data: content, isLoading: contentLoading } = useGetContent();
-  const { data: products, isLoading: productsLoading } = useListProducts();
+  const { school } = useSchool();
+  const { data: content, isLoading: contentLoading } = useGetContent({ school: school ?? "alvarado" });
+  const { data: products, isLoading: productsLoading } = useListProducts({ school: school ?? "alvarado" });
   const { addItem } = useCart();
 
   if (contentLoading || productsLoading || !content) {

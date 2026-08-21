@@ -26,11 +26,18 @@ const DEFAULT_CONTENT = {
   defaultShippingCity: "",
   defaultShippingPostalCode: "",
   defaultShippingCountry: "",
+  checkoutFields: "[]",
 };
+
+const SCHOOL_NAMES = { alvarado: "Alvarado Intermediate", shelyn: "Shelyn Elementary" } as const;
+function schoolOf(value: unknown) {
+  return value === "shelyn" ? "shelyn" : "alvarado";
+}
 
 export function serializeContent(row: SiteContentRow) {
   return {
     id: row.id,
+    school: row.school,
     brandName: row.brandName,
     navHomeLabel: row.navHomeLabel,
     heroTitle: row.heroTitle,
@@ -60,39 +67,42 @@ export function serializeContent(row: SiteContentRow) {
     emailButtonLabel: row.emailButtonLabel,
     emailFooter: row.emailFooter,
     emailAccentColor: row.emailAccentColor,
+    checkoutFields: JSON.parse(row.checkoutFields || "[]"),
     updatedAt: row.updatedAt.toISOString(),
   };
 }
 
-export async function getOrCreateContent(): Promise<SiteContentRow> {
+export async function getOrCreateContent(school = "alvarado"): Promise<SiteContentRow> {
   const existing = await db
     .select()
     .from(siteContentTable)
+    .where(eq(siteContentTable.school, school))
     .orderBy(asc(siteContentTable.id))
     .limit(1);
   if (existing[0]) return existing[0];
   const inserted = await db
     .insert(siteContentTable)
-    .values(DEFAULT_CONTENT)
+    .values({ ...DEFAULT_CONTENT, school, brandName: `${SCHOOL_NAMES[school as keyof typeof SCHOOL_NAMES] ?? "AFEON Books"} Books` })
     .returning();
   return inserted[0]!;
 }
 
-router.get("/content", async (_req, res) => {
-  const row = await getOrCreateContent();
+router.get("/content", async (req, res) => {
+  const row = await getOrCreateContent(schoolOf(req.query.school));
   res.json(GetContentResponse.parse(serializeContent(row)));
 });
 
 router.put("/content", async (req, res) => {
   const body = UpdateContentBody.parse(req.body);
-  const current = await getOrCreateContent();
-  const { ordersEnabled, emailEnabled, ...rest } = body;
+  const current = await getOrCreateContent(schoolOf(req.query.school));
+  const { ordersEnabled, emailEnabled, checkoutFields, ...rest } = body;
   const updated = await db
     .update(siteContentTable)
     .set({
       ...rest,
       ordersEnabled: ordersEnabled ? "true" : "false",
       emailEnabled: emailEnabled ? "true" : "false",
+      checkoutFields: JSON.stringify(checkoutFields ?? []),
       updatedAt: new Date(),
     })
     .where(eq(siteContentTable.id, current.id))

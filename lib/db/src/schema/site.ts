@@ -2,6 +2,7 @@ import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 
 export const siteContentTable = pgTable("site_content", {
   id: serial("id").primaryKey(),
+  school: text("school").notNull().default("alvarado"),
   brandName: text("brand_name").notNull(),
   navHomeLabel: text("nav_home_label").notNull(),
   heroTitle: text("hero_title").notNull(),
@@ -32,6 +33,7 @@ export const siteContentTable = pgTable("site_content", {
   emailButtonLabel: text("email_button_label").notNull().default("View your order"),
   emailFooter: text("email_footer").notNull().default("Questions about your order? Just reply to this email."),
   emailAccentColor: text("email_accent_color").notNull().default("#E2553B"),
+  checkoutFields: text("checkout_fields").notNull().default("[]"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

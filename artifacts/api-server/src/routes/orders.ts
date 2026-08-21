@@ -19,7 +19,7 @@ import {
   UpdateOrderStatusResponse,
   DeleteOrderParams,
 } from "@workspace/api-zod";
-import { asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { sendOrderConfirmation } from "../lib/email";
 
 const router: IRouter = Router();
@@ -27,6 +27,7 @@ const router: IRouter = Router();
 function serializeOrder(o: OrderRow, items: OrderItemRow[]) {
   return {
     id: o.id,
+    school: o.school,
     customerName: o.customerName,
     customerEmail: o.customerEmail,
     customerPhone: o.customerPhone,
@@ -37,6 +38,7 @@ function serializeOrder(o: OrderRow, items: OrderItemRow[]) {
     classroom: o.classroom ?? undefined,
     useDefaultAddress: o.useDefaultAddress === "true",
     notes: o.notes ?? undefined,
+    customFields: JSON.parse(o.customFields || "{}"),
     paymentMethod: o.paymentMethod,
     status: o.status,
     subtotalCents: o.subtotalCents,
@@ -61,10 +63,12 @@ function serializeOrder(o: OrderRow, items: OrderItemRow[]) {
   };
 }
 
-router.get("/orders", async (_req, res) => {
+router.get("/orders", async (req, res) => {
+  const school = req.query.school === "shelyn" ? "shelyn" : "alvarado";
   const orders = await db
     .select()
     .from(ordersTable)
+    .where(eq(ordersTable.school, school))
     .orderBy(desc(ordersTable.createdAt))
     .limit(200);
   if (orders.length === 0) {
@@ -130,6 +134,7 @@ router.get("/orders/:id", async (req, res): Promise<void> => {
 
 router.post("/orders", async (req, res): Promise<void> => {
   const body = CreateOrderBody.parse(req.body);
+  const school = body.school;
 
   let shippingAddress: string;
   let city: string;
@@ -142,6 +147,7 @@ router.post("/orders", async (req, res): Promise<void> => {
       await db
         .select()
         .from(siteContentTable)
+        .where(eq(siteContentTable.school, school))
         .orderBy(asc(siteContentTable.id))
         .limit(1)
     )[0];
@@ -190,7 +196,7 @@ router.post("/orders", async (req, res): Promise<void> => {
   const products = await db
     .select()
     .from(productsTable)
-    .where(inArray(productsTable.id, productIds));
+    .where(and(eq(productsTable.school, school), inArray(productsTable.id, productIds)));
   const byId = new Map(products.map((p) => [p.id, p]));
 
   let subtotal = 0;
@@ -225,6 +231,7 @@ router.post("/orders", async (req, res): Promise<void> => {
     const inserted = await tx
       .insert(ordersTable)
       .values({
+        school,
         customerName: body.customerName,
         customerEmail: body.customerEmail,
         customerPhone: body.customerPhone,
@@ -235,6 +242,7 @@ router.post("/orders", async (req, res): Promise<void> => {
         classroom,
         useDefaultAddress: body.useDefaultAddress ? "true" : "false",
         notes: body.notes ?? null,
+        customFields: JSON.stringify(body.customFields ?? {}),
         paymentMethod: "cash_on_delivery",
         status: "pending",
         subtotalCents: subtotal,
@@ -268,6 +276,7 @@ router.post("/orders", async (req, res): Promise<void> => {
     await db
       .select()
       .from(siteContentTable)
+      .where(eq(siteContentTable.school, school))
       .orderBy(asc(siteContentTable.id))
       .limit(1)
   )[0];

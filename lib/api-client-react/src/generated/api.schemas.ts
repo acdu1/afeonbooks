@@ -9,8 +9,24 @@ export interface HealthStatus {
   status: string;
 }
 
+export type SiteContentSchool =
+  (typeof SiteContentSchool)[keyof typeof SiteContentSchool];
+
+export const SiteContentSchool = {
+  alvarado: "alvarado",
+  shelyn: "shelyn",
+} as const;
+
+export type SiteContentCheckoutFieldsItem = {
+  id: string;
+  label: string;
+  required: boolean;
+};
+
 export interface SiteContent {
   id: number;
+  school: SiteContentSchool;
+  checkoutFields: SiteContentCheckoutFieldsItem[];
   brandName: string;
   navHomeLabel: string;
   heroTitle: string;
@@ -43,7 +59,14 @@ export interface SiteContent {
   updatedAt: string;
 }
 
+export type UpdateSiteContentCheckoutFieldsItem = {
+  id: string;
+  label: string;
+  required: boolean;
+};
+
 export interface UpdateSiteContent {
+  checkoutFields?: UpdateSiteContentCheckoutFieldsItem[];
   brandName: string;
   navHomeLabel: string;
   heroTitle: string;
@@ -75,8 +98,16 @@ export interface UpdateSiteContent {
   emailAccentColor: string;
 }
 
+export type ProductSchool = (typeof ProductSchool)[keyof typeof ProductSchool];
+
+export const ProductSchool = {
+  alvarado: "alvarado",
+  shelyn: "shelyn",
+} as const;
+
 export interface Product {
   id: number;
+  school: ProductSchool;
   name: string;
   description: string;
   priceCents: number;
@@ -112,8 +143,18 @@ export interface OrderItem {
   unitPriceCents: number;
 }
 
+export type OrderSchool = (typeof OrderSchool)[keyof typeof OrderSchool];
+
+export const OrderSchool = {
+  alvarado: "alvarado",
+  shelyn: "shelyn",
+} as const;
+
+export type OrderCustomFields = { [key: string]: string };
+
 export interface Order {
   id: number;
+  school: OrderSchool;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -124,6 +165,7 @@ export interface Order {
   classroom?: string;
   useDefaultAddress: boolean;
   notes?: string;
+  customFields?: OrderCustomFields;
   paymentMethod: string;
   status: string;
   subtotalCents: number;
@@ -147,7 +189,18 @@ export interface CreateOrderItem {
   quantity: number;
 }
 
+export type CreateOrderSchool =
+  (typeof CreateOrderSchool)[keyof typeof CreateOrderSchool];
+
+export const CreateOrderSchool = {
+  alvarado: "alvarado",
+  shelyn: "shelyn",
+} as const;
+
+export type CreateOrderCustomFields = { [key: string]: string };
+
 export interface CreateOrder {
+  school: CreateOrderSchool;
   /** @minLength 1 */
   customerName: string;
   /** @minLength 3 */
@@ -161,6 +214,7 @@ export interface CreateOrder {
   country?: string;
   classroom?: string;
   notes?: string;
+  customFields?: CreateOrderCustomFields;
   utmSource?: string;
   utmMedium?: string;
   utmCampaign?: string;
@@ -204,3 +258,35 @@ export interface OrdersSummary {
   revenueCents: number;
   currency: string;
 }
+
+export type SchoolParameter =
+  (typeof SchoolParameter)[keyof typeof SchoolParameter];
+
+export const SchoolParameter = {
+  alvarado: "alvarado",
+  shelyn: "shelyn",
+} as const;
+
+export type GetContentParams = {
+  school?: SchoolParameter;
+};
+
+export type UpdateContentParams = {
+  school?: SchoolParameter;
+};
+
+export type ListProductsParams = {
+  school?: SchoolParameter;
+};
+
+export type CreateProductParams = {
+  school?: SchoolParameter;
+};
+
+export type ListOrdersParams = {
+  school?: SchoolParameter;
+};
+
+export type CreateOrderParams = {
+  school?: SchoolParameter;
+};

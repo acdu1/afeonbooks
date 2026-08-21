@@ -6,10 +6,12 @@ import { SiteFooter } from "@/components/site-footer";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
+import { useSchool } from "@/lib/school";
 
 export default function Shop() {
-  const { data: content } = useGetContent();
-  const { data: products, isLoading } = useListProducts();
+  const { school } = useSchool();
+  const { data: content } = useGetContent({ school: school ?? "alvarado" });
+  const { data: products, isLoading } = useListProducts({ school: school ?? "alvarado" });
   const { addItem } = useCart();
 
   if (isLoading) {
