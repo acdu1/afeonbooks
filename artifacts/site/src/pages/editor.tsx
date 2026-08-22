@@ -780,7 +780,7 @@ export default function Editor() {
                       <FormItem><FormLabel>From Name</FormLabel><FormControl><Input {...field} className="rounded-none" /></FormControl><FormMessage/></FormItem>
                     )} />
                     <FormField control={contentForm.control} name="emailFromAddress" render={({ field }) => (
-                      <FormItem><FormLabel>From Email</FormLabel><FormControl><Input {...field} placeholder="onboarding@resend.dev" className="rounded-none" /></FormControl><FormMessage/></FormItem>
+                      <FormItem><FormLabel>From Email</FormLabel><FormControl><Input {...field} placeholder="orders@your-verified-domain.com" className="rounded-none" /></FormControl><FormMessage/></FormItem>
                     )} />
                   </div>
                   <FormField control={contentForm.control} name="emailReplyTo" render={({ field }) => (
@@ -824,7 +824,7 @@ export default function Editor() {
 
                 <div className="bg-white p-8 border border-black/5 shadow-sm space-y-4">
                   <h2 className="text-xl font-bold border-b border-black/10 pb-4">Send Test Email</h2>
-                  <p className="text-sm text-black/50">Saves your template, then sends a sample order confirmation to the address below. If you're using <code className="font-mono text-xs bg-[#FAF7F2] px-1">onboarding@resend.dev</code>, you can only send to your verified Resend account email.</p>
+                  <p className="text-sm text-black/50">Saves your template, then sends a sample order confirmation through MailerSend. The From Email must be a sender address or domain verified in MailerSend.</p>
                   <div className="flex gap-2">
                     <Input
                       type="email"

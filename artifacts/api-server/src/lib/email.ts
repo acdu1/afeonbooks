@@ -1,7 +1,7 @@
 import { logger } from "./logger";
 import type { OrderRow, OrderItemRow, SiteContentRow } from "@workspace/db";
 
-const RESEND_API = "https://api.resend.com/emails";
+const MAILERSEND_API = "https://api.mailersend.com/v1/email";
 
 function escapeHtml(s: string): string {
   return s
@@ -195,15 +195,19 @@ export async function sendEmail(args: SendEmailArgs): Promise<{ id: string }> {
   if (!apiKey) {
     throw new Error("MAILERSEND_API_KEY is not configured");
   }
+  const fromMatch = args.from.match(/^(.*) <([^>]+)>$/);
+  const fromName = fromMatch?.[1]?.trim() || undefined;
+  const fromEmail = fromMatch?.[2]?.trim() || args.from.trim();
+  const recipients = Array.isArray(args.to) ? args.to : [args.to];
   const body: Record<string, unknown> = {
-    from: args.from,
-    to: args.to,
+    from: { email: fromEmail, ...(fromName ? { name: fromName } : {}) },
+    to: recipients.map((email) => ({ email })),
     subject: args.subject,
     html: args.html,
   };
-  if (args.replyTo) body.reply_to = args.replyTo;
+  if (args.replyTo) body.reply_to = { email: args.replyTo };
 
-  const res = await fetch(RESEND_API, {
+  const res = await fetch(MAILERSEND_API, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -211,12 +215,20 @@ export async function sendEmail(args: SendEmailArgs): Promise<{ id: string }> {
     },
     body: JSON.stringify(body),
   });
-  const json = (await res.json().catch(() => ({}))) as { id?: string; message?: string; name?: string };
+  const responseText = await res.text();
+  let json: { message?: string; errors?: Array<{ message?: string }> } = {};
+  if (responseText) {
+    try {
+      json = JSON.parse(responseText) as typeof json;
+    } catch {
+      // MailerSend may return a non-JSON error body.
+    }
+  }
   if (!res.ok) {
-    const msg = json.message || json.name || `Resend HTTP ${res.status}`;
+    const msg = json.errors?.map((error) => error.message).filter(Boolean).join("; ") || json.message || `MailerSend HTTP ${res.status}`;
     throw new Error(msg);
   }
-  return { id: json.id ?? "" };
+  return { id: res.headers.get("x-message-id") ?? "" };
 }
 
 export async function sendOrderConfirmation(input: RenderEmailInput): Promise<void> {
@@ -233,7 +245,7 @@ export async function sendOrderConfirmation(input: RenderEmailInput): Promise<vo
   const subject = applyVars(content.emailSubject, vars);
   const html = renderEmailHtml(input);
   const fromName = content.emailFromName || content.brandName || "Store";
-  const fromAddress = content.emailFromAddress || "onboarding@resend.dev";
+  const fromAddress = content.emailFromAddress;
   const from = `${fromName} <${fromAddress}>`;
   try {
     const result = await sendEmail({

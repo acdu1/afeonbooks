@@ -988,7 +988,12 @@ export default function Editor() {
                       <FormItem><FormLabel>From Name</FormLabel><FormControl><Input {...field} className="rounded-none" /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={contentForm.control} name="emailFromAddress" render={({ field }) => (
-                      <FormItem><FormLabel>From Address</FormLabel><FormControl><Input type="email" {...field} className="rounded-none" /></FormControl><FormMessage /></FormItem>
+                      <FormItem>
+                        <FormLabel>From Address</FormLabel>
+                        <FormControl><Input type="email" {...field} className="rounded-none" placeholder="orders@your-verified-domain.com" /></FormControl>
+                        <p className="text-xs text-black/50">Must be verified in MailerSend.</p>
+                        <FormMessage />
+                      </FormItem>
                     )} />
                   </div>
                   <FormField control={contentForm.control} name="emailReplyTo" render={({ field }) => (

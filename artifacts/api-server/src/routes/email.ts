@@ -65,7 +65,7 @@ router.post("/email/test", async (req, res): Promise<void> => {
   const html = renderEmailHtml({ content, order: sampleOrder, items: sampleItems, orderUrl });
 
   const fromName = content.emailFromName || content.brandName || "Store";
-  const fromAddress = content.emailFromAddress || "onboarding@resend.dev";
+  const fromAddress = content.emailFromAddress;
   try {
     const result = await sendEmail({
       from: `${fromName} <${fromAddress}>`,
