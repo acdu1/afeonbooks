@@ -10,11 +10,11 @@ const router: IRouter = Router();
 router.post("/email/test", async (req, res): Promise<void> => {
   const body = SendTestEmailBody.parse(req.body);
   const content = await getOrCreateContent();
-  if (!process.env.RESEND_API_KEY) {
+  if (!process.env.MAILERSEND_API_KEY) {
     res.json(
       SendTestEmailResponse.parse({
         ok: false,
-        message: "RESEND_API_KEY is not configured on the server.",
+        message: "MAILERSEND_API_KEY is not configured on the server.",
       }),
     );
     return;

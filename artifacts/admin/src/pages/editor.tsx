@@ -790,8 +790,8 @@ export default function Editor() {
                   </div>
                   {(contentForm.watch("checkoutFields") ?? []).map((field, index) => (
                     <div key={field.id} className="flex gap-3 items-end">
-                      <FormItem className="flex-1">
-                        <FormLabel>Box label</FormLabel>
+                      <div className="flex-1 space-y-2">
+                        <label className="text-sm font-medium leading-none">Box label</label>
                         <Input
                           value={field.label}
                           onChange={(event) => {
@@ -801,7 +801,7 @@ export default function Editor() {
                           }}
                           className="rounded-none"
                         />
-                      </FormItem>
+                      </div>
                       <label className="flex items-center gap-2 h-10 text-sm font-medium">
                         <Checkbox
                           checked={field.required}

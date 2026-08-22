@@ -191,9 +191,9 @@ export interface SendEmailArgs {
 }
 
 export async function sendEmail(args: SendEmailArgs): Promise<{ id: string }> {
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = process.env.MAILERSEND_API_KEY;
   if (!apiKey) {
-    throw new Error("RESEND_API_KEY is not configured");
+    throw new Error("MAILERSEND_API_KEY is not configured");
   }
   const body: Record<string, unknown> = {
     from: args.from,
@@ -225,8 +225,8 @@ export async function sendOrderConfirmation(input: RenderEmailInput): Promise<vo
     logger.info({ orderId: order.id }, "order confirmation email skipped (disabled)");
     return;
   }
-  if (!process.env.RESEND_API_KEY) {
-    logger.warn({ orderId: order.id }, "order confirmation email skipped: RESEND_API_KEY missing");
+  if (!process.env.MAILERSEND_API_KEY) {
+    logger.warn({ orderId: order.id }, "order confirmation email skipped: MAILERSEND_API_KEY missing");
     return;
   }
   const vars = buildVars({ content, order, orderUrl: input.orderUrl });
