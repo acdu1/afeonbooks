@@ -527,7 +527,7 @@ export default function Pos() {
                   className="mt-0.5 h-4 w-4 accent-blue-600"
                 />
                 <span>
-                  <span className="block text-sm font-bold text-blue-900">Walk-in preorder</span>
+                  <span className="block text-sm font-bold text-blue-900">Walk-in preorder - BETA</span>
                   <span className="block text-xs text-blue-700 mt-0.5">Reserve these items now. No money is due yet.</span>
                 </span>
               </label>
