@@ -43,6 +43,7 @@ interface CustomerInfo {
   classroom: string;
   email: string;
   preorderId?: number;
+  walkInPreorder?: boolean;
 }
 
 type Phase = "lookup" | "walkin-form" | "cart" | "payment" | "signature" | "done";
@@ -120,7 +121,7 @@ export default function Pos() {
   const [search, setSearch] = useState("");
   const [customer, setCustomer] = useState<CustomerInfo>({ name: "", studentId: "", classroom: "", email: "" });
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [walkin, setWalkin] = useState({ name: "", studentId: "", classroom: "", email: "" });
+  const [walkin, setWalkin] = useState({ name: "", studentId: "", classroom: "", email: "", preorder: false });
   const [addProductId, setAddProductId] = useState("");
   const [manualBarcode, setManualBarcode] = useState("");
   const [cashCents, setCashCents] = useState(0);
@@ -193,6 +194,7 @@ export default function Pos() {
       classroom: order.classroom ?? "",
       email: order.customerEmail ?? "",
       preorderId: order.id,
+      walkInPreorder: order.orderType === "preorder",
     });
     setCart(order.items.map((it) => ({
       productId: it.productId,
@@ -294,7 +296,7 @@ export default function Pos() {
   // ── CHECKOUT ──
   async function completeSale() {
     if (cart.length === 0) { toast.error("Cart is empty"); return; }
-    if (cashCents < cartTotal) { toast.error("Cash received is less than total"); return; }
+    if (!customer.walkInPreorder && cashCents < cartTotal) { toast.error("Cash received is less than total"); return; }
     setCompleting(true);
     try {
       if (customer.preorderId) {
@@ -322,6 +324,7 @@ export default function Pos() {
                 useDefaultAddress: true,
                 classroom,
                 items: cart.map((it) => ({ productId: it.productId, quantity: it.quantity })),
+                orderType: customer.walkInPreorder ? "preorder" : "sale",
                 utmSource: "pos",
                 utmMedium: "in-person",
               },
@@ -448,7 +451,7 @@ export default function Pos() {
                   placeholder="Search name, student ID, classroom, or order #"
                   className="pl-9 rounded-none h-11" />
               </div>
-              <Button onClick={() => { setWalkin({ name: "", studentId: "", classroom: "", email: "" }); setPhase("walkin-form"); }}
+              <Button onClick={() => { setWalkin({ name: "", studentId: "", classroom: "", email: "", preorder: false }); setPhase("walkin-form"); }}
                 className="rounded-none h-11 bg-black text-white hover:bg-black/80 uppercase tracking-widest text-xs font-bold px-4 gap-1.5 shrink-0">
                 <UserPlus className="w-4 h-4" />
                 Walk-in
@@ -466,7 +469,10 @@ export default function Pos() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
                       <span className="font-semibold text-sm">{order.customerName}</span>
-                      <span className={`text-xs px-1.5 py-0.5 rounded-sm font-medium ${
+                       {order.orderType === "preorder" && (
+                         <span className="text-xs px-1.5 py-0.5 rounded-sm font-medium bg-blue-100 text-blue-700">preorder · due later</span>
+                       )}
+                       <span className={`text-xs px-1.5 py-0.5 rounded-sm font-medium ${
                         order.status === "confirmed" ? "bg-blue-100 text-blue-700"
                         : order.status === "delivered" ? "bg-emerald-100 text-emerald-700"
                         : order.status === "pending" ? "bg-amber-100 text-amber-700"
@@ -502,7 +508,7 @@ export default function Pos() {
               ].map(({ label, key, placeholder, type }) => (
                 <div key={key}>
                   <label className="text-xs font-bold uppercase tracking-widest text-black/50 block mb-1">{label}</label>
-                  <Input type={type} value={walkin[key as keyof typeof walkin]}
+                  <Input type={type} value={String(walkin[key as keyof typeof walkin] ?? "")}
                     onChange={(e) => setWalkin((p) => ({ ...p, [key]: e.target.value }))}
                     className="rounded-none" placeholder={placeholder}
                     autoFocus={key === "name"}
@@ -513,10 +519,22 @@ export default function Pos() {
                   />
                 </div>
               ))}
+              <label className="flex items-start gap-3 border border-blue-200 bg-blue-50 p-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={walkin.preorder}
+                  onChange={(e) => setWalkin((p) => ({ ...p, preorder: e.target.checked }))}
+                  className="mt-0.5 h-4 w-4 accent-blue-600"
+                />
+                <span>
+                  <span className="block text-sm font-bold text-blue-900">Walk-in preorder</span>
+                  <span className="block text-xs text-blue-700 mt-0.5">Reserve these items now. No money is due yet.</span>
+                </span>
+              </label>
               <Button onClick={() => {
                 if (!walkin.name.trim()) { toast.error("Name is required"); return; }
                 if (!walkin.studentId.trim()) { toast.error("Student ID is required"); return; }
-                setCustomer({ name: walkin.name.trim(), studentId: walkin.studentId.trim(), classroom: walkin.classroom.trim(), email: walkin.email.trim() });
+                setCustomer({ name: walkin.name.trim(), studentId: walkin.studentId.trim(), classroom: walkin.classroom.trim(), email: walkin.email.trim(), walkInPreorder: walkin.preorder });
                 setCart([]);
                 setCashCents(0);
                 setSaleComplete(false);
@@ -656,13 +674,17 @@ export default function Pos() {
                   {customer.classroom && <p>Room: {customer.classroom}</p>}
                 </div>
               </div>
-              <Button onClick={() => {
-                if (cart.length === 0) { toast.error("Add at least one item first"); return; }
-                setCashCents(0);
-                setPhase("payment");
-              }} disabled={cart.length === 0}
+               <Button onClick={() => {
+                 if (cart.length === 0) { toast.error("Add at least one item first"); return; }
+                 setCashCents(0);
+                 if (customer.walkInPreorder) {
+                   void completeSale().then(() => setPhase("done")).catch(() => undefined);
+                 } else {
+                   setPhase("payment");
+                 }
+               }} disabled={cart.length === 0 || completing}
                 className="rounded-none bg-black text-white hover:bg-black/80 uppercase tracking-widest text-xs font-bold h-11 px-5 gap-2 shrink-0">
-                Payment
+                 {completing ? "Saving…" : customer.walkInPreorder ? "Save Preorder" : "Payment"}
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
@@ -765,6 +787,7 @@ export default function Pos() {
               cart={cart}
               cashCents={cashCents}
               changeCents={changeCents}
+              preorder={customer.walkInPreorder === true}
               signatureDataUrl={signatureDataUrl}
               onPrint={() => printReceipt(customer, cart, cashCents, changeCents, signatureDataUrl)}
               onComplete={resetPOS}
@@ -939,6 +962,7 @@ function DoneStep({
   cart,
   cashCents,
   changeCents,
+  preorder,
   signatureDataUrl,
   onPrint,
   onComplete,
@@ -947,6 +971,7 @@ function DoneStep({
   cart: CartItem[];
   cashCents: number;
   changeCents: number;
+  preorder: boolean;
   signatureDataUrl: string | null;
   onPrint: () => void;
   onComplete: () => void;
@@ -977,14 +1002,23 @@ function DoneStep({
           <span className="text-black/50 font-medium">Total</span>
           <span className="font-bold text-black">{formatPrice(cart.reduce((sum, item) => sum + item.unitPriceCents * item.quantity, 0), "USD")}</span>
         </div>
-        <div className="px-4 py-2.5 flex justify-between text-sm">
-          <span className="text-black/50 font-medium">Cash Received</span>
-          <span className="font-medium text-black">{formatPrice(cashCents, "USD")}</span>
-        </div>
-        <div className="px-4 py-2.5 flex justify-between text-sm">
-          <span className="text-black/50 font-medium">Change Given</span>
-          <span className="font-medium text-black">{formatPrice(Math.max(0, changeCents), "USD")}</span>
-        </div>
+        {preorder ? (
+          <div className="px-4 py-2.5 flex justify-between text-sm">
+            <span className="text-black/50 font-medium">Payment</span>
+            <span className="font-bold text-blue-700">Nothing due yet</span>
+          </div>
+        ) : (
+          <>
+            <div className="px-4 py-2.5 flex justify-between text-sm">
+              <span className="text-black/50 font-medium">Cash Received</span>
+              <span className="font-medium text-black">{formatPrice(cashCents, "USD")}</span>
+            </div>
+            <div className="px-4 py-2.5 flex justify-between text-sm">
+              <span className="text-black/50 font-medium">Change Given</span>
+              <span className="font-medium text-black">{formatPrice(Math.max(0, changeCents), "USD")}</span>
+            </div>
+          </>
+        )}
       </div>
 
       {signatureDataUrl && (

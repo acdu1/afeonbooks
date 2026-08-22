@@ -9,6 +9,7 @@
 export * from "./createOrder";
 export * from "./createOrderCustomFields";
 export * from "./createOrderItem";
+export * from "./createOrderOrderType";
 export * from "./createOrderParams";
 export * from "./createOrderSchool";
 export * from "./createProduct";
@@ -21,6 +22,8 @@ export * from "./listProductsParams";
 export * from "./order";
 export * from "./orderCustomFields";
 export * from "./orderItem";
+export * from "./orderOrderType";
+export * from "./orderPaymentStatus";
 export * from "./orderSchool";
 export * from "./ordersSummary";
 export * from "./product";

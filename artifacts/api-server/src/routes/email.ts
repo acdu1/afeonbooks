@@ -34,6 +34,8 @@ router.post("/email/test", async (req, res): Promise<void> => {
     useDefaultAddress: content.defaultShippingAddress ? "true" : "false",
     notes: null,
     customFields: "{}",
+    orderType: "sale",
+    paymentStatus: "due",
     utmSource: null,
     utmMedium: null,
     utmCampaign: null,

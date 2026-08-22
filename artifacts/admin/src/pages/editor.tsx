@@ -315,6 +315,8 @@ export default function Editor() {
       "Use Default Address": o.useDefaultAddress ? "Yes" : "No",
       "Notes": o.notes ?? "",
       "Payment Method": o.paymentMethod,
+      "Order Type": o.orderType,
+      "Payment Status": o.paymentStatus,
       "Subtotal ($)": parseFloat(fmt(o.subtotalCents)),
       "Shipping ($)": parseFloat(fmt(o.shippingCents)),
       "Total ($)": parseFloat(fmt(o.totalCents)),

@@ -7,6 +7,7 @@
  */
 import type { CreateOrderCustomFields } from "./createOrderCustomFields";
 import type { CreateOrderItem } from "./createOrderItem";
+import type { CreateOrderOrderType } from "./createOrderOrderType";
 import type { CreateOrderSchool } from "./createOrderSchool";
 
 export interface CreateOrder {
@@ -25,6 +26,7 @@ export interface CreateOrder {
   classroom?: string;
   notes?: string;
   customFields?: CreateOrderCustomFields;
+  orderType?: CreateOrderOrderType;
   utmSource?: string;
   utmMedium?: string;
   utmCampaign?: string;

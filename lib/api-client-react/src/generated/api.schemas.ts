@@ -152,6 +152,23 @@ export const OrderSchool = {
 
 export type OrderCustomFields = { [key: string]: string };
 
+export type OrderOrderType =
+  (typeof OrderOrderType)[keyof typeof OrderOrderType];
+
+export const OrderOrderType = {
+  sale: "sale",
+  preorder: "preorder",
+} as const;
+
+export type OrderPaymentStatus =
+  (typeof OrderPaymentStatus)[keyof typeof OrderPaymentStatus];
+
+export const OrderPaymentStatus = {
+  due: "due",
+  due_later: "due_later",
+  paid: "paid",
+} as const;
+
 export interface Order {
   id: number;
   school: OrderSchool;
@@ -167,6 +184,8 @@ export interface Order {
   notes?: string;
   customFields?: OrderCustomFields;
   paymentMethod: string;
+  orderType: OrderOrderType;
+  paymentStatus: OrderPaymentStatus;
   status: string;
   subtotalCents: number;
   shippingCents: number;
@@ -199,6 +218,14 @@ export const CreateOrderSchool = {
 
 export type CreateOrderCustomFields = { [key: string]: string };
 
+export type CreateOrderOrderType =
+  (typeof CreateOrderOrderType)[keyof typeof CreateOrderOrderType];
+
+export const CreateOrderOrderType = {
+  sale: "sale",
+  preorder: "preorder",
+} as const;
+
 export interface CreateOrder {
   school: CreateOrderSchool;
   /** @minLength 1 */
@@ -215,6 +242,7 @@ export interface CreateOrder {
   classroom?: string;
   notes?: string;
   customFields?: CreateOrderCustomFields;
+  orderType?: CreateOrderOrderType;
   utmSource?: string;
   utmMedium?: string;
   utmCampaign?: string;

@@ -7,6 +7,8 @@
  */
 import type { OrderCustomFields } from "./orderCustomFields";
 import type { OrderItem } from "./orderItem";
+import type { OrderOrderType } from "./orderOrderType";
+import type { OrderPaymentStatus } from "./orderPaymentStatus";
 import type { OrderSchool } from "./orderSchool";
 
 export interface Order {
@@ -24,6 +26,8 @@ export interface Order {
   notes?: string;
   customFields?: OrderCustomFields;
   paymentMethod: string;
+  orderType: OrderOrderType;
+  paymentStatus: OrderPaymentStatus;
   status: string;
   subtotalCents: number;
   shippingCents: number;

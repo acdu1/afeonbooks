@@ -378,6 +378,8 @@ components:
         notes: { type: string }
         customFields: { type: object, additionalProperties: { type: string } }
         paymentMethod: { type: string }
+        orderType: { type: string, enum: [sale, preorder] }
+        paymentStatus: { type: string, enum: [due, due_later, paid] }
         status: { type: string }
         subtotalCents: { type: integer }
         shippingCents: { type: integer }
@@ -394,7 +396,7 @@ components:
         items:
           type: array
           items: { $ref: "#/components/schemas/OrderItem" }
-      required: [id, school, customerName, customerEmail, customerPhone, shippingAddress, city, postalCode, country, useDefaultAddress, paymentMethod, status, subtotalCents, shippingCents, totalCents, currency, createdAt, items]
+      required: [id, school, customerName, customerEmail, customerPhone, shippingAddress, city, postalCode, country, useDefaultAddress, paymentMethod, orderType, paymentStatus, status, subtotalCents, shippingCents, totalCents, currency, createdAt, items]
     CreateOrderItem:
       type: object
       properties:
@@ -416,6 +418,7 @@ components:
         classroom: { type: string }
         notes: { type: string }
         customFields: { type: object, additionalProperties: { type: string } }
+        orderType: { type: string, enum: [sale, preorder] }
         utmSource: { type: string }
         utmMedium: { type: string }
         utmCampaign: { type: string }
