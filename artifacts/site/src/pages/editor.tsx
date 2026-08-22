@@ -824,7 +824,7 @@ export default function Editor() {
 
                 <div className="bg-white p-8 border border-black/5 shadow-sm space-y-4">
                   <h2 className="text-xl font-bold border-b border-black/10 pb-4">Send Test Email</h2>
-                  <p className="text-sm text-black/50">Saves your template, then sends a sample order confirmation through MailerSend. The From Email must be a sender address or domain verified in MailerSend.</p>
+                  <p className="text-sm text-black/50">Saves your template, then sends a sample order confirmation through MailerSend. The From Email can be any address at a domain verified in MailerSend.</p>
                   <div className="flex gap-2">
                     <Input
                       type="email"

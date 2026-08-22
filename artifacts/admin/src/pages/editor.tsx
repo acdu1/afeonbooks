@@ -991,7 +991,7 @@ export default function Editor() {
                       <FormItem>
                         <FormLabel>From Address</FormLabel>
                         <FormControl><Input type="email" {...field} className="rounded-none" placeholder="orders@your-verified-domain.com" /></FormControl>
-                        <p className="text-xs text-black/50">Must be verified in MailerSend.</p>
+                        <p className="text-xs text-black/50">Use any sender address at a domain verified in MailerSend.</p>
                         <FormMessage />
                       </FormItem>
                     )} />
