@@ -3,6 +3,14 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
+    // Proxy the application's API to the Render backend so frontend code can
+    // continue using relative /api/... URLs from the Cloudflare hostname.
+    if (path.startsWith("/api/")) {
+      const apiUrl = new URL(`https://afeonbooks-api.onrender.com${path}${url.search}`);
+      const proxiedRequest = new Request(apiUrl, request);
+      return fetch(proxiedRequest);
+    }
+
     const assetResponse = await env.ASSETS.fetch(request);
     if (assetResponse.status !== 404) {
       return assetResponse;
