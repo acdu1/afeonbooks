@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, ordersTable, orderItemsTable, productsTable } from "@workspace/db";
 import type { OrderRow, OrderItemRow } from "@workspace/db";
-import { sql } from "drizzle-orm";
+
 import type { ProductRow } from "@workspace/db";
 
 type Snapshot = {
@@ -53,37 +53,34 @@ router.post("/dev-testing/stop", async (_req, res): Promise<void> => {
   }
 
   const snapshot = activeSession;
-  activeSession = null;
 
-  await db.transaction(async (tx) => {
-    // Restore children before parents are deleted/reinserted so foreign-key
-    // constraints cannot reject the transaction.
-    await tx.delete(orderItemsTable);
-    await tx.delete(ordersTable);
-    await tx.delete(productsTable);
+  try {
+    await db.transaction(async (tx) => {
+      // Remove child rows first so foreign keys from order_items -> orders
+      // cannot block the restore.
+      await tx.delete(orderItemsTable);
+      await tx.delete(ordersTable);
+      await tx.delete(productsTable);
 
-    if (snapshot.orders.length > 0) {
-      await tx.insert(ordersTable).values(snapshot.orders);
-    }
-    if (snapshot.products.length > 0) {
-      await tx.insert(productsTable).values(snapshot.products);
-    }
-    if (snapshot.orderItems.length > 0) {
-      await tx.insert(orderItemsTable).values(snapshot.orderItems);
-    }
+      // Restore parents before children.
+      if (snapshot.orders.length > 0) {
+        await tx.insert(ordersTable).values(snapshot.orders);
+      }
+      if (snapshot.products.length > 0) {
+        await tx.insert(productsTable).values(snapshot.products);
+      }
+      if (snapshot.orderItems.length > 0) {
+        await tx.insert(orderItemsTable).values(snapshot.orderItems);
+      }
+    });
 
-    await tx.execute(
-      sql`SELECT setval('orders_id_seq', COALESCE((SELECT MAX(id) FROM orders), 0))`,
-    );
-    await tx.execute(
-      sql`SELECT setval('order_items_id_seq', COALESCE((SELECT MAX(id) FROM order_items), 0))`,
-    );
-    await tx.execute(
-      sql`SELECT setval(pg_get_serial_sequence('products', 'id'), COALESCE((SELECT MAX(id) FROM products), 0))`,
-    );
-  });
-
-  res.json({ restored: true, orderCount: snapshot.orders.length });
+    // Keep the session until the database transaction has succeeded.
+    activeSession = null;
+    res.json({ restored: true, orderCount: snapshot.orders.length });
+  } catch (error) {
+    console.error("Dev testing restore failed:", error);
+    res.status(500).json({ error: "Failed to restore the testing snapshot" });
+  }
 });
 
 export default router;
