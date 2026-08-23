@@ -1,8 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, ordersTable, orderItemsTable, productsTable } from "@workspace/db";
 import type { OrderRow, OrderItemRow } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
-
+import { sql } from "drizzle-orm";
 import type { ProductRow } from "@workspace/db";
 
 type Snapshot = {
@@ -57,17 +56,20 @@ router.post("/dev-testing/stop", async (_req, res): Promise<void> => {
   activeSession = null;
 
   await db.transaction(async (tx) => {
+    // Restore children before parents are deleted/reinserted so foreign-key
+    // constraints cannot reject the transaction.
+    await tx.delete(orderItemsTable);
     await tx.delete(ordersTable);
     await tx.delete(productsTable);
 
     if (snapshot.orders.length > 0) {
       await tx.insert(ordersTable).values(snapshot.orders);
     }
-    if (snapshot.orderItems.length > 0) {
-      await tx.insert(orderItemsTable).values(snapshot.orderItems);
-    }
     if (snapshot.products.length > 0) {
       await tx.insert(productsTable).values(snapshot.products);
+    }
+    if (snapshot.orderItems.length > 0) {
+      await tx.insert(orderItemsTable).values(snapshot.orderItems);
     }
 
     await tx.execute(
