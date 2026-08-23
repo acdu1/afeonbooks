@@ -11,18 +11,24 @@ export default {
       return fetch(proxiedRequest);
     }
 
-    const assetResponse = await env.ASSETS.fetch(request);
-    if (assetResponse.status !== 404) {
-      return assetResponse;
-    }
-
     const isSpaPath = (pathname) => {
       const last = pathname.split("/").pop() || "";
       return !last.includes(".");
     };
 
-    if (path === "/admin" || path === "/admin/" || (path.startsWith("/admin/") && isSpaPath(path))) {
+    // Route admin SPA paths before static-asset resolution so /admin/pos
+    // cannot be mistaken for the admin root page.
+    if (path === "/admin/pos" || path === "/admin/pos/" || (path.startsWith("/admin/") && isSpaPath(path))) {
       return env.ASSETS.fetch(new Request(new URL("/admin/index.html", request.url), request));
+    }
+
+    if (path === "/admin" || path === "/admin/") {
+      return env.ASSETS.fetch(new Request(new URL("/admin/index.html", request.url), request));
+    }
+
+    const assetResponse = await env.ASSETS.fetch(request);
+    if (assetResponse.status !== 404) {
+      return assetResponse;
     }
 
     if (path === "/pickup" || path === "/pickup/" || (path.startsWith("/pickup/") && isSpaPath(path))) {
