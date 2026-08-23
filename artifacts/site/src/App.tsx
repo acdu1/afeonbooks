@@ -17,7 +17,12 @@ const queryClient = new QueryClient();
 import React from 'react';
 import { SchoolProvider } from "@/lib/school";
 import { SchoolPicker } from "@/components/school-picker";
+import { setBaseUrl } from "@workspace/api-client-react";
 
+const apiBaseUrl = import.meta.env.VITE_API_URL;
+if (apiBaseUrl) {
+  setBaseUrl(apiBaseUrl);
+}
 
 function Router() {
   return (
