@@ -6,6 +6,7 @@ import ordersRouter from "./orders";
 import emailRouter from "./email";
 import adminRouter from "./admin";
 import devTestingRouter from "./dev-testing";
+import renderLogsRouter from "./render-logs";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(ordersRouter);
 router.use(emailRouter);
 router.use(adminRouter);
 router.use(devTestingRouter);
+router.use(renderLogsRouter);
 
 export default router;
