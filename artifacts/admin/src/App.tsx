@@ -9,7 +9,7 @@ import Pos from "@/pages/pos";
 import Dev from "@/pages/dev";
 
 const queryClient = new QueryClient();
-const POS_HOST = "pos.afeonbooks.afeonbooks.workers.dev";
+const POS_HOST = "https://pos.afeonbooks.afeonbooks.workers.dev";
 
 function AdminHome() {
   const [devOpen, setDevOpen] = useState(() => window.location.hash === "#dev");
@@ -51,16 +51,26 @@ function AdminHome() {
     };
   }, []);
 
+  useEffect(() => {
+    const fixPosCheckoutLinks = () => {
+      document.querySelectorAll<HTMLAnchorElement>("a").forEach((link) => {
+        if (link.textContent?.trim() === "POS Checkout") {
+          link.href = POS_HOST;
+          link.target = "_self";
+        }
+      });
+    };
+
+    fixPosCheckoutLinks();
+    const observer = new MutationObserver(fixPosCheckoutLinks);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+
   return devOpen ? <Dev /> : <Editor />;
 }
 
 function Router() {
-  const host = window.location.hostname;
-
-  if (host === POS_HOST || host === "pos.afeonbooks.afeonbooks.workers.dev") {
-    return <Route path="*" component={Pos} />;
-  }
-
   return (
     <Switch>
       <Route path="/" component={AdminHome} />
