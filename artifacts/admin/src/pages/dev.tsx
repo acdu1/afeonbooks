@@ -4,13 +4,25 @@ import { Input } from "@/components/ui/input";
 
 const SUPPORTED_SUPABASE_PORTS = [5432, 6543];
 
+type RenderLog = {
+  id?: string;
+  message?: string;
+  timestamp?: string;
+  labels?: Record<string, string>;
+  [key: string]: unknown;
+};
+
 export default function Dev() {
   const [apiStatus, setApiStatus] = useState<"checking" | "online" | "offline">("checking");
   const [devTesting, setDevTesting] = useState<{ active: boolean; expiresAt: string | null } | null>(null);
   const [port, setPort] = useState("");
   const [portMessage, setPortMessage] = useState("");
-  const [logStreamUrl, setLogStreamUrl] = useState(() => localStorage.getItem("renderLogStreamUrl") ?? "");
-  const [savedLogUrl, setSavedLogUrl] = useState(() => localStorage.getItem("renderLogStreamUrl") ?? "");
+  const [renderLogs, setRenderLogs] = useState<RenderLog[]>([]);
+  const [renderLogsLoading, setRenderLogsLoading] = useState(false);
+  const [renderLogsError, setRenderLogsError] = useState("");
+  const [renderConfigured, setRenderConfigured] = useState<boolean | null>(null);
+  const [logType, setLogType] = useState<"all" | "app" | "request" | "build">("all");
+  const [autoRefresh, setAutoRefresh] = useState(true);
 
   const checkHealth = useCallback(async () => {
     setApiStatus("checking");
@@ -28,9 +40,43 @@ export default function Dev() {
     }
   }, []);
 
+  const loadRenderLogs = useCallback(async () => {
+    setRenderLogsLoading(true);
+    setRenderLogsError("");
+    try {
+      const query = logType === "all" ? "" : `?type=${encodeURIComponent(logType)}`;
+      const response = await fetch(`/api/render-logs${query}`, { cache: "no-store" });
+      const payload = await response.json().catch(() => ({})) as {
+        configured?: boolean;
+        error?: string;
+        logs?: RenderLog[];
+      };
+      setRenderConfigured(payload.configured !== false);
+      if (!response.ok) {
+        setRenderLogs([]);
+        setRenderLogsError(payload.error ?? `Render logs request failed (${response.status})`);
+        return;
+      }
+      setRenderLogs(payload.logs ?? []);
+    } catch (error) {
+      setRenderConfigured(true);
+      setRenderLogs([]);
+      setRenderLogsError(error instanceof Error ? error.message : "Unable to load Render logs.");
+    } finally {
+      setRenderLogsLoading(false);
+    }
+  }, [logType]);
+
   useEffect(() => {
     void checkHealth();
-  }, [checkHealth]);
+    void loadRenderLogs();
+  }, [checkHealth, loadRenderLogs]);
+
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const timer = setInterval(() => void loadRenderLogs(), 5_000);
+    return () => clearInterval(timer);
+  }, [autoRefresh, loadRenderLogs]);
 
   const testPort = () => {
     const value = Number(port);
@@ -39,20 +85,10 @@ export default function Dev() {
       return;
     }
     if (SUPPORTED_SUPABASE_PORTS.includes(value)) {
-      setPortMessage(`Port ${value} is a supported Supabase PostgreSQL connection port. Supabase Free does not allow arbitrary public ports; this checks a supported connection port rather than opening a new listener.`);
+      setPortMessage(`Port ${value} is a supported Supabase PostgreSQL connection port. Supabase Free does not allow arbitrary public listeners; this checks a supported connection port rather than opening a new listener.`);
     } else {
-      setPortMessage(`Port ${value} is not a Supabase Free PostgreSQL port. Use 5432 or 6543.`);
+      setPortMessage(`Port ${value} is not a Supabase Free PostgreSQL connection port. Use 5432 or 6543.`);
     }
-  };
-
-  const saveLogStream = () => {
-    const value = logStreamUrl.trim();
-    if (value) {
-      localStorage.setItem("renderLogStreamUrl", value);
-    } else {
-      localStorage.removeItem("renderLogStreamUrl");
-    }
-    setSavedLogUrl(value);
   };
 
   const statusLabel = apiStatus === "online" ? "Online" : apiStatus === "offline" ? "Offline" : "Checking…";
@@ -68,7 +104,7 @@ export default function Dev() {
           </div>
           <div className="flex gap-2">
             <Button type="button" variant="outline" className="rounded-none" onClick={() => window.location.hash = ""}>Back to Dashboard</Button>
-            <Button type="button" className="rounded-none bg-black text-white hover:bg-black/80" onClick={() => void checkHealth()}>Refresh</Button>
+            <Button type="button" className="rounded-none bg-black text-white hover:bg-black/80" onClick={() => { void checkHealth(); void loadRenderLogs(); }}>Refresh</Button>
           </div>
         </div>
       </header>
@@ -94,6 +130,64 @@ export default function Dev() {
 
         <section className="bg-white border border-black/5 shadow-sm p-6 space-y-5">
           <div>
+            <h2 className="text-xl font-bold">Live Render Logs</h2>
+            <p className="text-sm text-black/50 mt-1">Logs are read through the Render REST API by your Render API server. They refresh every 5 seconds while Auto-refresh is enabled.</p>
+          </div>
+          <div className="flex flex-wrap gap-2 items-center">
+            {(["all", "app", "request", "build"] as const).map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setLogType(type)}
+                className={`px-3 py-1.5 text-xs font-bold uppercase tracking-widest border ${logType === type ? "bg-black text-white border-black" : "bg-white text-black/50 border-black/20 hover:text-black"}`}
+              >
+                {type}
+              </button>
+            ))}
+            <label className="ml-auto flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-black/50">
+              <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />
+              Auto-refresh
+            </label>
+            <Button type="button" variant="outline" className="rounded-none h-8" onClick={() => void loadRenderLogs()} disabled={renderLogsLoading}>
+              {renderLogsLoading ? "Loading…" : "Refresh Logs"}
+            </Button>
+          </div>
+
+          {renderConfigured === false ? (
+            <div className="border border-amber-300 bg-amber-50 text-amber-900 p-5 space-y-2">
+              <p className="font-bold">Render logs are not configured yet.</p>
+              <p className="text-sm">Add <code className="font-mono">RENDER_API_KEY</code> to the Render API service environment variables, then redeploy the API.</p>
+            </div>
+          ) : renderLogsError ? (
+            <div className="border border-red-200 bg-red-50 text-red-800 p-5 space-y-2">
+              <p className="font-bold">Could not load Render logs.</p>
+              <p className="text-sm font-mono break-all">{renderLogsError}</p>
+            </div>
+          ) : (
+            <div className="bg-black text-white border border-black/10 rounded-none overflow-hidden">
+              <div className="max-h-[520px] overflow-auto p-4 font-mono text-xs leading-5 space-y-1">
+                {renderLogs.length === 0 ? (
+                  <div className="text-white/40 py-8 text-center">No Render logs found in the current window.</div>
+                ) : renderLogs.map((log, index) => {
+                  const labels = log.labels ?? {};
+                  const level = String(labels.level ?? log.level ?? "").toUpperCase();
+                  const timestamp = log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : "--:--:--";
+                  const message = String(log.message ?? log.text ?? JSON.stringify(log));
+                  return (
+                    <div key={String(log.id ?? index)} className="whitespace-pre-wrap break-words">
+                      <span className="text-white/40 mr-3">{timestamp}</span>
+                      {level && <span className="text-amber-300 mr-3">{level}</span>}
+                      <span>{message}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="bg-white border border-black/5 shadow-sm p-6 space-y-5">
+          <div>
             <h2 className="text-xl font-bold">Supabase Connection Test</h2>
             <p className="text-sm text-black/50 mt-1">Supabase Free uses supported PostgreSQL connection endpoints. It does not provide arbitrary public TCP listeners.</p>
           </div>
@@ -105,35 +199,13 @@ export default function Dev() {
           {portMessage && <div className="bg-[#FAF7F2] border border-black/10 p-4 text-sm">{portMessage}</div>}
         </section>
 
-        <section className="bg-white border border-black/5 shadow-sm p-6 space-y-5">
-          <div>
-            <h2 className="text-xl font-bold">Render Log Stream</h2>
-            <p className="text-sm text-black/50 mt-1">Save your Render Log Stream URL here. The URL is stored only in this browser.</p>
-          </div>
-          <div className="flex flex-col md:flex-row gap-3">
-            <Input value={logStreamUrl} onChange={(e) => setLogStreamUrl(e.target.value)} placeholder="https://…" className="rounded-none flex-1" />
-            <Button type="button" onClick={saveLogStream} className="rounded-none bg-black text-white hover:bg-black/80">Save</Button>
-          </div>
-          {savedLogUrl ? (
-            <div className="border border-black/10 bg-[#FAF7F2] p-4 space-y-3">
-              <p className="text-xs uppercase tracking-widest font-bold text-black/40">Saved stream</p>
-              <div className="flex flex-col md:flex-row gap-3 md:items-center justify-between">
-                <span className="font-mono text-xs break-all">{savedLogUrl}</span>
-                <Button type="button" variant="outline" className="rounded-none shrink-0" onClick={() => window.open(savedLogUrl, "_blank", "noopener,noreferrer")}>Open Stream</Button>
-              </div>
-            </div>
-          ) : (
-            <div className="border border-dashed border-black/20 p-6 text-sm text-black/50">Not configured yet.</div>
-          )}
-        </section>
-
         <section className="bg-white border border-black/5 shadow-sm p-6 space-y-4">
           <h2 className="text-xl font-bold">Environment</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
             <div className="border border-black/10 p-4"><span className="text-black/40">Frontend</span><br/><span className="font-mono text-xs">Cloudflare Workers</span></div>
             <div className="border border-black/10 p-4"><span className="text-black/40">API</span><br/><span className="font-mono text-xs">https://afeonbooks-api.onrender.com</span></div>
             <div className="border border-black/10 p-4"><span className="text-black/40">Database</span><br/><span className="font-mono text-xs">Supabase PostgreSQL</span></div>
-            <div className="border border-black/10 p-4"><span className="text-black/40">Admin base</span><br/><span className="font-mono text-xs">/admin/</span></div>
+            <div className="border border-black/10 p-4"><span className="text-black/40">Render service</span><br/><span className="font-mono text-xs">srv-da57c6jbc2fs738388lg</span></div>
           </div>
         </section>
       </main>
