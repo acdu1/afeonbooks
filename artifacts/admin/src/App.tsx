@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,7 +9,6 @@ import Pos from "@/pages/pos";
 import Dev from "@/pages/dev";
 
 const queryClient = new QueryClient();
-const POS_HOST = "https://pos.afeonbooks.afeonbooks.workers.dev";
 
 function AdminHome() {
   const [devOpen, setDevOpen] = useState(() => window.location.hash === "#dev");
@@ -17,7 +16,10 @@ function AdminHome() {
   useEffect(() => {
     const onHashChange = () => setDevOpen(window.location.hash === "#dev");
     window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
 
+  useEffect(() => {
     const installDevTab = () => {
       if (window.location.hash === "#dev") return;
       if (document.querySelector("[data-admin-dev-tab='true']")) return;
@@ -44,26 +46,6 @@ function AdminHome() {
     installDevTab();
     const observer = new MutationObserver(installDevTab);
     observer.observe(document.body, { childList: true, subtree: true });
-
-    return () => {
-      window.removeEventListener("hashchange", onHashChange);
-      observer.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    const fixPosCheckoutLinks = () => {
-      document.querySelectorAll<HTMLAnchorElement>("a").forEach((link) => {
-        if (link.textContent?.trim() === "POS Checkout") {
-          link.href = POS_HOST;
-          link.target = "_self";
-        }
-      });
-    };
-
-    fixPosCheckoutLinks();
-    const observer = new MutationObserver(fixPosCheckoutLinks);
-    observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();
   }, []);
 
@@ -73,8 +55,11 @@ function AdminHome() {
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={AdminHome} />
-      <Route path="/pos" component={Pos} />
+      <Route path="/admin" component={() => <Redirect to="/admin/" />} />
+      <Route path="/admin/" component={AdminHome} />
+      <Route path="/admin/pos" component={Pos} />
+      <Route path="/pos" component={() => <Redirect to="/admin/pos" />} />
+      <Route path="/" component={() => <Redirect to="/admin/" />} />
       <Route component={NotFound} />
     </Switch>
   );
