@@ -9,6 +9,7 @@ import Pos from "@/pages/pos";
 import Dev from "@/pages/dev";
 
 const queryClient = new QueryClient();
+const POS_HOST = "pos.afeonbooks.afeonbooks.workers.dev";
 
 function AdminHome() {
   const [devOpen, setDevOpen] = useState(() => window.location.hash === "#dev");
@@ -54,6 +55,12 @@ function AdminHome() {
 }
 
 function Router() {
+  const host = window.location.hostname;
+
+  if (host === POS_HOST || host === "pos.afeonbooks.afeonbooks.workers.dev") {
+    return <Route path="*" component={Pos} />;
+  }
+
   return (
     <Switch>
       <Route path="/" component={AdminHome} />
