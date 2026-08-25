@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
+import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,16 +10,69 @@ import Dev from "@/pages/dev";
 
 const queryClient = new QueryClient();
 
+function DebugOverlay() {
+  const [altPressed, setAltPressed] = useState(false);
+  const [info, setInfo] = useState<{ build: string; ip: string } | null>(null);
+  const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Alt") setAltPressed(true);
+    };
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.key === "Alt") setAltPressed(false);
+    };
+    const onBlur = () => setAltPressed(false);
+    const onResize = () => setDimensions({ width: window.innerWidth, height: window.innerHeight });
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", onBlur);
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onBlur);
+      window.removeEventListener("resize", onResize);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!altPressed || info) return;
+    let cancelled = false;
+    fetch("/api/debug-info", { cache: "no-store" })
+      .then((response) => response.json() as Promise<{ build?: string; ip?: string }>)
+      .then((data) => {
+        if (!cancelled) setInfo({ build: data.build ?? "unknown", ip: data.ip ?? "unknown" });
+      })
+      .catch(() => {
+        if (!cancelled) setInfo({ build: "unknown", ip: "unknown" });
+      });
+    return () => { cancelled = true; };
+  }, [altPressed, info]);
+
+  if (!altPressed) return null;
+
+  return (
+    <div
+      style={{ position: "fixed", top: 8, right: 8, zIndex: 2147483647 }}
+      className="pointer-events-none select-none bg-black text-white px-3 py-2 font-mono text-xs leading-5 shadow-lg"
+    >
+      <div>dimensions: {dimensions.width}×{dimensions.height}</div>
+      <div>build #: {info?.build ?? "loading…"}</div>
+      <div>ip: {info?.ip ?? "loading…"}</div>
+    </div>
+  );
+}
+
 function AdminHome() {
   const [devOpen, setDevOpen] = useState(() => window.location.hash === "#dev");
 
   useEffect(() => {
     const onHashChange = () => setDevOpen(window.location.hash === "#dev");
     window.addEventListener("hashchange", onHashChange);
-    return () => window.removeEventListener("hashchange", onHashChange);
-  }, []);
 
-  useEffect(() => {
     const installDevTab = () => {
       if (window.location.hash === "#dev") return;
       if (document.querySelector("[data-admin-dev-tab='true']")) return;
@@ -46,7 +99,11 @@ function AdminHome() {
     installDevTab();
     const observer = new MutationObserver(installDevTab);
     observer.observe(document.body, { childList: true, subtree: true });
-    return () => observer.disconnect();
+
+    return () => {
+      window.removeEventListener("hashchange", onHashChange);
+      observer.disconnect();
+    };
   }, []);
 
   return devOpen ? <Dev /> : <Editor />;
@@ -55,11 +112,8 @@ function AdminHome() {
 function Router() {
   return (
     <Switch>
-      <Route path="/admin" component={() => <Redirect to="/admin/" />} />
-      <Route path="/admin/" component={AdminHome} />
-      <Route path="/admin/pos" component={Pos} />
-      <Route path="/pos" component={() => <Redirect to="/admin/pos" />} />
-      <Route path="/" component={() => <Redirect to="/admin/" />} />
+      <Route path="/" component={AdminHome} />
+      <Route path="/pos" component={Pos} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -73,6 +127,7 @@ function App() {
           <Router />
         </WouterRouter>
         <Toaster position="top-center" richColors />
+        <DebugOverlay />
       </TooltipProvider>
     </QueryClientProvider>
   );
