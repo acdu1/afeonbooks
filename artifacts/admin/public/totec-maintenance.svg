@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Wrench icon -->
+  <g transform="translate(100, 100)">
+    <!-- Handle -->
+    <rect x="-15" y="-60" width="30" height="80" rx="15" fill="#8B5CF6" opacity="0.8" />
+    
+    <!-- Head -->
+    <circle cx="0" cy="30" r="25" fill="#A78BFA" opacity="0.9" />
+    
+    <!-- Jaw opening -->
+    <path d="M -15 20 Q -20 30 -15 40" stroke="#7C3AED" stroke-width="3" fill="none" />
+    <path d="M 15 20 Q 20 30 15 40" stroke="#7C3AED" stroke-width="3" fill="none" />
+    
+    <!-- Gear decoration -->
+    <circle cx="0" cy="0" r="8" fill="none" stroke="#FCD34D" stroke-width="2" />
+    <circle cx="0" cy="0" r="4" fill="#FCD34D" />
+    
+    <!-- Rotating animation group -->
+    <g opacity="0.6">
+      <circle cx="0" cy="0" r="12" fill="none" stroke="#FCD34D" stroke-width="1.5" />
+      <circle cx="12" cy="0" r="2" fill="#FCD34D" />
+      <circle cx="-12" cy="0" r="2" fill="#FCD34D" />
+      <circle cx="0" cy="12" r="2" fill="#FCD34D" />
+      <circle cx="0" cy="-12" r="2" fill="#FCD34D" />
+    </g>
+  </g>
+  
+  <style>
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    g:nth-child(2) {
+      animation: rotate 3s linear infinite;
+      transform-origin: 100px 100px;
+    }
+  </style>
+</svg>
