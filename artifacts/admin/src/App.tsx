@@ -106,6 +106,24 @@ function AdminHome() {
     };
   }, []);
 
+  useEffect(() => {
+    const onPosCheckoutClick = (event: MouseEvent) => {
+      const target = event.target as Element | null;
+      const control = target?.closest<HTMLButtonElement | HTMLAnchorElement>("button, a");
+      if (!control) return;
+
+      const label = control.textContent?.replace(/\s+/g, " ").trim().toUpperCase();
+      if (label !== "POS CHECKOUT") return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      window.location.assign(`${window.location.origin}/admin/pos/`);
+    };
+
+    document.addEventListener("click", onPosCheckoutClick, true);
+    return () => document.removeEventListener("click", onPosCheckoutClick, true);
+  }, []);
+
   return devOpen ? <Dev /> : <Editor />;
 }
 
@@ -114,6 +132,7 @@ function Router() {
     <Switch>
       <Route path="/" component={AdminHome} />
       <Route path="/pos" component={Pos} />
+      <Route path="/pos/" component={Pos} />
       <Route component={NotFound} />
     </Switch>
   );
