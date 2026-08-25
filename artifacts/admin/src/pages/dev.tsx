@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const SUPPORTED_SUPABASE_PORTS = [5432, 6543];
+const STATUS_PAGE_URL = "https://afeonbooks.statuspage.io/";
 
 type RenderLog = {
   id?: string;
@@ -125,6 +126,27 @@ export default function Dev() {
             <p className="text-xs uppercase tracking-widest font-bold text-black/40">Database</p>
             <p className="mt-4 text-xl font-bold">Supabase</p>
             <p className="mt-2 text-xs text-black/50">Render API → Supabase PostgreSQL</p>
+          </div>
+        </section>
+
+        <section className="bg-white border border-black/5 shadow-sm p-6 space-y-4">
+          <div>
+            <p className="text-xs uppercase tracking-widest font-bold text-black/40">Service Status</p>
+            <h2 className="text-xl font-bold mt-1">AfeonBooks Status Page</h2>
+            <p className="text-sm text-black/50 mt-1">Monitor uptime, incidents, and service status.</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <a
+              href={STATUS_PAGE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center px-4 py-2 bg-black text-white text-sm font-bold hover:bg-black/80 transition-colors"
+            >
+              Open Status Page ↗
+            </a>
+            <div className="flex items-center px-3 py-2 border border-black/10 bg-[#FAF7F2] text-xs font-mono text-black/60 break-all">
+              {STATUS_PAGE_URL}
+            </div>
           </div>
         </section>
 
