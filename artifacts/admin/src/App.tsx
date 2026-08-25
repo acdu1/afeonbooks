@@ -106,24 +106,6 @@ function AdminHome() {
     };
   }, []);
 
-  useEffect(() => {
-    const onPosCheckoutClick = (event: MouseEvent) => {
-      const target = event.target as Element | null;
-      const control = target?.closest<HTMLButtonElement | HTMLAnchorElement>("button, a");
-      if (!control) return;
-
-      const label = control.textContent?.replace(/\s+/g, " ").trim().toUpperCase();
-      if (label !== "POS CHECKOUT") return;
-
-      event.preventDefault();
-      event.stopPropagation();
-      window.location.assign(`${window.location.origin}/admin/pos/`);
-    };
-
-    document.addEventListener("click", onPosCheckoutClick, true);
-    return () => document.removeEventListener("click", onPosCheckoutClick, true);
-  }, []);
-
   return devOpen ? <Dev /> : <Editor />;
 }
 
@@ -139,6 +121,27 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => {
+    // POS CHECKOUT must always be a hard navigation to the real admin POS URL.
+    // This bypasses any dashboard/link handler that tries to send the user back to /admin.
+    const onClick = (event: MouseEvent) => {
+      const target = event.target as Element | null;
+      const control = target?.closest<HTMLElement>("button, a");
+      if (!control) return;
+
+      const label = control.textContent?.replace(/\s+/g, " ").trim().toUpperCase();
+      if (label !== "POS CHECKOUT") return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      window.location.href = `${window.location.origin}/admin/pos/`;
+    };
+
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
