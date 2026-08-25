@@ -9,40 +9,6 @@ import Pos from "@/pages/pos";
 import Dev from "@/pages/dev";
 import { MaintenancePage } from './pages/maintenance';
 
-export function App() {
-  const [isMaintenance, setIsMaintenance] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const checkMaintenance = async () => {
-      try {
-        // Check if MAINTENANCE env var is set to true
-        const response = await fetch('/api/maintenance-status');
-        const data = await response.json();
-        setIsMaintenance(data.maintenance === true);
-      } catch (error) {
-        console.error('Failed to check maintenance status:', error);
-        // Fail open - show app normally if check fails
-        setIsMaintenance(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkMaintenance();
-  }, []);
-
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
-  if (isMaintenance) {
-    return <MaintenancePage />;
-  }
-
-  return <YourActualApp />;
-}
-
 const queryClient = new QueryClient();
 
 function AdminHome() {
@@ -100,7 +66,7 @@ function Router() {
   );
 }
 
-function App() {
+function AppContent() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -111,6 +77,40 @@ function App() {
       </TooltipProvider>
     </QueryClientProvider>
   );
+}
+
+function App() {
+  const [isMaintenance, setIsMaintenance] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkMaintenance = async () => {
+      try {
+        // Check if MAINTENANCE env var is set to true
+        const response = await fetch('/api/maintenance-status');
+        const data = await response.json();
+        setIsMaintenance(data.maintenance === true);
+      } catch (error) {
+        console.error('Failed to check maintenance status:', error);
+        // Fail open - show app normally if check fails
+        setIsMaintenance(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkMaintenance();
+  }, []);
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (isMaintenance) {
+    return <MaintenancePage />;
+  }
+
+  return <AppContent />;
 }
 
 export default App;
