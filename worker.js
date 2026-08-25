@@ -1,13 +1,12 @@
-const BUILD_ID = "2026.08.24.01";
-
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
 
     if (path === "/api/debug-info") {
+      const version = env.CF_VERSION_METADATA;
       return Response.json({
-        build: BUILD_ID,
+        build: version?.id ?? "unknown",
         ip: request.headers.get("CF-Connecting-IP") || request.headers.get("X-Forwarded-For") || "unknown",
         host: url.host,
       }, { headers: { "Cache-Control": "no-store" } });
