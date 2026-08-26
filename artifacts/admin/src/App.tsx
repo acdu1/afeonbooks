@@ -112,9 +112,9 @@ function AdminHome() {
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={AdminHome} />
-      <Route path="/pos" component={Pos} />
       <Route path="/pos/" component={Pos} />
+      <Route path="/pos" component={Pos} />
+      <Route path="/" component={AdminHome} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -122,8 +122,7 @@ function Router() {
 
 function App() {
   useEffect(() => {
-    // POS CHECKOUT must always be a hard navigation to the real admin POS URL.
-    // This bypasses any dashboard/link handler that tries to send the user back to /admin.
+    // POS CHECKOUT is always a hard navigation to the dedicated admin POS URL.
     const onClick = (event: MouseEvent) => {
       const target = event.target as Element | null;
       const control = target?.closest<HTMLElement>("button, a");
@@ -135,7 +134,7 @@ function App() {
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
-      window.location.href = `${window.location.origin}/admin/pos/`;
+      window.location.assign(`${window.location.origin}/admin/pos/`);
     };
 
     document.addEventListener("click", onClick, true);
@@ -145,7 +144,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+        {/* Keep the routing base fixed. Do not depend on Cloudflare's build-time BASE_PATH. */}
+        <WouterRouter base="/admin">
           <Router />
         </WouterRouter>
         <Toaster position="top-center" richColors />
