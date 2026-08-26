@@ -121,8 +121,9 @@ function Router() {
 }
 
 function App() {
+  const isPosPath = window.location.pathname === "/admin/pos" || window.location.pathname === "/admin/pos/";
+
   useEffect(() => {
-    // POS CHECKOUT is always a hard navigation to the dedicated admin POS URL.
     const onClick = (event: MouseEvent) => {
       const target = event.target as Element | null;
       const control = target?.closest<HTMLElement>("button, a");
@@ -144,10 +145,13 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        {/* Keep the routing base fixed. Do not depend on Cloudflare's build-time BASE_PATH. */}
-        <WouterRouter base="/admin">
-          <Router />
-        </WouterRouter>
+        {isPosPath ? (
+          <Pos />
+        ) : (
+          <WouterRouter base="/admin">
+            <Router />
+          </WouterRouter>
+        )}
         <Toaster position="top-center" richColors />
         <DebugOverlay />
       </TooltipProvider>
