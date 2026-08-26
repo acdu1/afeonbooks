@@ -20,6 +20,9 @@ export default {
     const fetchAdminIndex = () =>
       env.ASSETS.fetch(new Request(new URL("/admin/index.html", request.url), request));
 
+    const fetchAdminPos = () =>
+      env.ASSETS.fetch(new Request(new URL("/admin/pos.html", request.url), request));
+
     if (path === "/admin/admin" || path === "/admin/admin/") {
       return Response.redirect(new URL("/admin/", request.url), 301);
     }
@@ -27,10 +30,9 @@ export default {
       return Response.redirect(new URL(path.replace(/^\/admin\/admin/, "/admin"), request.url), 301);
     }
 
-    // Serve the admin SPA directly at both POS URLs. Do not redirect /admin/pos
-    // to /admin/pos/ because the client router handles both forms.
+    // POS has its own compiled HTML entry. Never redirect it to /admin.
     if (path === "/admin/pos" || path === "/admin/pos/") {
-      return fetchAdminIndex();
+      return fetchAdminPos();
     }
 
     if (
