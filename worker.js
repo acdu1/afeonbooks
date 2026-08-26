@@ -27,14 +27,15 @@ export default {
       return Response.redirect(new URL(path.replace(/^\/admin\/admin/, "/admin"), request.url), 301);
     }
 
-    if (path === "/admin/pos") {
-      return Response.redirect(new URL("/admin/pos/", request.url), 301);
+    // Serve the admin SPA directly at both POS URLs. Do not redirect /admin/pos
+    // to /admin/pos/ because the client router handles both forms.
+    if (path === "/admin/pos" || path === "/admin/pos/") {
+      return fetchAdminIndex();
     }
 
     if (
       path === "/admin" ||
       path === "/admin/" ||
-      path === "/admin/pos/" ||
       (path.startsWith("/admin/") && !path.split("/").pop()?.includes("."))
     ) {
       return fetchAdminIndex();
