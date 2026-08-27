@@ -66,6 +66,122 @@ function DebugOverlay() {
   );
 }
 
+function OrderEmailOverlay() {
+  const [orderId, setOrderId] = useState<number | null>(null);
+  const [order, setOrder] = useState<{ id: number; customerName: string; customerEmail: string; totalCents: number; currency: string; status: string } | null>(null);
+  const [sending, setSending] = useState(false);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    const onClick = async (event: MouseEvent) => {
+      const target = event.target as Element | null;
+      const control = target?.closest<HTMLElement>("button, a, select, input, textarea");
+      if (control) return;
+
+      const row = target?.closest<HTMLTableRowElement>("tr");
+      if (!row) return;
+      const cells = Array.from(row.querySelectorAll("td"));
+      if (cells.length < 7) return;
+      const firstText = cells[0]?.textContent?.trim() ?? "";
+      const match = firstText.match(/^#(\d+)$/);
+      if (!match) return;
+
+      const id = Number(match[1]);
+      if (!Number.isInteger(id)) return;
+      setOrderId(id);
+      setMessage("");
+      setOrder(null);
+
+      try {
+        const response = await fetch(`/api/orders/${id}`, { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        setOrder({
+          id: data.id,
+          customerName: data.customerName,
+          customerEmail: data.customerEmail,
+          totalCents: data.totalCents,
+          currency: data.currency,
+          status: data.status,
+        });
+      } catch {
+        setMessage("Could not load order details.");
+      }
+    };
+
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, []);
+
+  if (orderId === null) return null;
+
+  const close = () => {
+    if (sending) return;
+    setOrderId(null);
+    setOrder(null);
+    setMessage("");
+  };
+
+  const resend = async () => {
+    if (!orderId) return;
+    setSending(true);
+    setMessage("");
+    try {
+      const response = await fetch(`/api/orders/${orderId}/resend-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message ?? `HTTP ${response.status}`);
+      setMessage(data.message ?? "Email resent successfully.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to resend email.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[2147483646] flex items-center justify-center bg-black/30 px-4" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
+      <div className="w-full max-w-md bg-white border border-black/10 shadow-2xl p-6 font-sans">
+        <div className="flex items-start justify-between gap-4 mb-6">
+          <div>
+            <p className="text-xs uppercase tracking-widest font-bold text-black/40">Order</p>
+            <h2 className="text-2xl font-bold mt-1">#{orderId}</h2>
+          </div>
+          <button type="button" onClick={close} className="text-black/40 hover:text-black text-xl leading-none" aria-label="Close">×</button>
+        </div>
+
+        {order ? (
+          <div className="space-y-4 text-sm">
+            <div><div className="text-xs uppercase tracking-widest text-black/40">Customer</div><div className="font-medium mt-1">{order.customerName}</div></div>
+            <div><div className="text-xs uppercase tracking-widest text-black/40">Email</div><div className="mt-1">{order.customerEmail}</div></div>
+            <div><div className="text-xs uppercase tracking-widest text-black/40">Total</div><div className="font-bold mt-1">{new Intl.NumberFormat("en-US", { style: "currency", currency: order.currency }).format(order.totalCents / 100)}</div></div>
+            <div><div className="text-xs uppercase tracking-widest text-black/40">Status</div><div className="mt-1 capitalize">{order.status}</div></div>
+
+            <button
+              type="button"
+              onClick={resend}
+              disabled={sending}
+              className="w-full mt-2 bg-black text-white py-3 text-xs font-bold uppercase tracking-widest disabled:opacity-40"
+            >
+              {sending ? "Resending…" : "Resend Email"}
+            </button>
+
+            {message && (
+              <p className={`text-sm ${message.toLowerCase().includes("resent") || message.toLowerCase().includes("success") ? "text-emerald-700" : "text-red-600"}`}>
+                {message}
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-black/50">{message || "Loading order…"}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AdminHome() {
   const [devOpen, setDevOpen] = useState(() => window.location.hash === "#dev");
 
@@ -154,6 +270,7 @@ function App() {
         )}
         <Toaster position="top-center" richColors />
         <DebugOverlay />
+        {!isPosPath && <OrderEmailOverlay />}
       </TooltipProvider>
     </QueryClientProvider>
   );
