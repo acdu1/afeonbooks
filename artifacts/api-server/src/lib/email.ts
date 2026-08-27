@@ -71,160 +71,68 @@ export function renderEmailHtml(input: RenderEmailInput): string {
   const intro = applyVars(content.emailIntro, vars);
   const footer = applyVars(content.emailFooter, vars);
   const buttonLabel = applyVars(content.emailButtonLabel, vars);
-
   const useDefault = order.useDefaultAddress === "true";
   const shippingHtml = [
     useDefault && order.classroom ? `<strong>Classroom ${escapeHtml(order.classroom)}</strong>` : "",
     escapeHtml(order.shippingAddress),
     `${escapeHtml(order.city)}, ${escapeHtml(order.postalCode)}`,
     escapeHtml(order.country),
-  ]
-    .filter(Boolean)
-    .join("<br>");
-
-  const itemsRows = items
-    .map(
-      (it) => `
+  ].filter(Boolean).join("<br>");
+  const itemsRows = items.map((it) => `
       <tr>
         <td style="padding:12px 0;border-bottom:1px solid #eee;font-size:14px;">
           <strong>${escapeHtml(it.productName)}</strong><br>
           <span style="color:#666;font-size:12px;">Qty ${it.quantity} × ${formatPrice(it.unitPriceCents, order.currency)}</span>
         </td>
-        <td style="padding:12px 0;border-bottom:1px solid #eee;font-size:14px;text-align:right;font-weight:bold;">
-          ${formatPrice(it.unitPriceCents * it.quantity, order.currency)}
-        </td>
-      </tr>`,
-    )
-    .join("");
-
+        <td style="padding:12px 0;border-bottom:1px solid #eee;font-size:14px;text-align:right;font-weight:bold;">${formatPrice(it.unitPriceCents * it.quantity, order.currency)}</td>
+      </tr>`).join("");
   const introHtml = escapeHtml(intro).replace(/\n/g, "<br>");
   const footerHtml = escapeHtml(footer).replace(/\n/g, "<br>");
-
   return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escapeHtml(applyVars(content.emailSubject, vars))}</title>
-</head>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(applyVars(content.emailSubject, vars))}</title></head>
 <body style="margin:0;padding:0;background:#FAF7F2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#111;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FAF7F2;padding:32px 16px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border:1px solid #eee;">
-          <tr>
-            <td style="padding:32px 32px 8px 32px;">
-              <div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#888;font-weight:bold;">${escapeHtml(content.brandName)}</div>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:8px 32px 0 32px;">
-              <h1 style="margin:0;font-size:28px;line-height:1.2;font-weight:800;letter-spacing:-0.5px;">${escapeHtml(heading)}</h1>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:16px 32px 0 32px;font-size:15px;line-height:1.6;color:#333;">
-              ${introHtml}
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:24px 32px 0 32px;">
-              <a href="${escapeHtml(orderUrl)}" style="display:inline-block;background:${escapeHtml(accent)};color:#fff;text-decoration:none;padding:14px 28px;font-weight:bold;font-size:13px;letter-spacing:2px;text-transform:uppercase;">
-                ${escapeHtml(buttonLabel)}
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:32px 32px 0 32px;">
-              <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#888;font-weight:bold;margin-bottom:12px;">Order Summary</div>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #eee;">
-                ${itemsRows}
-                <tr>
-                  <td style="padding:16px 0 0 0;font-size:14px;color:#666;">Subtotal</td>
-                  <td style="padding:16px 0 0 0;font-size:14px;text-align:right;">${formatPrice(order.subtotalCents, order.currency)}</td>
-                </tr>
-                <tr>
-                  <td style="padding:6px 0;font-size:14px;color:#666;">Shipping</td>
-                  <td style="padding:6px 0;font-size:14px;text-align:right;">${order.shippingCents === 0 ? "Free" : formatPrice(order.shippingCents, order.currency)}</td>
-                </tr>
-                <tr>
-                  <td style="padding:12px 0 0 0;font-size:16px;font-weight:bold;border-top:1px solid #eee;">Total</td>
-                  <td style="padding:12px 0 0 0;font-size:16px;text-align:right;font-weight:bold;border-top:1px solid #eee;">${formatPrice(order.totalCents, order.currency)}</td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:24px 32px 0 32px;">
-              <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#888;font-weight:bold;margin-bottom:12px;">Shipping To</div>
-              <div style="font-size:14px;line-height:1.6;color:#333;">${shippingHtml}</div>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:24px 32px 0 32px;">
-              <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#888;font-weight:bold;margin-bottom:12px;">Payment</div>
-              <div style="font-size:14px;color:#333;">${escapeHtml(vars.paymentMethod)}</div>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:32px;font-size:13px;line-height:1.6;color:#666;border-top:1px solid #eee;margin-top:24px;">
-              ${footerHtml}
-            </td>
-          </tr>
-        </table>
-        <div style="max-width:600px;margin-top:16px;font-size:11px;color:#999;text-align:center;">
-          ${escapeHtml(content.footerNote)}
-        </div>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FAF7F2;padding:32px 16px;"><tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border:1px solid #eee;">
+<tr><td style="padding:32px 32px 8px"><div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#888;font-weight:bold">${escapeHtml(content.brandName)}</div></td></tr>
+<tr><td style="padding:8px 32px 0"><h1 style="margin:0;font-size:28px;line-height:1.2;font-weight:800;letter-spacing:-0.5px">${escapeHtml(heading)}</h1></td></tr>
+<tr><td style="padding:16px 32px 0;font-size:15px;line-height:1.6;color:#333">${introHtml}</td></tr>
+<tr><td style="padding:24px 32px 0"><a href="${escapeHtml(orderUrl)}" style="display:inline-block;background:${escapeHtml(accent)};color:#fff;text-decoration:none;padding:14px 28px;font-weight:bold;font-size:13px;letter-spacing:2px;text-transform:uppercase">${escapeHtml(buttonLabel)}</a></td></tr>
+<tr><td style="padding:32px 32px 0"><div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#888;font-weight:bold;margin-bottom:12px">Order Summary</div><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #eee">${itemsRows}<tr><td style="padding:16px 0 0;font-size:14px;color:#666">Subtotal</td><td style="padding:16px 0 0;font-size:14px;text-align:right">${formatPrice(order.subtotalCents, order.currency)}</td></tr><tr><td style="padding:6px 0;font-size:14px;color:#666">Shipping</td><td style="padding:6px 0;font-size:14px;text-align:right">${order.shippingCents === 0 ? "Free" : formatPrice(order.shippingCents, order.currency)}</td></tr><tr><td style="padding:12px 0 0;font-size:16px;font-weight:bold;border-top:1px solid #eee">Total</td><td style="padding:12px 0 0;font-size:16px;text-align:right;font-weight:bold;border-top:1px solid #eee">${formatPrice(order.totalCents, order.currency)}</td></tr></table></td></tr>
+<tr><td style="padding:24px 32px 0"><div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#888;font-weight:bold;margin-bottom:12px">Shipping To</div><div style="font-size:14px;line-height:1.6;color:#333">${shippingHtml}</div></td></tr>
+<tr><td style="padding:24px 32px 0"><div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#888;font-weight:bold;margin-bottom:12px">Payment</div><div style="font-size:14px;color:#333">${escapeHtml(vars.paymentMethod)}</div></td></tr>
+<tr><td style="padding:32px;font-size:13px;line-height:1.6;color:#666;border-top:1px solid #eee">${footerHtml}</td></tr></table>
+<div style="max-width:600px;margin-top:16px;font-size:11px;color:#999;text-align:center">${escapeHtml(content.footerNote)}</div>
+</td></tr></table></body></html>`;
 }
 
-export interface SendEmailArgs {
-  from: string;
-  to: string | string[];
-  replyTo?: string;
-  subject: string;
-  html: string;
-}
+export interface SendEmailArgs { from: string; to: string | string[]; replyTo?: string; subject: string; html: string; }
 
 export async function sendEmail(args: SendEmailArgs): Promise<{ id: string }> {
   const apiKey = process.env.MAILERSEND_API_KEY;
-  if (!apiKey) {
-    throw new Error("MAILERSEND_API_KEY is not configured");
-  }
+  if (!apiKey) throw new Error("MAILERSEND_API_KEY is not configured");
   const fromMatch = args.from.match(/^(.*) <([^>]+)>$/);
   const fromName = fromMatch?.[1]?.trim() || undefined;
   const fromEmail = fromMatch?.[2]?.trim() || args.from.trim();
   const recipients = Array.isArray(args.to) ? args.to : [args.to];
   const body: Record<string, unknown> = {
     from: { email: fromEmail, ...(fromName ? { name: fromName } : {}) },
-    to: recipients.map((email) => ({ email })),
-    subject: args.subject,
-    html: args.html,
+    to: recipients.map((email) => ({ email })), subject: args.subject, html: args.html,
   };
   if (args.replyTo) body.reply_to = { email: args.replyTo };
-
   const res = await fetch(MAILERSEND_API, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   const responseText = await res.text();
   let json: { message?: string; errors?: Array<{ message?: string }> } = {};
   if (responseText) {
-    try {
-      json = JSON.parse(responseText) as typeof json;
-    } catch {
-      // MailerSend may return a non-JSON error body.
-    }
+    try { json = JSON.parse(responseText) as typeof json; } catch { /* non-JSON error */ }
   }
   if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      throw new Error("MailerSend rejected the API key. Update MAILERSEND_API_KEY in the Render API environment variables, then redeploy.");
+    }
     const msg = json.errors?.map((error) => error.message).filter(Boolean).join("; ") || json.message || `MailerSend HTTP ${res.status}`;
     throw new Error(msg);
   }
@@ -233,14 +141,8 @@ export async function sendEmail(args: SendEmailArgs): Promise<{ id: string }> {
 
 export async function sendOrderConfirmation(input: RenderEmailInput): Promise<void> {
   const { content, order } = input;
-  if (content.emailEnabled !== "true") {
-    logger.info({ orderId: order.id }, "order confirmation email skipped (disabled)");
-    return;
-  }
-  if (!process.env.MAILERSEND_API_KEY) {
-    logger.warn({ orderId: order.id }, "order confirmation email skipped: MAILERSEND_API_KEY missing");
-    return;
-  }
+  if (content.emailEnabled !== "true") { logger.info({ orderId: order.id }, "order confirmation email skipped (disabled)"); return; }
+  if (!process.env.MAILERSEND_API_KEY) { logger.warn({ orderId: order.id }, "order confirmation email skipped: MAILERSEND_API_KEY missing"); return; }
   const vars = buildVars({ content, order, orderUrl: input.orderUrl });
   const subject = applyVars(content.emailSubject, vars);
   const html = renderEmailHtml(input);
@@ -248,15 +150,7 @@ export async function sendOrderConfirmation(input: RenderEmailInput): Promise<vo
   const fromAddress = content.emailFromAddress;
   const from = `${fromName} <${fromAddress}>`;
   try {
-    const result = await sendEmail({
-      from,
-      to: order.customerEmail,
-      replyTo: content.emailReplyTo || undefined,
-      subject,
-      html,
-    });
+    const result = await sendEmail({ from, to: order.customerEmail, replyTo: content.emailReplyTo || undefined, subject, html });
     logger.info({ orderId: order.id, emailId: result.id }, "order confirmation email sent");
-  } catch (err) {
-    logger.error({ err, orderId: order.id }, "failed to send order confirmation email");
-  }
+  } catch (err) { logger.error({ err, orderId: order.id }, "failed to send order confirmation email"); }
 }
