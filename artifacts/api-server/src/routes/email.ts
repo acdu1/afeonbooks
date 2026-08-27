@@ -90,4 +90,59 @@ router.post("/email/test", async (req, res): Promise<void> => {
   }
 });
 
+// Diagnostic only: validates that the server's MailerSend credential is accepted
+// by the email API without sending an email or exposing the credential.
+router.post("/email/mailersend-diagnostic", async (req, res): Promise<void> => {
+  try {
+    const { pin } = (req.body ?? {}) as { pin?: unknown };
+    if (typeof pin !== "string" || !/^\d{4}$/.test(pin)) {
+      res.status(400).json({ ok: false, message: "A valid 4-digit admin PIN is required." });
+      return;
+    }
+
+    const content = await getOrCreateContent();
+    if (content.adminPin !== pin) {
+      res.status(403).json({ ok: false, message: "Invalid admin PIN." });
+      return;
+    }
+
+    const apiKey = process.env.MAILERSEND_API_KEY;
+    if (!apiKey) {
+      res.status(503).json({ ok: false, message: "MAILERSEND_API_KEY is not configured on the server." });
+      return;
+    }
+
+    const response = await fetch("https://api.mailersend.com/v1/email", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      // Intentionally invalid but harmless request: this must never send an email.
+      body: JSON.stringify({}),
+    });
+
+    const text = await response.text();
+    let body: unknown = null;
+    try {
+      body = text ? JSON.parse(text) : null;
+    } catch {
+      body = text || null;
+    }
+
+    res.status(200).json({
+      ok: response.ok,
+      mailerSendStatus: response.status,
+      mailerSendStatusText: response.statusText,
+      mailerSendBody: body,
+      hasApiKey: true,
+      apiKeyLength: apiKey.length,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    logger.error({ err }, "MailerSend diagnostic failed");
+    res.status(500).json({ ok: false, message });
+  }
+});
+
 export default router;
