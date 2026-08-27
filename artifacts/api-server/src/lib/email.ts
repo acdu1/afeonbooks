@@ -8,7 +8,7 @@ function escapeHtml(s: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
+    .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
 
@@ -125,16 +125,13 @@ export async function sendEmail(args: SendEmailArgs): Promise<{ id: string }> {
     body: JSON.stringify(body),
   });
   const responseText = await res.text();
-  let json: { message?: string; errors?: Array<{ message?: string }> } = {};
+  let json: { message?: string; errors?: Array<{ message?: string; code?: string }> } = {};
   if (responseText) {
     try { json = JSON.parse(responseText) as typeof json; } catch { /* non-JSON error */ }
   }
   if (!res.ok) {
-    if (res.status === 401 || res.status === 403) {
-      throw new Error("MailerSend rejected the API key. Update MAILERSEND_API_KEY in the Render API environment variables, then redeploy.");
-    }
-    const msg = json.errors?.map((error) => error.message).filter(Boolean).join("; ") || json.message || `MailerSend HTTP ${res.status}`;
-    throw new Error(msg);
+    const detail = json.errors?.map((error) => [error.code, error.message].filter(Boolean).join(": ")).filter(Boolean).join("; ") || json.message || `MailerSend HTTP ${res.status}`;
+    throw new Error(`MailerSend HTTP ${res.status}: ${detail}`);
   }
   return { id: res.headers.get("x-message-id") ?? "" };
 }
