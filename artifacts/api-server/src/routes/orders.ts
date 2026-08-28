@@ -285,7 +285,7 @@ router.post("/orders", async (req, res): Promise<void> => {
       .limit(1)
   )[0];
   if (content) {
-    const orderUrl = `https://click.afeonbooks.com/cloudflare/order/${created.order.id}`;
+    const orderUrl = `https://click.afeonbooks.com/orders/${created.order.id}`;
     void sendOrderConfirmation({
       content,
       order: created.order,
