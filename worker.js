@@ -3,6 +3,18 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
+    // Email click-tracking links. This works for manually entered links too;
+    // the order ID is taken directly from the URL path.
+    if (url.hostname === "click.afeonbooks.com") {
+      const match = path.match(/^\/cloudflare\/order\/([^/]+)\/?$/);
+      if (match) {
+        const destination = new URL(`https://afeonbooks.com/order/${encodeURIComponent(match[1])}`);
+        destination.searchParams.set("utm-source", "mail.cloudflare");
+        return Response.redirect(destination.toString(), 302);
+      }
+      return new Response("Not Found", { status: 404 });
+    }
+
     if (path === "/api/debug-info") {
       const version = env.CF_VERSION_METADATA;
       return Response.json({
