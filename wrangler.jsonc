@@ -15,10 +15,6 @@
     {
       "pattern": "afeonbooks.com/order/*",
       "zone_name": "afeonbooks.com"
-    },
-    {
-      "pattern": "afeonbooks.com/orders/*",
-      "zone_name": "afeonbooks.com"
     }
   ]
 }
