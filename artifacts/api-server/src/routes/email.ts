@@ -61,7 +61,7 @@ router.post("/email/test", async (req, res): Promise<void> => {
       unitPriceCents: 1499,
     },
   ];
-  const orderUrl = `${req.protocol}://${req.get("host")}/order/${sampleOrder.id}`;
+  const orderUrl = `https://click.afeonbooks.com/cloudflare/order/${sampleOrder.id}`;
   const vars = buildVars({ content, order: sampleOrder, orderUrl });
   const subject = `[TEST] ${applyVars(content.emailSubject, vars)}`;
   const html = renderEmailHtml({ content, order: sampleOrder, items: sampleItems, orderUrl });
