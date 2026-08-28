@@ -32,6 +32,8 @@ function Router() {
       <Route path="/product/:id" component={Product} />
       <Route path="/cart" component={Cart} />
       <Route path="/checkout" component={Checkout} />
+      <Route path="/orders/:id" component={Order} />
+      {/* Keep existing singular links working while plural is canonical. */}
       <Route path="/order/:id" component={Order} />
       <Route component={NotFound} />
     </Switch>
