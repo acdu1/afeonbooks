@@ -54,6 +54,12 @@ export default {
       return fetchPickupIndex();
     }
 
+    // Customer order pages are client-side routes in the public site.
+    // Serve the public app for /order/:id so direct links from emails work.
+    if (/^\/order\/[^/]+\/?$/.test(path)) {
+      return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
+    }
+
     const assetResponse = await env.ASSETS.fetch(request);
     if (assetResponse.status !== 404) {
       return assetResponse;
