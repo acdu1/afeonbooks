@@ -1,11 +1,19 @@
 import { Router, type IRouter } from "express";
-import { and, asc, eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db, orderItemsTable, ordersTable, siteContentTable } from "@workspace/db";
 import { renderEmailHtml, sendEmail, applyVars, buildVars } from "../lib/email";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
-const PUBLIC_SITE_URL = process.env.PUBLIC_SITE_URL || "https://afeonbooks.afeonbooks.workers.dev";
+
+// This must point to the customer-facing website, never the API service.
+// PUBLIC_SITE_URL can override it for a deployment, but an API URL is rejected
+// so an order link can never accidentally become https://...onrender.com/order/12.
+const configuredPublicUrl = (process.env.PUBLIC_SITE_URL || "").trim().replace(/\/+$/, "");
+const PUBLIC_SITE_URL =
+  configuredPublicUrl && !/\.onrender\.com$/i.test(configuredPublicUrl)
+    ? configuredPublicUrl
+    : "https://afeonbooks.com";
 
 router.post("/orders/:id/resend-email", async (req, res): Promise<void> => {
   try {
@@ -26,10 +34,7 @@ router.post("/orders/:id/resend-email", async (req, res): Promise<void> => {
       return;
     }
 
-    const items = await db
-      .select()
-      .from(orderItemsTable)
-      .where(eq(orderItemsTable.orderId, id));
+    const items = await db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, id));
 
     const content = (
       await db
@@ -55,6 +60,7 @@ router.post("/orders/:id/resend-email", async (req, res): Promise<void> => {
       return;
     }
 
+    // Always generate the customer-facing order URL. The API has no /order/:id page.
     const orderUrl = `${PUBLIC_SITE_URL}/order/${order.id}`;
     const vars = buildVars({ content, order, orderUrl });
     const subject = applyVars(content.emailSubject, vars);
@@ -69,7 +75,7 @@ router.post("/orders/:id/resend-email", async (req, res): Promise<void> => {
       html,
     });
 
-    logger.info({ orderId: order.id, emailId: result.id }, "order confirmation email resent");
+    logger.info({ orderId: order.id, emailId: result.id, orderUrl }, "order confirmation email resent");
     res.json({ ok: true, message: `Email resent to ${order.customerEmail}`, emailId: result.id });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
