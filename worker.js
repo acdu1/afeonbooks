@@ -3,25 +3,38 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // Email click-tracking links. This works for manually entered links too;
-    // the order ID is taken directly from the URL path.
+    // Email click-tracking links. Accept both the canonical
+    // /cloudflare/order/:id form and the shorter /order/:id form so
+    // manually entered click-domain URLs behave the same way as emails.
     if (url.hostname === "click.afeonbooks.com") {
-      const match = path.match(/^\/cloudflare\/order\/([^/]+)\/?$/);
+      const match =
+        path.match(/^\/cloudflare\/order\/([^/]+)\/?$/) ||
+        path.match(/^\/order\/([^/]+)\/?$/);
+
       if (match) {
-        const destination = new URL(`https://afeonbooks.com/order/${encodeURIComponent(match[1])}`);
+        const destination = new URL(
+          `https://afeonbooks.com/order/${encodeURIComponent(match[1])}`,
+        );
         destination.searchParams.set("utm-source", "mail.cloudflare");
         return Response.redirect(destination.toString(), 302);
       }
+
       return new Response("Not Found", { status: 404 });
     }
 
     if (path === "/api/debug-info") {
       const version = env.CF_VERSION_METADATA;
-      return Response.json({
-        build: version?.id ?? "unknown",
-        ip: request.headers.get("CF-Connecting-IP") || request.headers.get("X-Forwarded-For") || "unknown",
-        host: url.host,
-      }, { headers: { "Cache-Control": "no-store" } });
+      return Response.json(
+        {
+          build: version?.id ?? "unknown",
+          ip:
+            request.headers.get("CF-Connecting-IP") ||
+            request.headers.get("X-Forwarded-For") ||
+            "unknown",
+          host: url.host,
+        },
+        { headers: { "Cache-Control": "no-store" } },
+      );
     }
 
     if (path.startsWith("/api/")) {
@@ -30,16 +43,23 @@ export default {
     }
 
     const fetchAdminIndex = () =>
-      env.ASSETS.fetch(new Request(new URL("/admin/index.html", request.url), request));
+      env.ASSETS.fetch(
+        new Request(new URL("/admin/index.html", request.url), request),
+      );
 
     const fetchAdminPos = () =>
-      env.ASSETS.fetch(new Request(new URL("/admin/pos.html", request.url), request));
+      env.ASSETS.fetch(
+        new Request(new URL("/admin/pos.html", request.url), request),
+      );
 
     if (path === "/admin/admin" || path === "/admin/admin/") {
       return Response.redirect(new URL("/admin/", request.url), 301);
     }
     if (path.startsWith("/admin/admin/")) {
-      return Response.redirect(new URL(path.replace(/^\/admin\/admin/, "/admin"), request.url), 301);
+      return Response.redirect(
+        new URL(path.replace(/^\/admin\/admin/, "/admin"), request.url),
+        301,
+      );
     }
 
     // POS has its own compiled HTML entry. Never redirect it to /admin.
@@ -56,7 +76,9 @@ export default {
     }
 
     const fetchPickupIndex = () =>
-      env.ASSETS.fetch(new Request(new URL("/pickup/index.html", request.url), request));
+      env.ASSETS.fetch(
+        new Request(new URL("/pickup/index.html", request.url), request),
+      );
 
     if (
       path === "/pickup" ||
@@ -69,7 +91,9 @@ export default {
     // Customer order pages are client-side routes in the public site.
     // Serve the public app for /order/:id so direct links from emails work.
     if (/^\/order\/[^/]+\/?$/.test(path)) {
-      return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
+      return env.ASSETS.fetch(
+        new Request(new URL("/index.html", request.url), request),
+      );
     }
 
     const assetResponse = await env.ASSETS.fetch(request);
@@ -78,7 +102,9 @@ export default {
     }
 
     if (!path.split("/").pop()?.includes(".")) {
-      return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
+      return env.ASSETS.fetch(
+        new Request(new URL("/index.html", request.url), request),
+      );
     }
 
     return new Response("Not Found", { status: 404 });
