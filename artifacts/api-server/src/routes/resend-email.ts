@@ -4,16 +4,16 @@ import { db, orderItemsTable, ordersTable, siteContentTable } from "@workspace/d
 import { renderEmailHtml, sendEmail, applyVars, buildVars } from "../lib/email";
 import { logger } from "../lib/logger";
 
-const router: IRouter = Router();
-
 // This must point to the customer-facing website, never the API service.
 // PUBLIC_SITE_URL can override it for a deployment, but an API URL is rejected
-// so an order link can never accidentally become https://...onrender.com/order/12.
+// so an order link can never accidentally become https://...onrender.com/orders/12.
 const configuredPublicUrl = (process.env.PUBLIC_SITE_URL || "").trim().replace(/\/+$/, "");
 const PUBLIC_SITE_URL =
   configuredPublicUrl && !/\.onrender\.com$/i.test(configuredPublicUrl)
     ? configuredPublicUrl
     : "https://afeonbooks.com";
+
+const router: IRouter = Router();
 
 router.post("/orders/:id/resend-email", async (req, res): Promise<void> => {
   try {
@@ -60,8 +60,8 @@ router.post("/orders/:id/resend-email", async (req, res): Promise<void> => {
       return;
     }
 
-    // Always generate the customer-facing order URL. The API has no /order/:id page.
-    const orderUrl = `${PUBLIC_SITE_URL}/order/${order.id}`;
+    // Always generate the customer-facing plural order URL. The API has no customer page.
+    const orderUrl = `${PUBLIC_SITE_URL}/orders/${order.id}`;
     const vars = buildVars({ content, order, orderUrl });
     const subject = applyVars(content.emailSubject, vars);
     const html = renderEmailHtml({ content, order, items, orderUrl });
