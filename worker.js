@@ -3,17 +3,16 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // Email click-tracking links. Accept both the canonical
-    // /cloudflare/order/:id form and the shorter /order/:id form so
-    // manually entered click-domain URLs behave the same way as emails.
+    // Email click-tracking links. Accept the legacy singular and canonical
+    // plural forms, plus the explicit /cloudflare/ form used by older emails.
     if (url.hostname === "click.afeonbooks.com") {
       const match =
-        path.match(/^\/cloudflare\/order\/([^/]+)\/?$/) ||
-        path.match(/^\/order\/([^/]+)\/?$/);
+        path.match(/^\/cloudflare\/(?:order|orders)\/([^/]+)\/?$/) ||
+        path.match(/^\/(?:order|orders)\/([^/]+)\/?$/);
 
       if (match) {
         const destination = new URL(
-          `https://afeonbooks.com/order/${encodeURIComponent(match[1])}`,
+          `https://afeonbooks.com/orders/${encodeURIComponent(match[1])}`,
         );
         destination.searchParams.set("utm-source", "mail.cloudflare");
         return Response.redirect(destination.toString(), 302);
@@ -89,8 +88,8 @@ export default {
     }
 
     // Customer order pages are client-side routes in the public site.
-    // Serve the public app for /order/:id so direct links from emails work.
-    if (/^\/order\/[^/]+\/?$/.test(path)) {
+    // Both forms are served so old links remain valid; /orders/:id is canonical.
+    if (/^\/(?:order|orders)\/[^/]+\/?$/.test(path)) {
       return env.ASSETS.fetch(
         new Request(new URL("/index.html", request.url), request),
       );
