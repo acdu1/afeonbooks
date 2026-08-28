@@ -10,5 +10,11 @@
     "directory": "./artifacts/site/dist/public",
     "binding": "ASSETS",
     "not_found_handling": "none"
-  }
+  },
+  "routes": [
+    {
+      "pattern": "afeonbooks.com/order/*",
+      "zone_name": "afeonbooks.com"
+    }
+  ]
 }
