@@ -25,7 +25,7 @@ export default {
     }
 
     if (path.startsWith("/api/")) {
-      const apiUrl = new URL(`https://afeonbooks-api.onrender.com${path}${url.search}`);
+      const apiUrl = new URL(`https://api.afeonbooks.com${path}${url.search}`);
       return fetch(new Request(apiUrl, request));
     }
 
