@@ -3,16 +3,17 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // Email click-tracking links. Accept the legacy singular and canonical
-    // plural forms, plus the explicit /cloudflare/ form used by older emails.
+    // Email click-tracking links. Accept legacy and canonical click paths.
     if (url.hostname === "click.afeonbooks.com") {
       const match =
         path.match(/^\/cloudflare\/(?:order|orders)\/([^/]+)\/?$/) ||
         path.match(/^\/(?:order|orders)\/([^/]+)\/?$/);
 
       if (match) {
+        // The public site route is singular (/order/:id). The API route is
+        // plural (/api/orders/:id); do not mix the two.
         const destination = new URL(
-          `https://afeonbooks.com/orders/${encodeURIComponent(match[1])}`,
+          `https://afeonbooks.com/order/${encodeURIComponent(match[1])}`,
         );
         destination.searchParams.set("utm-source", "mail.cloudflare");
         return Response.redirect(destination.toString(), 302);
@@ -88,8 +89,8 @@ export default {
     }
 
     // Customer order pages are client-side routes in the public site.
-    // Both forms are served so old links remain valid; /orders/:id is canonical.
-    if (/^\/(?:order|orders)\/[^/]+\/?$/.test(path)) {
+    // Keep the singular public URL because that is the Cloudflare route.
+    if (/^\/order\/[^/]+\/?$/.test(path)) {
       return env.ASSETS.fetch(
         new Request(new URL("/index.html", request.url), request),
       );
