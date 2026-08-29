@@ -167,7 +167,7 @@ export default {
     const fetchPickupIndex = () => env.ASSETS.fetch(new Request(new URL("/pickup/index.html", request.url), request));
     if (path === "/pickup" || path === "/pickup/" || (path.startsWith("/pickup/") && !path.split("/").pop()?.includes("."))) return fetchPickupIndex();
 
-    // Customer order pages remain React pages. PDF generation is only on /pdf.
+    // Customer order pages are normal React pages. PDF generation is only on /pdf.
     if (/^\/order\/[^/]+\/?$/.test(path)) {
       return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
     }
