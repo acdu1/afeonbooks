@@ -10,13 +10,17 @@ const router: IRouter = Router();
 router.post("/email/test", async (req, res): Promise<void> => {
   const body = SendTestEmailBody.parse(req.body);
   const content = await getOrCreateContent();
-  if (!process.env.MAILERSEND_API_KEY) {
-    res.json(
-      SendTestEmailResponse.parse({
-        ok: false,
-        message: "MAILERSEND_API_KEY is not configured on the server.",
-      }),
-    );
+  const zohoConfigured = Boolean(
+    process.env.ZOHO_MAIL_REFRESH_TOKEN &&
+    process.env.ZOHO_CLIENT_ID &&
+    process.env.ZOHO_CLIENT_SECRET &&
+    process.env.ZOHO_MAIL_ACCOUNT_ID,
+  );
+  if (!zohoConfigured) {
+    res.json(SendTestEmailResponse.parse({
+      ok: false,
+      message: "Zoho Mail credentials are not fully configured on the server.",
+    }));
     return;
   }
 
@@ -51,96 +55,95 @@ router.post("/email/test", async (req, res): Promise<void> => {
     currency: "USD",
     createdAt: new Date(),
   };
-  const sampleItems: OrderItemRow[] = [
-    {
-      id: 1,
-      orderId: 9999,
-      productId: 1,
-      productName: "The Terror Of The Evil Capybara",
-      quantity: 1,
-      unitPriceCents: 1499,
-    },
-  ];
+  const sampleItems: OrderItemRow[] = [{
+    id: 1,
+    orderId: 9999,
+    productId: 1,
+    productName: "The Terror Of The Evil Capybara",
+    quantity: 1,
+    unitPriceCents: 1499,
+  }];
   const orderUrl = `https://click.afeonbooks.com/cloudflare/order/${sampleOrder.id}`;
   const vars = buildVars({ content, order: sampleOrder, orderUrl });
   const subject = `[TEST] ${applyVars(content.emailSubject, vars)}`;
   const html = renderEmailHtml({ content, order: sampleOrder, items: sampleItems, orderUrl });
 
-  const fromName = content.emailFromName || content.brandName || "Store";
-  const fromAddress = content.emailFromAddress;
   try {
     const result = await sendEmail({
-      from: `${fromName} <${fromAddress}>`,
+      from: `AFEON Books <noreply@afeonbooks.com>`,
       to: body.to,
-      replyTo: content.emailReplyTo || undefined,
+      replyTo: content.emailReplyTo || "aiden.chen@afeonbooks.com",
       subject,
       html,
     });
-    res.json(
-      SendTestEmailResponse.parse({
-        ok: true,
-        emailId: result.id,
-        message: `Test email sent to ${body.to}`,
-      }),
-    );
+    res.json(SendTestEmailResponse.parse({
+      ok: true,
+      emailId: result.id,
+      message: `Test email sent to ${body.to}`,
+    }));
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
-    logger.error({ err }, "test email failed");
+    logger.error({ err }, "Zoho Mail test email failed");
     res.json(SendTestEmailResponse.parse({ ok: false, message: msg }));
   }
 });
 
-// Diagnostic only: validates that the server's MailerSend credential is accepted
-// by the email API without sending an email or exposing the credential.
-router.post("/email/mailersend-diagnostic", async (req, res): Promise<void> => {
+// Diagnostic only: validates the configured Zoho Mail OAuth credentials and account.
+router.post("/email/zoho-diagnostic", async (req, res): Promise<void> => {
   try {
     const { pin } = (req.body ?? {}) as { pin?: unknown };
     if (typeof pin !== "string" || !/^\d{4}$/.test(pin)) {
       res.status(400).json({ ok: false, message: "A valid 4-digit admin PIN is required." });
       return;
     }
-
     const content = await getOrCreateContent();
     if (content.adminPin !== pin) {
       res.status(403).json({ ok: false, message: "Invalid admin PIN." });
       return;
     }
 
-    const apiKey = process.env.MAILERSEND_API_KEY;
-    if (!apiKey) {
-      res.status(503).json({ ok: false, message: "MAILERSEND_API_KEY is not configured on the server." });
+    const configured = Boolean(
+      process.env.ZOHO_MAIL_REFRESH_TOKEN &&
+      process.env.ZOHO_CLIENT_ID &&
+      process.env.ZOHO_CLIENT_SECRET &&
+      process.env.ZOHO_MAIL_ACCOUNT_ID,
+    );
+    if (!configured) {
+      res.status(503).json({ ok: false, message: "Zoho Mail credentials are not fully configured on the server." });
       return;
     }
 
-    const response = await fetch("https://api.mailersend.com/v1/email", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+    // A harmless access-token refresh validates OAuth without sending a message.
+    // sendEmail is intentionally not called here.
+    const response = await fetch(
+      `${process.env.ZOHO_ACCOUNTS_URL || "https://accounts.zoho.com"}/oauth/v2/token`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          refresh_token: process.env.ZOHO_MAIL_REFRESH_TOKEN!,
+          client_id: process.env.ZOHO_CLIENT_ID!,
+          client_secret: process.env.ZOHO_CLIENT_SECRET!,
+          grant_type: "refresh_token",
+        }),
       },
-      // Intentionally invalid but harmless request: this must never send an email.
-      body: JSON.stringify({}),
-    });
-
+    );
     const text = await response.text();
-    let body: unknown = null;
-    try {
-      body = text ? JSON.parse(text) : null;
-    } catch {
-      body = text || null;
-    }
+    let body: Record<string, unknown> = {};
+    try { body = text ? JSON.parse(text) as Record<string, unknown> : {}; } catch {}
 
     res.status(200).json({
-      ok: response.ok,
-      mailerSendStatus: response.status,
-      mailerSendStatusText: response.statusText,
-      mailerSendBody: body,
-      hasApiKey: true,
-      apiKeyLength: apiKey.length,
+      ok: response.ok && typeof body.access_token === "string",
+      zohoStatus: response.status,
+      authenticatedUser: process.env.ZOHO_MAIL_AUTHENTICATED_USER || "aiden.chen@afeonbooks.com",
+      fromAddress: process.env.ZOHO_MAIL_FROM_ADDRESS || "noreply@afeonbooks.com",
+      accountIdConfigured: true,
+      tokenRefreshSucceeded: response.ok && typeof body.access_token === "string",
+      error: typeof body.error === "string" ? body.error : undefined,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    logger.error({ err }, "MailerSend diagnostic failed");
+    logger.error({ err }, "Zoho Mail diagnostic failed");
     res.status(500).json({ ok: false, message });
   }
 });
