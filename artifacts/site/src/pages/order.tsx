@@ -5,13 +5,12 @@ import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { formatPrice } from "@/lib/format";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Printer } from "lucide-react";
 
 export default function Order() {
   const { id } = useParams();
   const { school } = useSchool();
   const orderId = parseInt(id || "0", 10);
-  
   const { data: content } = useGetContent({ school: school ?? "alvarado" });
   const { data: order, isLoading, isError } = useGetOrder(orderId);
 
@@ -41,8 +40,12 @@ export default function Order() {
     );
   }
 
+  const printReceipt = () => {
+    window.open(`/order/${order.id}/pdf`, "_blank", "noopener,noreferrer");
+  };
+
   return (
-    <div 
+    <div
       className="min-h-screen w-full flex flex-col font-sans bg-[#FAF7F2]"
       style={{ "--theme-accent": content?.accentColor || "#000" } as React.CSSProperties}
     >
@@ -50,7 +53,6 @@ export default function Order() {
 
       <main className="flex-1 w-full px-6 py-12 md:py-24">
         <div className="max-w-[800px] mx-auto bg-white p-8 md:p-16 border border-black/5 shadow-sm">
-          
           <div className="text-center mb-16">
             <div className="w-20 h-20 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto mb-8">
               <CheckCircle2 className="w-10 h-10" />
@@ -79,9 +81,7 @@ export default function Order() {
             <div>
               <h3 className="text-xs uppercase tracking-widest text-black/50 font-bold mb-4">Shipping Address</h3>
               <div className="font-medium space-y-1">
-                {order.useDefaultAddress && order.classroom && (
-                  <p className="font-bold">Classroom {order.classroom}</p>
-                )}
+                {order.useDefaultAddress && order.classroom && <p className="font-bold">Classroom {order.classroom}</p>}
                 <p>{order.shippingAddress}</p>
                 <p>{order.city}, {order.postalCode}</p>
                 <p>{order.country}</p>
@@ -95,9 +95,7 @@ export default function Order() {
               {order.items.map((item) => (
                 <div key={item.id} className="flex justify-between items-center font-medium border-b border-black/5 pb-4 last:border-0 last:pb-0">
                   <div className="flex items-center gap-4">
-                    <span className="bg-[#FAF7F2] text-black text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
-                      {item.quantity}
-                    </span>
+                    <span className="bg-[#FAF7F2] text-black text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">{item.quantity}</span>
                     <span>{item.productName}</span>
                   </div>
                   <span>{formatPrice(item.unitPriceCents * item.quantity)}</span>
@@ -111,12 +109,15 @@ export default function Order() {
             <span className="text-3xl font-bold">{formatPrice(order.totalCents, order.currency)}</span>
           </div>
 
-          <div className="mt-16 text-center">
-            <Button asChild className="h-14 px-12 rounded-full bg-black text-white hover:bg-[var(--theme-accent)] transition-colors uppercase tracking-widest font-bold text-xs">
+          <div className="mt-16 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Button type="button" onClick={printReceipt} className="h-14 px-10 rounded-full bg-black text-white hover:bg-[var(--theme-accent)] transition-colors uppercase tracking-widest font-bold text-xs">
+              <Printer className="w-4 h-4 mr-2" />
+              Print Receipt
+            </Button>
+            <Button asChild className="h-14 px-10 rounded-full bg-black text-white hover:bg-[var(--theme-accent)] transition-colors uppercase tracking-widest font-bold text-xs">
               <Link href="/shop">Continue Shopping</Link>
             </Button>
           </div>
-
         </div>
       </main>
 
