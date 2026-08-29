@@ -41,7 +41,10 @@ export default function Order() {
   }
 
   const printReceipt = () => {
-    window.open(`/order/${order.id}/pdf`, "_blank", "noopener,noreferrer");
+    const popup = window.open(`/order/${order.id}/pdf`, "_blank", "noopener,noreferrer");
+    if (!popup) {
+      window.location.href = `/order/${order.id}/pdf`;
+    }
   };
 
   return (
