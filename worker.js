@@ -14,30 +14,22 @@ function makePdf(lines) {
   const maxLinesPerPage = 43;
   const pages = [];
 
-  for (let i = 0; i < lines.length; i += maxLinesPerPage) {
-    pages.push(lines.slice(i, i + maxLinesPerPage));
-  }
+  for (let i = 0; i < lines.length; i += maxLinesPerPage) pages.push(lines.slice(i, i + maxLinesPerPage));
   if (pages.length === 0) pages.push([""]);
 
   const objects = [];
   const pageObjectIds = [];
   const contentObjectIds = [];
   let nextId = 3;
-
-  for (const pageLines of pages) {
+  for (const _pageLines of pages) {
     pageObjectIds.push(nextId++);
     contentObjectIds.push(nextId++);
   }
   const fontObjectId = nextId++;
-
   const encoder = new TextEncoder();
 
   const makeContent = (pageLines) => {
-    const commands = [
-      "BT",
-      "/F1 11 Tf",
-      `${margin} ${pageHeight - margin} Td`,
-    ];
+    const commands = ["BT", "/F1 11 Tf", `${margin} ${pageHeight - margin} Td`];
     pageLines.forEach((line, index) => {
       if (index > 0) commands.push(`0 -${lineHeight} Td`);
       commands.push(`(${pdfEscape(line)}) Tj`);
@@ -49,7 +41,6 @@ function makePdf(lines) {
   const pageKids = pageObjectIds.map((id) => `${id} 0 R`).join(" ");
   objects[1] = `<< /Type /Catalog /Pages 2 0 R >>`;
   objects[2] = `<< /Type /Pages /Kids [${pageKids}] /Count ${pages.length} >>`;
-
   pages.forEach((pageLines, index) => {
     const pageId = pageObjectIds[index];
     const contentId = contentObjectIds[index];
@@ -57,13 +48,11 @@ function makePdf(lines) {
     objects[pageId] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 ${fontObjectId} 0 R >> >> /Contents ${contentId} 0 R >>`;
     objects[contentId] = `<< /Length ${encoder.encode(content).length} >>\nstream\n${content}\nendstream`;
   });
-
   objects[fontObjectId] = `<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>`;
 
   const chunks = ["%PDF-1.4\n"];
   const offsets = new Array(objects.length).fill(0);
   let byteLength = encoder.encode(chunks[0]).length;
-
   for (let id = 1; id < objects.length; id++) {
     if (!objects[id]) continue;
     const objectText = `${id} 0 obj\n${objects[id]}\nendobj\n`;
@@ -71,39 +60,21 @@ function makePdf(lines) {
     chunks.push(objectText);
     byteLength += encoder.encode(objectText).length;
   }
-
   const xrefOffset = byteLength;
   let xref = `xref\n0 ${objects.length}\n0000000000 65535 f \n`;
-  for (let id = 1; id < objects.length; id++) {
-    xref += `${String(offsets[id]).padStart(10, "0")} 00000 n \n`;
-  }
+  for (let id = 1; id < objects.length; id++) xref += `${String(offsets[id]).padStart(10, "0")} 00000 n \n`;
   chunks.push(xref);
   chunks.push(`trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`);
-
-  const body = chunks.join("");
-  return encoder.encode(body);
+  return encoder.encode(chunks.join(""));
 }
 
-async function orderPdfResponse(request, env, orderId) {
+async function orderPdfResponse(request, orderId) {
   const apiUrl = new URL(`https://api.afeonbooks.com/api/orders/${encodeURIComponent(orderId)}`);
-  apiUrl.searchParams.set("_pdf", "1");
-
-  const apiResponse = await fetch(new Request(apiUrl, {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-    },
-  }));
+  const apiResponse = await fetch(new Request(apiUrl, { method: "GET", headers: { Accept: "application/json" } }));
 
   if (!apiResponse.ok) {
-    if (apiResponse.status === 404) {
-      return new Response("Order not found", {
-        status: 404,
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
-    }
-    return new Response("Unable to load order", {
-      status: 502,
+    return new Response(apiResponse.status === 404 ? "Order not found" : "Unable to load order", {
+      status: apiResponse.status === 404 ? 404 : 502,
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
   }
@@ -112,7 +83,7 @@ async function orderPdfResponse(request, env, orderId) {
   const money = (cents) => `$${(Number(cents || 0) / 100).toFixed(2)}`;
   const lines = [
     "AFEON BOOKS",
-    "Customer Order",
+    "Customer Order Receipt",
     "",
     `Order #${order.id}`,
     `Status: ${order.status || "pending"}`,
@@ -141,18 +112,14 @@ async function orderPdfResponse(request, env, orderId) {
     order.notes ? `Notes: ${order.notes}` : null,
   ].filter((line) => line !== null);
 
-  const pdf = makePdf(lines);
-  const headers = {
-    "Content-Type": "application/pdf",
-    "Content-Disposition": `inline; filename="afeonbooks-order-${order.id}.pdf"`,
-    "Cache-Control": "no-store, no-cache, must-revalidate",
-  };
-
-  if (request.method === "HEAD") {
-    return new Response(null, { status: 200, headers });
-  }
-
-  return new Response(pdf, { status: 200, headers });
+  return new Response(makePdf(lines), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `inline; filename="afeonbooks-order-${order.id}.pdf"`,
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+    },
+  });
 }
 
 export default {
@@ -160,34 +127,22 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // Email click-tracking links. Accept legacy and canonical click paths.
     if (url.hostname === "click.afeonbooks.com") {
       const match =
         path.match(/^\/cloudflare\/(?:order|orders)\/([^/]+)\/?$/) ||
         path.match(/^\/(?:order|orders)\/([^/]+)\/?$/);
-
       if (match) {
-        const destination = new URL(
-          `https://afeonbooks.com/order/${encodeURIComponent(match[1])}`,
-        );
+        const destination = new URL(`https://afeonbooks.com/order/${encodeURIComponent(match[1])}`);
         destination.searchParams.set("utm-source", "mail.cloudflare");
         return Response.redirect(destination.toString(), 302);
       }
-
       return new Response("Not Found", { status: 404 });
     }
 
     if (path === "/api/debug-info") {
       const version = env.CF_VERSION_METADATA;
       return Response.json(
-        {
-          build: version?.id ?? "unknown",
-          ip:
-            request.headers.get("CF-Connecting-IP") ||
-            request.headers.get("X-Forwarded-For") ||
-            "unknown",
-          host: url.host,
-        },
+        { build: version?.id ?? "unknown", ip: request.headers.get("CF-Connecting-IP") || request.headers.get("X-Forwarded-For") || "unknown", host: url.host },
         { headers: { "Cache-Control": "no-store" } },
       );
     }
@@ -197,68 +152,29 @@ export default {
       return fetch(new Request(apiUrl, request));
     }
 
-    const orderMatch = path.match(/^\/order\/([^/]+)\/?$/);
-    if (orderMatch) {
-      return orderPdfResponse(request, env, orderMatch[1]);
-    }
+    // Printable receipt: /order/:id/pdf
+    const orderPdfMatch = path.match(/^\/order\/([^/]+)\/pdf\/?$/);
+    if (orderPdfMatch) return orderPdfResponse(request, orderPdfMatch[1]);
 
-    const fetchAdminIndex = () =>
-      env.ASSETS.fetch(
-        new Request(new URL("/admin/index.html", request.url), request),
-      );
+    const fetchAdminIndex = () => env.ASSETS.fetch(new Request(new URL("/admin/index.html", request.url), request));
+    const fetchAdminPos = () => env.ASSETS.fetch(new Request(new URL("/admin/pos.html", request.url), request));
 
-    const fetchAdminPos = () =>
-      env.ASSETS.fetch(
-        new Request(new URL("/admin/pos.html", request.url), request),
-      );
+    if (path === "/admin/admin" || path === "/admin/admin/") return Response.redirect(new URL("/admin/", request.url), 301);
+    if (path.startsWith("/admin/admin/")) return Response.redirect(new URL(path.replace(/^\/admin\/admin/, "/admin"), request.url), 301);
+    if (path === "/admin/pos" || path === "/admin/pos/") return fetchAdminPos();
+    if (path === "/admin" || path === "/admin/" || (path.startsWith("/admin/") && !path.split("/").pop()?.includes("."))) return fetchAdminIndex();
 
-    if (path === "/admin/admin" || path === "/admin/admin/") {
-      return Response.redirect(new URL("/admin/", request.url), 301);
-    }
-    if (path.startsWith("/admin/admin/")) {
-      return Response.redirect(
-        new URL(path.replace(/^\/admin\/admin/, "/admin"), request.url),
-        301,
-      );
-    }
+    const fetchPickupIndex = () => env.ASSETS.fetch(new Request(new URL("/pickup/index.html", request.url), request));
+    if (path === "/pickup" || path === "/pickup/" || (path.startsWith("/pickup/") && !path.split("/").pop()?.includes("."))) return fetchPickupIndex();
 
-    // POS has its own compiled HTML entry. Never redirect it to /admin.
-    if (path === "/admin/pos" || path === "/admin/pos/") {
-      return fetchAdminPos();
-    }
-
-    if (
-      path === "/admin" ||
-      path === "/admin/" ||
-      (path.startsWith("/admin/") && !path.split("/").pop()?.includes("."))
-    ) {
-      return fetchAdminIndex();
-    }
-
-    const fetchPickupIndex = () =>
-      env.ASSETS.fetch(
-        new Request(new URL("/pickup/index.html", request.url), request),
-      );
-
-    if (
-      path === "/pickup" ||
-      path === "/pickup/" ||
-      (path.startsWith("/pickup/") && !path.split("/").pop()?.includes("."))
-    ) {
-      return fetchPickupIndex();
+    // Customer order pages remain React pages. PDF generation is only on /pdf.
+    if (/^\/order\/[^/]+\/?$/.test(path)) {
+      return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
     }
 
     const assetResponse = await env.ASSETS.fetch(request);
-    if (assetResponse.status !== 404) {
-      return assetResponse;
-    }
-
-    if (!path.split("/").pop()?.includes(".")) {
-      return env.ASSETS.fetch(
-        new Request(new URL("/index.html", request.url), request),
-      );
-    }
-
+    if (assetResponse.status !== 404) return assetResponse;
+    if (!path.split("/").pop()?.includes(".")) return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
     return new Response("Not Found", { status: 404 });
   },
 };
