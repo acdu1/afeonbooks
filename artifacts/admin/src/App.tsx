@@ -190,10 +190,7 @@ function AdminHome() {
     const onHashChange = () => setDevOpen(window.location.hash === "#dev");
     window.addEventListener("hashchange", onHashChange);
 
-    const installDevTab = () => {
-      if (window.location.hash === "#dev") return;
-      if (document.querySelector("[data-admin-dev-tab='true']")) return;
-
+    const installAdminTools = () => {
       const tabs = Array.from(document.querySelectorAll("button")).filter((button) => {
         const text = button.textContent?.trim() ?? "";
         return text === "Site Content" || text === "Recent Orders";
@@ -202,19 +199,33 @@ function AdminHome() {
       const parent = anchor?.parentElement;
       if (!parent) return;
 
-      const devTab = document.createElement("button");
-      devTab.type = "button";
-      devTab.dataset.adminDevTab = "true";
-      devTab.className = "pb-4 font-bold text-sm tracking-widest uppercase border-b-2 transition-colors border-transparent text-black/40 hover:text-black/80";
-      devTab.textContent = "Dev";
-      devTab.addEventListener("click", () => {
-        window.location.hash = "dev";
-      });
-      parent.appendChild(devTab);
+      if (!document.querySelector("[data-admin-dev-tab='true']")) {
+        const devTab = document.createElement("button");
+        devTab.type = "button";
+        devTab.dataset.adminDevTab = "true";
+        devTab.className = "pb-4 font-bold text-sm tracking-widest uppercase border-b-2 transition-colors border-transparent text-black/40 hover:text-black/80";
+        devTab.textContent = "Dev";
+        devTab.addEventListener("click", () => {
+          window.location.hash = "dev";
+        });
+        parent.appendChild(devTab);
+      }
+
+      if (!document.querySelector("[data-admin-zoho-tab='true']")) {
+        const zohoTab = document.createElement("button");
+        zohoTab.type = "button";
+        zohoTab.dataset.adminZohoTab = "true";
+        zohoTab.className = "pb-4 font-bold text-sm tracking-widest uppercase border-b-2 transition-colors border-transparent text-black/40 hover:text-black/80";
+        zohoTab.textContent = "Zoho Mail";
+        zohoTab.addEventListener("click", () => {
+          window.location.assign(`${window.location.origin}/admin/zoho-mail/`);
+        });
+        parent.appendChild(zohoTab);
+      }
     };
 
-    installDevTab();
-    const observer = new MutationObserver(installDevTab);
+    installAdminTools();
+    const observer = new MutationObserver(installAdminTools);
     observer.observe(document.body, { childList: true, subtree: true });
 
     return () => {
@@ -232,6 +243,7 @@ function Router() {
       <Route path="/pos/" component={Pos} />
       <Route path="/pos" component={Pos} />
       <Route path="/zoho-mail" component={ZohoMail} />
+      <Route path="/zoho-mail/" component={ZohoMail} />
       <Route path="/" component={AdminHome} />
       <Route component={NotFound} />
     </Switch>
