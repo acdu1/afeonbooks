@@ -152,22 +152,22 @@ export default {
       return fetch(new Request(apiUrl, request));
     }
 
-    // Printable receipt: /order/:id/pdf
     const orderPdfMatch = path.match(/^\/order\/([^/]+)\/pdf\/?$/);
     if (orderPdfMatch) return orderPdfResponse(request, orderPdfMatch[1]);
 
     const fetchAdminIndex = () => env.ASSETS.fetch(new Request(new URL("/admin/index.html", request.url), request));
     const fetchAdminPos = () => env.ASSETS.fetch(new Request(new URL("/admin/pos.html", request.url), request));
+    const fetchAdminZoho = () => env.ASSETS.fetch(new Request(new URL("/admin/zoho-mail/index.html", request.url), request));
 
     if (path === "/admin/admin" || path === "/admin/admin/") return Response.redirect(new URL("/admin/", request.url), 301);
     if (path.startsWith("/admin/admin/")) return Response.redirect(new URL(path.replace(/^\/admin\/admin/, "/admin"), request.url), 301);
     if (path === "/admin/pos" || path === "/admin/pos/") return fetchAdminPos();
+    if (path === "/admin/zoho-mail" || path === "/admin/zoho-mail/") return fetchAdminZoho();
     if (path === "/admin" || path === "/admin/" || (path.startsWith("/admin/") && !path.split("/").pop()?.includes("."))) return fetchAdminIndex();
 
     const fetchPickupIndex = () => env.ASSETS.fetch(new Request(new URL("/pickup/index.html", request.url), request));
     if (path === "/pickup" || path === "/pickup/" || (path.startsWith("/pickup/") && !path.split("/").pop()?.includes("."))) return fetchPickupIndex();
 
-    // Customer order pages are normal React pages. PDF generation is only on /pdf.
     if (/^\/order\/[^/]+\/?$/.test(path)) {
       return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
     }
