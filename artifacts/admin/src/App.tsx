@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Editor from "@/pages/editor";
 import Pos from "@/pages/pos";
 import Dev from "@/pages/dev";
+import ZohoMail from "@/pages/zoho-mail";
 
 const queryClient = new QueryClient();
 
@@ -230,6 +231,7 @@ function Router() {
     <Switch>
       <Route path="/pos/" component={Pos} />
       <Route path="/pos" component={Pos} />
+      <Route path="/zoho-mail" component={ZohoMail} />
       <Route path="/" component={AdminHome} />
       <Route component={NotFound} />
     </Switch>
@@ -238,6 +240,7 @@ function Router() {
 
 function App() {
   const isPosPath = window.location.pathname === "/admin/pos" || window.location.pathname === "/admin/pos/";
+  const isZohoMailPath = window.location.pathname === "/admin/zoho-mail" || window.location.pathname === "/admin/zoho-mail/";
 
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
@@ -263,6 +266,8 @@ function App() {
       <TooltipProvider>
         {isPosPath ? (
           <Pos />
+        ) : isZohoMailPath ? (
+          <ZohoMail />
         ) : (
           <WouterRouter base="/admin">
             <Router />
@@ -270,7 +275,7 @@ function App() {
         )}
         <Toaster position="top-center" richColors />
         <DebugOverlay />
-        {!isPosPath && <OrderEmailOverlay />}
+        {!isPosPath && !isZohoMailPath && <OrderEmailOverlay />}
       </TooltipProvider>
     </QueryClientProvider>
   );
