@@ -205,9 +205,7 @@ function AdminHome() {
         devTab.dataset.adminDevTab = "true";
         devTab.className = "pb-4 font-bold text-sm tracking-widest uppercase border-b-2 transition-colors border-transparent text-black/40 hover:text-black/80";
         devTab.textContent = "Dev";
-        devTab.addEventListener("click", () => {
-          window.location.hash = "dev";
-        });
+        devTab.addEventListener("click", () => { window.location.hash = "dev"; });
         parent.appendChild(devTab);
       }
 
@@ -217,10 +215,33 @@ function AdminHome() {
         zohoTab.dataset.adminZohoTab = "true";
         zohoTab.className = "pb-4 font-bold text-sm tracking-widest uppercase border-b-2 transition-colors border-transparent text-black/40 hover:text-black/80";
         zohoTab.textContent = "Zoho Mail";
-        zohoTab.addEventListener("click", () => {
-          window.location.assign(`${window.location.origin}/admin/zoho-mail/`);
-        });
+        zohoTab.addEventListener("click", () => { window.location.assign(`${window.location.origin}/admin/zoho-mail/`); });
         parent.appendChild(zohoTab);
+      }
+
+      // Keep the existing Email tab's provider wording aligned with the Zoho transport.
+      document.querySelectorAll("input[name='emailFromAddress']").forEach((input) => {
+        const el = input as HTMLInputElement;
+        el.placeholder = "noreply@afeonbooks.com";
+        if (el.value === "onboarding@resend.dev") {
+          const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+          setter?.call(el, "noreply@afeonbooks.com");
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+          el.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      });
+
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      const replacements: Array<[string, string]> = [
+        ["Use any sender address at a domain verified in MailerSend.", "Sender address is managed by Zoho Mail. AFEON Books sends from noreply@afeonbooks.com."],
+        ["MailerSend", "Zoho Mail"],
+      ];
+      let node: Node | null;
+      while ((node = walker.nextNode())) {
+        const text = node.nodeValue ?? "";
+        let next = text;
+        for (const [from, to] of replacements) next = next.replaceAll(from, to);
+        if (next !== text) node.nodeValue = next;
       }
     };
 
