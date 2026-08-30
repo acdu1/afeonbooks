@@ -6,6 +6,126 @@ import { logger } from "../lib/logger";
 import type { OrderRow, OrderItemRow } from "@workspace/db";
 
 const router: IRouter = Router();
+const ZOHO_SCOPE = "ZohoMail.messages.CREATE,ZohoMail.accounts.READ";
+const ZOHO_DEFAULT_REDIRECT_URI = "https://api.afeonbooks.com/api/email/zoho-callback";
+
+router.get("/email/zoho-authorize", (req, res): void => {
+  const clientId = process.env.ZOHO_CLIENT_ID;
+  if (!clientId) {
+    res.status(503).send("ZOHO_CLIENT_ID is not configured on the API server.");
+    return;
+  }
+
+  const redirectUri = process.env.ZOHO_OAUTH_REDIRECT_URI || ZOHO_DEFAULT_REDIRECT_URI;
+  const authUrl = new URL("/oauth/v2/auth", process.env.ZOHO_ACCOUNTS_URL || "https://accounts.zoho.com");
+  authUrl.searchParams.set("response_type", "code");
+  authUrl.searchParams.set("client_id", clientId);
+  authUrl.searchParams.set("scope", ZOHO_SCOPE);
+  authUrl.searchParams.set("redirect_uri", redirectUri);
+  authUrl.searchParams.set("access_type", "offline");
+  authUrl.searchParams.set("prompt", "consent");
+  res.redirect(authUrl.toString());
+});
+
+router.get("/email/zoho-callback", async (req, res): Promise<void> => {
+  const error = typeof req.query.error === "string" ? req.query.error : "";
+  if (error) {
+    res.status(400).type("text/plain").send(`Zoho authorization failed: ${error}`);
+    return;
+  }
+
+  const code = typeof req.query.code === "string" ? req.query.code : "";
+  if (!code) {
+    res.status(400).type("text/plain").send("Zoho authorization callback received no code.");
+    return;
+  }
+
+  const clientId = process.env.ZOHO_CLIENT_ID;
+  const clientSecret = process.env.ZOHO_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    res.status(503).type("text/plain").send("ZOHO_CLIENT_ID and ZOHO_CLIENT_SECRET must be configured before authorization.");
+    return;
+  }
+
+  const accountsUrl = process.env.ZOHO_ACCOUNTS_URL || "https://accounts.zoho.com";
+  const redirectUri = process.env.ZOHO_OAUTH_REDIRECT_URI || ZOHO_DEFAULT_REDIRECT_URI;
+  const tokenUrl = new URL("/oauth/v2/token", accountsUrl);
+  tokenUrl.searchParams.set("code", code);
+  tokenUrl.searchParams.set("grant_type", "authorization_code");
+  tokenUrl.searchParams.set("client_id", clientId);
+  tokenUrl.searchParams.set("client_secret", clientSecret);
+  tokenUrl.searchParams.set("redirect_uri", redirectUri);
+
+  try {
+    const tokenResponse = await fetch(tokenUrl, { method: "POST" });
+    const tokenText = await tokenResponse.text();
+    let tokenBody: Record<string, unknown> = {};
+    try { tokenBody = tokenText ? JSON.parse(tokenText) as Record<string, unknown> : {}; } catch {}
+
+    if (!tokenResponse.ok || typeof tokenBody.refresh_token !== "string" || typeof tokenBody.access_token !== "string") {
+      const description = typeof tokenBody.error === "string" ? tokenBody.error : tokenText || `HTTP ${tokenResponse.status}`;
+      logger.error({ description, status: tokenResponse.status }, "Zoho OAuth code exchange failed");
+      res.status(502).type("text/plain").send(`Zoho token exchange failed: ${description}`);
+      return;
+    }
+
+    const accessToken = tokenBody.access_token;
+    let accounts: unknown = null;
+    let accountsError = "";
+    try {
+      const accountsResponse = await fetch(`${process.env.ZOHO_MAIL_API_URL || "https://mail.zoho.com"}/api/accounts`, {
+        method: "GET",
+        headers: {
+          Authorization: `Zoho-oauthtoken ${accessToken}`,
+          Accept: "application/json",
+        },
+      });
+      const accountsText = await accountsResponse.text();
+      try {
+        const parsed = accountsText ? JSON.parse(accountsText) as Record<string, unknown> : {};
+        if (accountsResponse.ok) {
+          const data = Array.isArray(parsed.data) ? parsed.data : [];
+          accounts = data.map((item) => {
+            const account = item as Record<string, unknown>;
+            return {
+              accountId: account.accountId ?? account.accountid ?? account.zuid ?? null,
+              emailAddress: account.emailAddress ?? account.emailAddress ?? account.mailboxAddress ?? null,
+              accountName: account.accountName ?? account.displayName ?? null,
+            };
+          });
+        } else {
+          accountsError = typeof parsed.message === "string" ? parsed.message : accountsText || `HTTP ${accountsResponse.status}`;
+        }
+      } catch {
+        accountsError = accountsText || `HTTP ${accountsResponse.status}`;
+      }
+    } catch (accountError) {
+      accountsError = accountError instanceof Error ? accountError.message : "Unable to query Zoho accounts";
+    }
+
+    res.status(200).json({
+      ok: true,
+      message: "Zoho authorization succeeded. Store the refresh token in Render and never commit it to GitHub.",
+      refreshToken: tokenBody.refresh_token,
+      accessTokenExpiresIn: tokenBody.expires_in ?? 3600,
+      apiDomain: tokenBody.api_domain ?? process.env.ZOHO_MAIL_API_URL ?? "https://mail.zoho.com",
+      authenticatedUser: process.env.ZOHO_MAIL_AUTHENTICATED_USER || "aiden.chen@afeonbooks.com",
+      fromAddress: process.env.ZOHO_MAIL_FROM_ADDRESS || "noreply@afeonbooks.com",
+      scope: ZOHO_SCOPE,
+      accounts,
+      accountsError: accountsError || undefined,
+      nextSteps: [
+        "Copy refreshToken into Render as ZOHO_MAIL_REFRESH_TOKEN.",
+        "Copy the matching accountId for aiden.chen@afeonbooks.com into Render as ZOHO_MAIL_ACCOUNT_ID.",
+        "Redeploy the API service, then use /admin/zoho-mail to run the connection check.",
+      ],
+    });
+  } catch (err) {
+    logger.error({ err }, "Zoho OAuth callback failed");
+    const message = err instanceof Error ? err.message : "Unknown error";
+    res.status(500).type("text/plain").send(`Zoho OAuth callback failed: ${message}`);
+  }
+});
 
 router.post("/email/test", async (req, res): Promise<void> => {
   const body = SendTestEmailBody.parse(req.body);
