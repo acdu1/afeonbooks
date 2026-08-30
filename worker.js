@@ -157,7 +157,7 @@ export default {
 
     const fetchAdminIndex = () => env.ASSETS.fetch(new Request(new URL("/admin/index.html", request.url), request));
     const fetchAdminPos = () => env.ASSETS.fetch(new Request(new URL("/admin/pos.html", request.url), request));
-    const fetchAdminZoho = () => env.ASSETS.fetch(new Request(new URL("/admin/zoho-mail/index.html", request.url), request));
+    const fetchAdminZoho = () => env.ASSETS.fetch(new Request(new URL("/admin/index.html", request.url), request));
 
     if (path === "/admin/admin" || path === "/admin/admin/") return Response.redirect(new URL("/admin/", request.url), 301);
     if (path.startsWith("/admin/admin/")) return Response.redirect(new URL(path.replace(/^\/admin\/admin/, "/admin"), request.url), 301);
