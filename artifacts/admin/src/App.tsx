@@ -205,7 +205,11 @@ function AdminHome() {
         devTab.dataset.adminDevTab = "true";
         devTab.className = "pb-4 font-bold text-sm tracking-widest uppercase border-b-2 transition-colors border-transparent text-black/40 hover:text-black/80";
         devTab.textContent = "Dev";
-        devTab.addEventListener("click", () => { window.location.hash = "dev"; });
+        devTab.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          window.location.hash = "dev";
+        });
         parent.appendChild(devTab);
       }
 
@@ -215,7 +219,12 @@ function AdminHome() {
         zohoTab.dataset.adminZohoTab = "true";
         zohoTab.className = "pb-4 font-bold text-sm tracking-widest uppercase border-b-2 transition-colors border-transparent text-black/40 hover:text-black/80";
         zohoTab.textContent = "Zoho Mail";
-        zohoTab.addEventListener("click", () => { window.location.assign(`${window.location.origin}/admin/zoho-mail/`); });
+        zohoTab.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          window.location.href = "/admin/zoho-mail/";
+        });
         parent.appendChild(zohoTab);
       }
 
