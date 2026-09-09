@@ -4,7 +4,7 @@ import type { OrderRow, OrderItemRow, SiteContentRow } from "@workspace/db";
 const ZOHO_ACCOUNTS_URL = process.env.ZOHO_ACCOUNTS_URL || "https://accounts.zoho.com";
 const ZOHO_MAIL_API_URL = process.env.ZOHO_MAIL_API_URL || "https://mail.zoho.com";
 const ZOHO_AUTHENTICATED_USER = process.env.ZOHO_MAIL_AUTHENTICATED_USER || "aiden.chen@afeonbooks.com";
-const ZOHO_DEFAULT_FROM = process.env.ZOHO_MAIL_FROM_ADDRESS || "noreply@afeonbooks.com";
+const ZOHO_DEFAULT_FROM = process.env.ZOHO_MAIL_FROM_ADDRESS || ZOHO_AUTHENTICATED_USER;
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#39;");
@@ -96,9 +96,6 @@ export async function sendEmail(args:SendEmailArgs):Promise<{id:string}> {
     content: args.html,
     mailFormat: "html",
   };
-  const fromName = getFromName(args);
-  if (fromName) payload.senderName = fromName;
-  if (args.replyTo) payload.replyTo = args.replyTo;
 
   const response = await fetch(`${ZOHO_MAIL_API_URL}/api/accounts/${encodeURIComponent(accountId)}/messages`, {
     method: "POST",

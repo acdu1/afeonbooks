@@ -59,7 +59,7 @@ router.post("/orders/:id/resend-email", async (req, res): Promise<void> => {
     const fromName = content.emailFromName || content.brandName || "AFEON Books";
 
     const result = await sendEmail({
-      from: `${fromName} <noreply@afeonbooks.com>`,
+      from: `${fromName} <${process.env.ZOHO_MAIL_FROM_ADDRESS || process.env.ZOHO_MAIL_AUTHENTICATED_USER || "aiden.chen@afeonbooks.com"}>`,
       to: order.customerEmail,
       replyTo: content.emailReplyTo || "aiden.chen@afeonbooks.com",
       subject,

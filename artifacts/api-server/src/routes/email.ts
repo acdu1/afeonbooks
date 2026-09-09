@@ -87,10 +87,15 @@ router.get("/email/zoho-callback", async (req, res): Promise<void> => {
           const data = Array.isArray(parsed.data) ? parsed.data : [];
           accounts = data.map((item) => {
             const account = item as Record<string, unknown>;
+            const emailAddresses = Array.isArray(account.emailAddress) ? account.emailAddress : [];
+            const primaryEmail = emailAddresses.find((entry) => {
+              const address = entry as Record<string, unknown>;
+              return address.isAlias !== true;
+            }) as Record<string, unknown> | undefined;
             return {
               accountId: account.accountId ?? account.accountid ?? account.zuid ?? null,
-              emailAddress: account.emailAddress ?? account.emailAddress ?? account.mailboxAddress ?? null,
-              accountName: account.accountName ?? account.displayName ?? null,
+              emailAddress: primaryEmail?.emailAddress ?? account.mailboxAddress ?? account.primaryEmailAddress ?? null,
+              accountName: account.accountDisplayName ?? account.accountName ?? account.displayName ?? null,
             };
           });
         } else {
@@ -110,7 +115,7 @@ router.get("/email/zoho-callback", async (req, res): Promise<void> => {
       accessTokenExpiresIn: tokenBody.expires_in ?? 3600,
       apiDomain: tokenBody.api_domain ?? process.env.ZOHO_MAIL_API_URL ?? "https://mail.zoho.com",
       authenticatedUser: process.env.ZOHO_MAIL_AUTHENTICATED_USER || "aiden.chen@afeonbooks.com",
-      fromAddress: process.env.ZOHO_MAIL_FROM_ADDRESS || "noreply@afeonbooks.com",
+      fromAddress: process.env.ZOHO_MAIL_FROM_ADDRESS || process.env.ZOHO_MAIL_AUTHENTICATED_USER || "aiden.chen@afeonbooks.com",
       scope: ZOHO_SCOPE,
       accounts,
       accountsError: accountsError || undefined,
@@ -190,7 +195,7 @@ router.post("/email/test", async (req, res): Promise<void> => {
 
   try {
     const result = await sendEmail({
-      from: `AFEON Books <noreply@afeonbooks.com>`,
+      from: `AFEON Books <${process.env.ZOHO_MAIL_FROM_ADDRESS || process.env.ZOHO_MAIL_AUTHENTICATED_USER || "aiden.chen@afeonbooks.com"}>`,
       to: body.to,
       replyTo: content.emailReplyTo || "aiden.chen@afeonbooks.com",
       subject,
@@ -256,7 +261,7 @@ router.post("/email/zoho-diagnostic", async (req, res): Promise<void> => {
       ok: response.ok && typeof body.access_token === "string",
       zohoStatus: response.status,
       authenticatedUser: process.env.ZOHO_MAIL_AUTHENTICATED_USER || "aiden.chen@afeonbooks.com",
-      fromAddress: process.env.ZOHO_MAIL_FROM_ADDRESS || "noreply@afeonbooks.com",
+      fromAddress: process.env.ZOHO_MAIL_FROM_ADDRESS || process.env.ZOHO_MAIL_AUTHENTICATED_USER || "aiden.chen@afeonbooks.com",
       accountIdConfigured: true,
       tokenRefreshSucceeded: response.ok && typeof body.access_token === "string",
       error: typeof body.error === "string" ? body.error : undefined,
