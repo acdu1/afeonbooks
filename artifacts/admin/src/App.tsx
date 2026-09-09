@@ -223,7 +223,7 @@ function AdminHome() {
           event.preventDefault();
           event.stopPropagation();
           event.stopImmediatePropagation();
-          window.location.href = "/admin/zoho-mail/";
+          window.location.hash = "zoho-mail";
         });
         parent.appendChild(zohoTab);
       }
@@ -283,6 +283,13 @@ function Router() {
 function App() {
   const isPosPath = window.location.pathname === "/admin/pos" || window.location.pathname === "/admin/pos/";
   const isZohoMailPath = window.location.pathname === "/admin/zoho-mail" || window.location.pathname === "/admin/zoho-mail/";
+  const [adminView, setAdminView] = useState(() => window.location.hash);
+
+  useEffect(() => {
+    const onHashChange = () => setAdminView(window.location.hash);
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
 
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
@@ -308,7 +315,7 @@ function App() {
       <TooltipProvider>
         {isPosPath ? (
           <Pos />
-        ) : isZohoMailPath ? (
+        ) : isZohoMailPath || adminView === "#zoho-mail" ? (
           <ZohoMail />
         ) : (
           <WouterRouter base="/admin">
