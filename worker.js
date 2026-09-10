@@ -136,10 +136,57 @@ function maintenanceResponse() {
 </html>`, { status: 503, headers: { "Content-Type": "text/html; charset=utf-8", "Retry-After": "3600", "Cache-Control": "no-store" } });
 }
 
+function directoryKeyMatches(url, env) {
+  return typeof env.DIRECTORY_KEY === "string" && env.DIRECTORY_KEY.length > 0 && url.searchParams.get("key") === env.DIRECTORY_KEY;
+}
+
+function directoryResponse(status = 404, body = "Not Found") {
+  return new Response(body, { status, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
+}
+
+function directoryHtml(files, key, selectedFile = "") {
+  const folders = new Map();
+  for (const file of files) {
+    const parts = file.split("/");
+    const folder = parts.length > 1 ? parts.slice(0, -1).join("/") : ".";
+    if (!folders.has(folder)) folders.set(folder, []);
+    folders.get(folder).push(file);
+  }
+  const link = (file) => `/directory/file/${file.split("/").map(encodeURIComponent).join("/")}?key=${encodeURIComponent(key)}`;
+  const tree = [...folders.entries()].map(([folder, folderFiles]) => `<section><h2>${folder === "." ? "Root" : folder}</h2><ul>${folderFiles.map((file) => `<li><a href="${link(file)}">${file.split("/").at(-1)}</a></li>`).join("")}</ul></section>`).join("");
+  return `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AFEON Books Files</title><style>body{font-family:system-ui,sans-serif;max-width:900px;margin:40px auto;padding:0 20px;background:#f8f5ef;color:#171717}section{background:#fff;border:1px solid #ddd;margin:16px 0;padding:16px}h1{margin-bottom:28px}h2{font-size:16px;margin-top:0}ul{list-style:none;padding:0;margin-bottom:0}li{padding:6px 0}a{color:#17624a;text-decoration:none}a:hover{text-decoration:underline}</style></head><body><h1>AFEON Books deployed files</h1>${selectedFile ? `<p>Viewing <strong>${selectedFile}</strong></p>` : ""}${tree}</body></html>`;
+}
+
+async function directoryResponseFor(request, env) {
+  const url = new URL(request.url);
+  if (!directoryKeyMatches(url, env)) return directoryResponse(404);
+  const manifestResponse = await env.ASSETS.fetch(new Request(new URL("/directory-manifest.json", request.url), request));
+  if (!manifestResponse.ok) return directoryResponse(503, "Directory manifest is not available. Rebuild the site first.");
+  const files = await manifestResponse.json();
+  if (!Array.isArray(files) || files.some((file) => typeof file !== "string")) return directoryResponse(503, "Invalid directory manifest");
+  const fileMatch = url.pathname.match(/^\/directory\/file\/(.+)$/);
+  if (fileMatch) {
+    let file;
+    try {
+      file = decodeURIComponent(fileMatch[1]).replace(/^\/+/, "");
+    } catch {
+      return directoryResponse(404);
+    }
+    if (!files.includes(file) || file.includes("..")) return directoryResponse(404);
+    const assetResponse = await env.ASSETS.fetch(new Request(new URL(`/${file}`, request.url), request));
+    if (!assetResponse.ok) return directoryResponse(404);
+    return new Response(assetResponse.body, { status: 200, headers: { ...Object.fromEntries(assetResponse.headers), "Cache-Control": "no-store" } });
+  }
+  if (url.pathname === "/directory" || url.pathname === "/directory/") return new Response(directoryHtml(files, url.searchParams.get("key")), { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
+  return directoryResponse(404);
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
+
+    if (path === "/directory" || path === "/directory/" || path.startsWith("/directory/file/") || path === "/directory-manifest.json") return directoryResponseFor(request, env);
 
     if (url.hostname === "click.afeonbooks.com") {
       const match =
