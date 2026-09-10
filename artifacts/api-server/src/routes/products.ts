@@ -8,6 +8,7 @@ import {
   ListProductsResponse,
 } from "@workspace/api-zod";
 import { desc, eq } from "drizzle-orm";
+import { requireRole, requireUser } from "../lib/auth";
 
 const router: IRouter = Router();
 
@@ -39,14 +40,14 @@ router.get("/products/:id", async (req, res): Promise<void> => {
   res.json(GetProductResponse.parse(serialize(rows[0])));
 });
 
-router.post("/products", async (req, res) => {
+router.post("/products", requireUser, requireRole("staff", "admin"), async (req, res) => {
   const body = CreateProductBody.parse(req.body);
   const school = req.query.school === "shelyn" ? "shelyn" : "alvarado";
   const inserted = await db.insert(productsTable).values({ ...body, school }).returning();
   res.status(201).json(GetProductResponse.parse(serialize(inserted[0]!)));
 });
 
-router.put("/products/:id", async (req, res): Promise<void> => {
+router.put("/products/:id", requireUser, requireRole("staff", "admin"), async (req, res): Promise<void> => {
   const { id } = GetProductParams.parse(req.params);
   const body = UpdateProductBody.parse(req.body);
   const updated = await db
@@ -58,7 +59,7 @@ router.put("/products/:id", async (req, res): Promise<void> => {
   res.json(GetProductResponse.parse(serialize(updated[0])));
 });
 
-router.delete("/products/:id", async (req, res): Promise<void> => {
+router.delete("/products/:id", requireUser, requireRole("admin"), async (req, res): Promise<void> => {
   const { id } = GetProductParams.parse(req.params);
   await db.delete(productsTable).where(eq(productsTable.id, id));
   res.status(204).end();

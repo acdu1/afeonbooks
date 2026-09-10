@@ -3,6 +3,7 @@ import { db, ordersTable, orderItemsTable, productsTable } from "@workspace/db";
 import type { OrderRow, OrderItemRow } from "@workspace/db";
 
 import type { ProductRow } from "@workspace/db";
+import { requireRole, requireUser } from "../lib/auth";
 
 type Snapshot = {
   orders: OrderRow[];
@@ -17,7 +18,7 @@ const DURATION_MS = 10 * 60 * 1000;
 
 const router: IRouter = Router();
 
-router.get("/dev-testing/status", (_req, res) => {
+router.get("/dev-testing/status", requireUser, requireRole("admin"), (_req, res) => {
   if (!activeSession || Date.now() > activeSession.expiresAt) {
     activeSession = null;
     res.json({ active: false, expiresAt: null });
@@ -26,7 +27,7 @@ router.get("/dev-testing/status", (_req, res) => {
   res.json({ active: true, expiresAt: new Date(activeSession.expiresAt).toISOString() });
 });
 
-router.post("/dev-testing/start", async (_req, res): Promise<void> => {
+router.post("/dev-testing/start", requireUser, requireRole("admin"), async (_req, res): Promise<void> => {
   if (activeSession && Date.now() < activeSession.expiresAt) {
     res.status(400).json({ error: "A testing session is already active" });
     return;
@@ -46,7 +47,7 @@ router.post("/dev-testing/start", async (_req, res): Promise<void> => {
   res.json({ active: true, expiresAt: new Date(activeSession.expiresAt).toISOString() });
 });
 
-router.post("/dev-testing/stop", async (_req, res): Promise<void> => {
+router.post("/dev-testing/stop", requireUser, requireRole("admin"), async (_req, res): Promise<void> => {
   if (!activeSession) {
     res.status(400).json({ error: "No active testing session" });
     return;

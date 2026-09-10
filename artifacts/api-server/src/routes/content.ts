@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, siteContentTable, type SiteContentRow } from "@workspace/db";
 import { UpdateContentBody, GetContentResponse } from "@workspace/api-zod";
 import { asc, eq } from "drizzle-orm";
+import { requireRole, requireUser } from "../lib/auth";
 
 const router: IRouter = Router();
 
@@ -92,7 +93,7 @@ router.get("/content", async (req, res) => {
   res.json(GetContentResponse.parse(serializeContent(row)));
 });
 
-router.put("/content", async (req, res) => {
+router.put("/content", requireUser, requireRole("admin"), async (req, res) => {
   const body = UpdateContentBody.parse(req.body);
   const current = await getOrCreateContent(schoolOf(req.query.school));
   const { ordersEnabled, emailEnabled, checkoutFields, ...rest } = body;

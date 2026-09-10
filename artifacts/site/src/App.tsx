@@ -12,11 +12,15 @@ import Product from "@/pages/product";
 import Cart from "@/pages/cart";
 import Checkout from "@/pages/checkout";
 import Order from "@/pages/order";
+import Account from "@/pages/account";
 const queryClient = new QueryClient();
 
 import React from 'react';
 import { SchoolProvider } from "@/lib/school";
 import { SchoolPicker } from "@/components/school-picker";
+import { StatusBanner } from "@/components/status-banner";
+import { AuthProvider } from "@/lib/auth";
+import { CookieBanner } from "@/components/cookie-banner";
 import { setBaseUrl } from "@workspace/api-client-react";
 
 const apiBaseUrl = import.meta.env.VITE_API_URL;
@@ -35,6 +39,7 @@ function Router() {
       <Route path="/orders/:id" component={Order} />
       {/* Keep existing singular links working while plural is canonical. */}
       <Route path="/order/:id" component={Order} />
+      <Route path="/account" component={Account} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -72,17 +77,21 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <UtmProvider>
+        <AuthProvider>
         <SchoolProvider>
           <CartProvider>
           <TooltipProvider>
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <StatusBanner />
               <Router />
             </WouterRouter>
             <Toaster />
+            <CookieBanner />
           </TooltipProvider>
           </CartProvider>
           <SchoolPicker />
         </SchoolProvider>
+        </AuthProvider>
       </UtmProvider>
     </QueryClientProvider>
   );

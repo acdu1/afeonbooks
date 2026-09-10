@@ -1,9 +1,10 @@
 import { Router, type IRouter } from "express";
+import { requireRole, requireUser } from "../lib/auth";
 
 const router: IRouter = Router();
 const DEFAULT_SERVICE_ID = "srv-da57c6jbc2fs738388lg";
 
-router.get("/render-logs", async (req, res): Promise<void> => {
+router.get("/render-logs", requireUser, requireRole("admin"), async (req, res): Promise<void> => {
   const apiKey = process.env.RENDER_API_KEY?.trim();
   const serviceId = process.env.RENDER_SERVICE_ID?.trim() || DEFAULT_SERVICE_ID;
 

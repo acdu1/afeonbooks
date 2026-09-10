@@ -4,6 +4,7 @@ import { getOrCreateContent } from "./content";
 import { renderEmailHtml, sendEmail, applyVars, buildVars } from "../lib/email";
 import { logger } from "../lib/logger";
 import type { OrderRow, OrderItemRow } from "@workspace/db";
+import { requireRole, requireUser } from "../lib/auth";
 
 const router: IRouter = Router();
 const ZOHO_SCOPE = "ZohoMail.messages.CREATE,ZohoMail.accounts.READ";
@@ -132,7 +133,7 @@ router.get("/email/zoho-callback", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/email/test", async (req, res): Promise<void> => {
+router.post("/email/test", requireUser, requireRole("admin"), async (req, res): Promise<void> => {
   const body = SendTestEmailBody.parse(req.body);
   const content = await getOrCreateContent();
   const zohoConfigured = Boolean(
@@ -214,7 +215,7 @@ router.post("/email/test", async (req, res): Promise<void> => {
 });
 
 // Diagnostic only: validates the configured Zoho Mail OAuth credentials and account.
-router.post("/email/zoho-diagnostic", async (req, res): Promise<void> => {
+router.post("/email/zoho-diagnostic", requireUser, requireRole("admin"), async (req, res): Promise<void> => {
   try {
     const { pin } = (req.body ?? {}) as { pin?: unknown };
     if (typeof pin !== "string" || !/^\d{4}$/.test(pin)) {

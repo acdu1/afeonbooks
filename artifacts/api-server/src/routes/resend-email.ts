@@ -3,6 +3,7 @@ import { asc, eq } from "drizzle-orm";
 import { db, orderItemsTable, ordersTable, siteContentTable } from "@workspace/db";
 import { renderEmailHtml, sendEmail, applyVars, buildVars } from "../lib/email";
 import { logger } from "../lib/logger";
+import { requireRole, requireUser } from "../lib/auth";
 
 const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL || "https://afeonbooks.com").trim().replace(/\/+$/, "");
 const router: IRouter = Router();
@@ -16,7 +17,7 @@ function zohoConfigured() {
   );
 }
 
-router.post("/orders/:id/resend-email", async (req, res): Promise<void> => {
+router.post("/orders/:id/resend-email", requireUser, requireRole("staff", "admin"), async (req, res): Promise<void> => {
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) {

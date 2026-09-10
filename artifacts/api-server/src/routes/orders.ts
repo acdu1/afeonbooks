@@ -21,6 +21,7 @@ import {
 } from "@workspace/api-zod";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { sendOrderConfirmation } from "../lib/email";
+import { requireRole, requireUser } from "../lib/auth";
 
 const router: IRouter = Router();
 
@@ -65,7 +66,7 @@ function serializeOrder(o: OrderRow, items: OrderItemRow[]) {
   };
 }
 
-router.get("/orders", async (req, res) => {
+router.get("/orders", requireUser, requireRole("staff", "admin"), async (req, res) => {
   const school = req.query.school === "shelyn" ? "shelyn" : "alvarado";
   const orders = await db
     .select()
@@ -99,7 +100,7 @@ router.get("/orders", async (req, res) => {
   );
 });
 
-router.get("/orders/summary", async (_req, res) => {
+router.get("/orders/summary", requireUser, requireRole("staff", "admin"), async (_req, res) => {
   const r = (
     await db
       .select({
@@ -120,7 +121,7 @@ router.get("/orders/summary", async (_req, res) => {
   );
 });
 
-router.get("/orders/:id", async (req, res): Promise<void> => {
+router.get("/orders/:id", requireUser, requireRole("staff", "admin"), async (req, res): Promise<void> => {
   const { id } = GetOrderParams.parse(req.params);
   const found = await db.select().from(ordersTable).where(eq(ordersTable.id, id)).limit(1);
   if (!found[0]) {
@@ -297,7 +298,7 @@ router.post("/orders", async (req, res): Promise<void> => {
   res.status(201).json(GetOrderResponse.parse(serializeOrder(created.order, created.items)));
 });
 
-router.patch("/orders/:id", async (req, res): Promise<void> => {
+router.patch("/orders/:id", requireUser, requireRole("staff", "admin"), async (req, res): Promise<void> => {
   const { id } = UpdateOrderStatusParams.parse(req.params);
   const body = UpdateOrderStatusBody.parse(req.body);
   const updated = await db
@@ -316,7 +317,7 @@ router.patch("/orders/:id", async (req, res): Promise<void> => {
   res.json(UpdateOrderStatusResponse.parse(serializeOrder(updated[0], items)));
 });
 
-router.delete("/orders/:id", async (req, res): Promise<void> => {
+router.delete("/orders/:id", requireUser, requireRole("admin"), async (req, res): Promise<void> => {
   const { id } = DeleteOrderParams.parse(req.params);
   const deleted = await db
     .delete(ordersTable)

@@ -8,6 +8,7 @@ import resendEmailRouter from "./resend-email";
 import adminRouter from "./admin";
 import devTestingRouter from "./dev-testing";
 import renderLogsRouter from "./render-logs";
+import authRouter from "./auth";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(resendEmailRouter);
 router.use(adminRouter);
 router.use(devTestingRouter);
 router.use(renderLogsRouter);
+router.use(authRouter);
 
 export default router;

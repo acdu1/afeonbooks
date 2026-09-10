@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, siteContentTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { getOrCreateContent } from "./content";
+import { requireRole, requireUser } from "../lib/auth";
 
 const router: IRouter = Router();
 
@@ -41,7 +42,7 @@ router.post("/admin/verify-pin", async (req, res): Promise<void> => {
   }
 });
 
-router.put("/admin/pin", async (req, res): Promise<void> => {
+router.put("/admin/pin", requireUser, requireRole("admin"), async (req, res): Promise<void> => {
   const { newPin } = req.body as { newPin?: unknown };
   if (typeof newPin !== "string" || !/^\d{4}$/.test(newPin)) {
     res.status(400).json({ error: "PIN must be exactly 4 digits" });

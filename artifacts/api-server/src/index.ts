@@ -27,7 +27,29 @@ async function ensureOrderColumns() {
   logger.info("Verified orders.order_type and orders.payment_status columns");
 }
 
+async function ensureAuthTables() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id serial PRIMARY KEY,
+      email text NOT NULL UNIQUE,
+      password_hash text NOT NULL,
+      name text NOT NULL,
+      role text,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE TABLE IF NOT EXISTS sessions (
+      id serial PRIMARY KEY,
+      token_hash text NOT NULL UNIQUE,
+      user_id integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      expires_at timestamptz NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS sessions_token_hash_idx ON sessions(token_hash);
+  `);
+  logger.info("Verified auth tables");
+}
+
 await ensureOrderColumns();
+await ensureAuthTables();
 
 app.listen(port, (err) => {
   if (err) {

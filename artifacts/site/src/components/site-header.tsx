@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { ShoppingBag } from "lucide-react";
 import { useCart } from "@/lib/cart";
+import { useAuth } from "@/lib/auth";
 import xlogo from "@assets/logo_web.png";
 
 interface SiteHeaderProps {
@@ -13,6 +14,7 @@ const TAP_WINDOW_MS = 800;
 
 export function SiteHeader({ simple = false }: SiteHeaderProps) {
   const { itemCount, openCart } = useCart();
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
   const tapCountRef = useRef(0);
   const lastTapAtRef = useRef(0);
@@ -52,6 +54,9 @@ export function SiteHeader({ simple = false }: SiteHeaderProps) {
               </Link>
               <Link href="/shop" className="text-[15px] font-medium tracking-wide hover:opacity-70 transition-opacity">
                 Shop
+              </Link>
+              <Link href="/account" className="text-[15px] font-medium tracking-wide hover:opacity-70 transition-opacity">
+                {user ? "Account" : "Sign in"}
               </Link>
               <button
                 type="button"
