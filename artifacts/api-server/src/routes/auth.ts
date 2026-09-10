@@ -62,7 +62,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     emailVerifiedAt: null,
   }).returning();
   const token = await createAuthToken(user.id, "verify_email", 1000 * 60 * 60 * 24);
-  const link = `${SITE_URL}/account?verify_token=${encodeURIComponent(token)}`;
+  const link = `${SITE_URL}/?verify_token=${encodeURIComponent(token)}`;
   try {
     await sendAuthEmail(user.email, "Verify your AFEON Books email", authEmailHtml("Verify your email", "Please verify your email address to activate your AFEON Books account.", link, "Verify email"));
   } catch (error) {
@@ -135,6 +135,21 @@ router.post("/auth/reset-password", async (req, res): Promise<void> => {
   }
   await createSession(user.id, res);
   res.json({ user: publicUser(user) });
+});
+
+router.post("/auth/resend-verification", async (req, res): Promise<void> => {
+  const email = typeof req.body?.email === "string" ? normalizeEmail(req.body.email) : "";
+  const [user] = email ? await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1) : [];
+  if (user && !user.emailVerifiedAt) {
+    const token = await createAuthToken(user.id, "verify_email", 1000 * 60 * 60 * 24);
+    const link = `${SITE_URL}/?verify_token=${encodeURIComponent(token)}`;
+    try {
+      await sendAuthEmail(user.email, "Verify your AFEON Books email", authEmailHtml("Verify your email", "Please verify your email address to activate your AFEON Books account.", link, "Verify email"));
+    } catch (error) {
+      console.error("Verification email failed", error);
+    }
+  }
+  res.json({ message: "If that account is waiting for verification, a new email has been sent." });
 });
 
 router.post("/auth/verify-email", async (req, res): Promise<void> => {

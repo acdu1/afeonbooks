@@ -29,7 +29,10 @@ if (apiBaseUrl) {
 }
 
 function Router() {
-  const HomeRoute = () => new URLSearchParams(window.location.search).has("reset_token") ? <Account /> : <Home />;
+  const HomeRoute = () => {
+    const params = new URLSearchParams(window.location.search);
+    return params.has("reset_token") || params.has("verify_token") ? <Account /> : <Home />;
+  };
   return (
     <Switch>
       <Route path="/" component={HomeRoute} />

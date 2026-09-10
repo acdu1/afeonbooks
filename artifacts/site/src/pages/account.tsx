@@ -82,6 +82,8 @@ function AccountTokenHandler() {
   const { user, loading } = useAuth();
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [verificationEmail, setVerificationEmail] = useState("");
+  const [resendMessage, setResendMessage] = useState("");
   const [resetPassword, setResetPassword] = useState("");
   const params = new URLSearchParams(window.location.search);
   const verifyToken = params.get("verify_token");
@@ -94,11 +96,22 @@ function AccountTokenHandler() {
       .catch((err) => setError(err instanceof Error ? err.message : "Unable to verify email"));
   }, [verifyToken]);
 
+  const resendVerification = async (event: FormEvent) => {
+    event.preventDefault();
+    setResendMessage("");
+    try {
+      const data = await authApiRequest<{ message: string }>("/api/auth/resend-verification", { method: "POST", body: JSON.stringify({ email: verificationEmail }) });
+      setResendMessage(data.message);
+    } catch (err) {
+      setResendMessage(err instanceof Error ? err.message : "Unable to resend verification email");
+    }
+  };
+
   if (resetToken) {
     return <form onSubmit={async (event) => { event.preventDefault(); setError(""); try { await authApiRequest<{ user: User }>("/api/auth/reset-password", { method: "POST", body: JSON.stringify({ token: resetToken, password: resetPassword }) }); window.location.replace("/"); } catch (err) { setError(err instanceof Error ? err.message : "Unable to reset password"); } }} className="mx-auto mt-8 w-full max-w-md space-y-4"><h2 className="text-2xl font-bold">Choose a new password</h2><input type="password" minLength={8} required value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} placeholder="New password" className="w-full border border-black/15 bg-white px-4 py-3" />{error && <p className="text-sm text-red-700">{error}</p>}<Button type="submit" className="w-full rounded-none bg-black py-6 text-xs font-bold uppercase tracking-widest text-white">Update password</Button></form>;
   }
   if (loading || (!verifyToken && !message && !error) || user) return null;
-  return <div className="mx-auto mt-8 max-w-md text-sm">{message && <p className="text-emerald-700">{message}</p>}{error && <p className="text-red-700">{error}</p>}</div>;
+  return <div className="mx-auto mt-8 max-w-md text-sm">{message && <p className="text-emerald-700">{message}</p>}{error && <><p className="text-red-700">{error}</p><form onSubmit={resendVerification} className="mt-5 space-y-3"><input type="email" required value={verificationEmail} onChange={(event) => setVerificationEmail(event.target.value)} placeholder="Email address" className="w-full border border-black/15 bg-white px-4 py-3" /><Button type="submit" variant="outline" className="w-full rounded-none text-xs font-bold uppercase tracking-widest">Resend verification email</Button>{resendMessage && <p className="text-black/60">{resendMessage}</p>}</form></>}</div>;
 }
 
 function RoleManager() {
