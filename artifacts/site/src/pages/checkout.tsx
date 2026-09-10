@@ -202,7 +202,7 @@ export default function Checkout() {
 
       <main className="flex-1 w-full px-6 py-12">
         {!authLoading && !user && (
-          <div className="mx-auto mb-8 flex max-w-[1200px] flex-col gap-4 border border-black/10 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mx-auto mb-8 flex max-w-[1200px] flex-col gap-4 border border-[#B8860B] bg-[#D4A72C] px-5 py-4 text-black sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-bold">Sign in to earn points!</p>
               <p className="mt-1 text-sm text-black/55">Create an account or sign in to keep your orders and earn loyalty rewards on completed purchases.</p>
