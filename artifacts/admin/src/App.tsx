@@ -74,6 +74,10 @@ function OrderEmailOverlay() {
   const [message, setMessage] = useState("");
   const [accountExists, setAccountExists] = useState<boolean | null>(null);
   const [accountFormOpen, setAccountFormOpen] = useState(false);
+  const [accountSearch, setAccountSearch] = useState("");
+  const [accountSearchResults, setAccountSearchResults] = useState<Array<{ id: number; name: string; email: string }>>([]);
+  const [accountSearchDone, setAccountSearchDone] = useState(false);
+  const [createAccountFormOpen, setCreateAccountFormOpen] = useState(false);
   const [accountName, setAccountName] = useState("");
   const [accountEmail, setAccountEmail] = useState("");
   const [accountBusy, setAccountBusy] = useState(false);
@@ -99,6 +103,10 @@ function OrderEmailOverlay() {
       setOrder(null);
       setAccountExists(null);
       setAccountFormOpen(false);
+      setCreateAccountFormOpen(false);
+      setAccountSearch("");
+      setAccountSearchResults([]);
+      setAccountSearchDone(false);
 
       try {
         const response = await fetch(`/api/orders/${id}`, { cache: "no-store" });
@@ -137,6 +145,26 @@ function OrderEmailOverlay() {
     setMessage("");
     setAccountExists(null);
     setAccountFormOpen(false);
+    setCreateAccountFormOpen(false);
+  };
+
+  const searchAccounts = async (event: FormEvent) => {
+    event.preventDefault();
+    const query = accountSearch.trim();
+    if (query.length < 2) return;
+    setAccountBusy(true);
+    setAccountSearchDone(false);
+    try {
+      const response = await fetch(`/api/auth/users/search?q=${encodeURIComponent(query)}`, { cache: "no-store" });
+      const data = await response.json() as { users?: Array<{ id: number; name: string; email: string }> };
+      if (!response.ok) throw new Error("Unable to search customers");
+      setAccountSearchResults(data.users ?? []);
+      setAccountSearchDone(true);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to search customers");
+    } finally {
+      setAccountBusy(false);
+    }
   };
 
   const resend = async () => {
@@ -196,22 +224,37 @@ function OrderEmailOverlay() {
             <div><div className="text-xs uppercase tracking-widest text-black/40">Customer</div><div className="font-medium mt-1">{order.customerName}</div></div>
             <div><div className="text-xs uppercase tracking-widest text-black/40">Email</div><div className="mt-1">{order.customerEmail}</div></div>
             {accountExists === false && !accountFormOpen && (
-              <button type="button" onClick={() => setAccountFormOpen(true)} className="w-full border border-black/20 py-3 text-xs font-bold uppercase tracking-widest hover:bg-[#FAF7F2]">
+              <button type="button" onClick={() => { setAccountFormOpen(true); setAccountSearchDone(false); setAccountSearchResults([]); }} className="w-full border border-black/20 py-3 text-xs font-bold uppercase tracking-widest hover:bg-[#FAF7F2]">
                 Add customer account
               </button>
             )}
             {accountExists === true && <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">Customer account linked</p>}
             {accountFormOpen && (
-              <form onSubmit={createAccount} className="space-y-3 border border-black/10 bg-[#FAF7F2] p-4">
-                <p className="text-xs font-bold uppercase tracking-widest text-black/50">Create account for customer</p>
-                <input value={accountName} onChange={(event) => setAccountName(event.target.value)} required minLength={2} placeholder="Customer name" className="w-full border border-black/15 bg-white px-3 py-2 outline-none focus:border-black" />
-                <input value={accountEmail} onChange={(event) => setAccountEmail(event.target.value)} required type="email" placeholder="Customer email" className="w-full border border-black/15 bg-white px-3 py-2 outline-none focus:border-black" />
-                <p className="text-xs leading-5 text-black/55">The customer will receive an email saying an AFEON Books admin created the account, with a secure link to set a password.</p>
-                <div className="flex gap-2">
-                  <button type="submit" disabled={accountBusy} className="flex-1 bg-black py-2 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-40">{accountBusy ? "Creating…" : "Create account"}</button>
-                  <button type="button" disabled={accountBusy} onClick={() => setAccountFormOpen(false)} className="border border-black/20 px-3 py-2 text-xs font-bold uppercase tracking-widest">Cancel</button>
-                </div>
-              </form>
+              <div className="space-y-3 border border-black/10 bg-[#FAF7F2] p-4">
+                <p className="text-xs font-bold uppercase tracking-widest text-black/50">Search customer accounts</p>
+                <form onSubmit={searchAccounts} className="flex gap-2">
+                  <input value={accountSearch} onChange={(event) => setAccountSearch(event.target.value)} placeholder="Name or email" className="min-w-0 flex-1 border border-black/15 bg-white px-3 py-2 outline-none focus:border-black" />
+                  <button type="submit" disabled={accountBusy} className="bg-black px-3 py-2 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-40">Search</button>
+                </form>
+                {accountSearchDone && accountSearchResults.length > 0 && (
+                  <div className="space-y-2">
+                    {accountSearchResults.map((customer) => <div key={customer.id} className="border border-black/10 bg-white px-3 py-2 text-sm"><div className="font-medium">{customer.name}</div><div className="text-xs text-black/50">{customer.email}</div></div>)}
+                  </div>
+                )}
+                {accountSearchDone && accountSearchResults.length === 0 && !createAccountFormOpen && (
+                  <div className="space-y-2"><p className="text-xs text-black/55">No customer account found.</p><button type="button" onClick={() => { setAccountName(order?.customerName ?? ""); setAccountEmail(order?.customerEmail ?? ""); setCreateAccountFormOpen(true); }} className="w-full border border-black/20 py-2 text-xs font-bold uppercase tracking-widest hover:bg-white">Create new account</button></div>
+                )}
+                {createAccountFormOpen && (
+                  <form onSubmit={createAccount} className="space-y-3 border-t border-black/10 pt-3">
+                    <p className="text-xs font-bold uppercase tracking-widest text-black/50">Create account for customer</p>
+                    <input value={accountName} onChange={(event) => setAccountName(event.target.value)} required minLength={2} placeholder="Customer name" className="w-full border border-black/15 bg-white px-3 py-2 outline-none focus:border-black" />
+                    <input value={accountEmail} onChange={(event) => setAccountEmail(event.target.value)} required type="email" placeholder="Customer email" className="w-full border border-black/15 bg-white px-3 py-2 outline-none focus:border-black" />
+                    <p className="text-xs leading-5 text-black/55">The customer will receive an email with a secure link to set a password.</p>
+                    <button type="submit" disabled={accountBusy} className="w-full bg-black py-2 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-40">{accountBusy ? "Creating…" : "Create account"}</button>
+                  </form>
+                )}
+                <button type="button" disabled={accountBusy} onClick={() => { setAccountFormOpen(false); setCreateAccountFormOpen(false); }} className="w-full border border-black/20 px-3 py-2 text-xs font-bold uppercase tracking-widest">Close</button>
+              </div>
             )}
             <div><div className="text-xs uppercase tracking-widest text-black/40">Total</div><div className="font-bold mt-1">{new Intl.NumberFormat("en-US", { style: "currency", currency: order.currency }).format(order.totalCents / 100)}</div></div>
             <div><div className="text-xs uppercase tracking-widest text-black/40">Status</div><div className="mt-1 capitalize">{order.status}</div></div>

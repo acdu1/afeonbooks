@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { randomBytes } from "node:crypto";
-import { count, desc, eq } from "drizzle-orm";
+import { count, desc, eq, ilike, or } from "drizzle-orm";
 import { db, loyaltyTransactionsTable, usersTable } from "@workspace/db";
 import {
   consumeAuthToken,
@@ -171,6 +171,21 @@ router.post("/auth/verify-email", async (req, res): Promise<void> => {
 router.get("/auth/users", requireUser, requireRole("admin"), async (_req, res): Promise<void> => {
   const users = await db.select().from(usersTable).orderBy(desc(usersTable.createdAt));
   res.json({ users: users.map(publicUser) });
+});
+
+router.get("/auth/users/search", requireUser, requireRole("admin"), async (req, res): Promise<void> => {
+  const query = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  if (query.length < 2) {
+    res.json({ users: [] });
+    return;
+  }
+  const users = await db
+    .select({ id: usersTable.id, name: usersTable.name, email: usersTable.email })
+    .from(usersTable)
+    .where(or(ilike(usersTable.name, `%${query}%`), ilike(usersTable.email, `%${query}%`)))
+    .orderBy(desc(usersTable.createdAt))
+    .limit(10);
+  res.json({ users });
 });
 
 router.get("/auth/users/by-email", requireUser, requireRole("admin"), async (req, res): Promise<void> => {
