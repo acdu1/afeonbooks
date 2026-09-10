@@ -122,6 +122,20 @@ async function orderPdfResponse(request, orderId) {
   });
 }
 
+function maintenanceResponse() {
+  return new Response(`<!doctype html>
+<html lang="en">
+  <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Maintenance in Progress</title></head>
+  <body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#0f172a;color:#fff;font-family:system-ui,sans-serif;text-align:center">
+    <main style="max-width:32rem;padding:2rem">
+      <img src="/totec-maintenance.svg" alt="Maintenance" style="width:12rem;height:12rem;object-fit:contain">
+      <h1>Maintenance in Progress</h1>
+      <p style="color:#cbd5e1">We're working to improve your experience. We'll be back soon.</p>
+    </main>
+  </body>
+</html>`, { status: 503, headers: { "Content-Type": "text/html; charset=utf-8", "Retry-After": "3600", "Cache-Control": "no-store" } });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -139,28 +153,19 @@ export default {
       return new Response("Not Found", { status: 404 });
     }
 
+    const isAdminPath = path === "/admin" || path.startsWith("/admin/");
+    const isMaintenanceControl = path === "/api/maintenance/status" || path === "/api/admin/maintenance";
+    if (!isAdminPath && !isMaintenanceControl && path !== "/totec-maintenance.svg") {
+      const maintenanceStatus = await fetch("https://api.afeonbooks.com/api/maintenance/status", { headers: { Accept: "application/json" } });
+      if (maintenanceStatus.ok) {
+        const status = await maintenanceStatus.json();
+        if (status.enabled === true) return maintenanceResponse();
+      }
+    }
+
     if (path.startsWith("/api/")) {
       const apiUrl = new URL(`https://api.afeonbooks.com${path}${url.search}`);
       return fetch(new Request(apiUrl, request));
-    }
-
-    if (url.hostname === "admin.afeonbooks.com") {
-      if (path === "/admin" || path === "/admin/") {
-        return Response.redirect(`https://admin.afeonbooks.com/${url.search}`, 301);
-      }
-      if (path.startsWith("/admin/")) {
-        return Response.redirect(`https://admin.afeonbooks.com${path.replace(/^\/admin/, "")}${url.search}`, 301);
-      }
-      const adminAppPath = path === "/" || path === "/pos" || path === "/pos/" || path === "/zoho-mail" || path === "/zoho-mail/";
-      if (adminAppPath) {
-        return env.ASSETS.fetch(new Request(new URL("/admin/index.html", request.url), request));
-      }
-      if (path.startsWith("/admin/")) {
-        return env.ASSETS.fetch(new Request(new URL(path, request.url), request));
-      }
-      const adminAsset = await env.ASSETS.fetch(new Request(new URL(`/admin${path}`, request.url), request));
-      if (adminAsset.status !== 404) return adminAsset;
-      return env.ASSETS.fetch(new Request(new URL("/admin/index.html", request.url), request));
     }
 
     if (path === "/api/debug-info") {

@@ -34,6 +34,7 @@ async function ensureContentColumns() {
       ADD COLUMN IF NOT EXISTS school text NOT NULL DEFAULT 'alvarado',
       ADD COLUMN IF NOT EXISTS admin_pin text NOT NULL DEFAULT '2026',
       ADD COLUMN IF NOT EXISTS orders_enabled text NOT NULL DEFAULT 'true',
+      ADD COLUMN IF NOT EXISTS maintenance_mode text NOT NULL DEFAULT 'false',
       ADD COLUMN IF NOT EXISTS checkout_fields text NOT NULL DEFAULT '[]'
   `);
   logger.info("Verified site_content compatibility columns");

@@ -112,6 +112,35 @@ export default function Editor() {
   const [devTestExpiresAt, setDevTestExpiresAt] = useState<Date | null>(null);
   const [devTestCountdown, setDevTestCountdown] = useState("");
   const [devTestLoading, setDevTestLoading] = useState(false);
+  const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false);
+
+  const fetchMaintenanceStatus = async () => {
+    try {
+      const res = await fetch("/api/maintenance/status", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json() as { enabled?: boolean };
+      setMaintenanceEnabled(data.enabled === true);
+    } catch { /* ignore */ }
+  };
+
+  const toggleMaintenance = async () => {
+    setMaintenanceLoading(true);
+    try {
+      const res = await fetch("/api/admin/maintenance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: !maintenanceEnabled }),
+      });
+      const data = await res.json() as { enabled?: boolean; error?: string };
+      if (!res.ok) { toast.error(data.error ?? "Unable to change maintenance mode"); return; }
+      setMaintenanceEnabled(data.enabled === true);
+      toast.success(data.enabled ? "Maintenance mode is on" : "Maintenance mode is off");
+    } catch { toast.error("Connection error"); }
+    finally { setMaintenanceLoading(false); }
+  };
+
+  useEffect(() => { if (pinAuthed) void fetchMaintenanceStatus(); }, [pinAuthed]);
 
   const fetchDevTestStatus = async () => {
     try {
@@ -634,15 +663,11 @@ export default function Editor() {
             </a>
             <button
               type="button"
-              onClick={() => {
-                sessionStorage.setItem("afeonbooks_maintenance_preview", "true");
-                const adminBase = window.location.hostname === "admin.afeonbooks.com" ? "" : "/admin";
-                const maintenanceUrl = new URL(`${adminBase}/maintenance?preview=1`, window.location.origin);
-                window.location.assign(maintenanceUrl.toString());
-              }}
-              className="inline-flex items-center justify-center min-h-9 px-4 py-2 rounded-md text-sm font-medium border border-amber-400 text-amber-800 hover:bg-amber-50 transition-colors"
+              onClick={() => void toggleMaintenance()}
+              disabled={maintenanceLoading}
+              className="inline-flex items-center justify-center min-h-9 px-4 py-2 rounded-md text-sm font-medium border border-amber-400 text-amber-800 hover:bg-amber-50 transition-colors disabled:opacity-50"
             >
-              Maintenance Preview
+              {maintenanceLoading ? "Updating..." : maintenanceEnabled ? "Turn Off Maintenance" : "Turn On Maintenance"}
             </button>
             {devTesting ? (
               <Button
@@ -1125,7 +1150,7 @@ export default function Editor() {
                   Export Excel
                 </Button>
                 <a
-                  href={`${window.location.hostname === "admin.afeonbooks.com" ? "" : "/admin"}/pos`}
+                  href="/admin/pos"
                   className="inline-flex items-center gap-2 px-4 h-9 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-widest transition-colors"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>

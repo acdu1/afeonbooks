@@ -63,4 +63,19 @@ router.put("/admin/pin", requireUser, requireRole("admin"), async (req, res): Pr
   res.json({ success: true });
 });
 
+router.get("/maintenance/status", async (_req, res): Promise<void> => {
+  const [content] = await db.select({ maintenanceMode: siteContentTable.maintenanceMode }).from(siteContentTable).limit(1);
+  res.json({ enabled: content?.maintenanceMode === "true" });
+});
+
+router.post("/admin/maintenance", requireUser, requireRole("admin"), async (req, res): Promise<void> => {
+  const { enabled } = req.body as { enabled?: unknown };
+  if (typeof enabled !== "boolean") {
+    res.status(400).json({ error: "enabled must be a boolean" });
+    return;
+  }
+  await db.update(siteContentTable).set({ maintenanceMode: enabled ? "true" : "false" });
+  res.json({ enabled });
+});
+
 export default router;

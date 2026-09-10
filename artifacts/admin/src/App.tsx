@@ -414,8 +414,7 @@ function useDevAudit() {
 
 function App() {
   useDevAudit();
-  const isAdminSubdomain = window.location.hostname === "admin.afeonbooks.com";
-  const adminBase = isAdminSubdomain ? "" : "/admin";
+  const adminBase = "/admin";
   const isPosPath = window.location.pathname === `${adminBase}/pos` || window.location.pathname === `${adminBase}/pos/`;
   const isZohoMailPath = window.location.pathname === `${adminBase}/zoho-mail` || window.location.pathname === `${adminBase}/zoho-mail/`;
   const [adminView, setAdminView] = useState(() => window.location.hash);
