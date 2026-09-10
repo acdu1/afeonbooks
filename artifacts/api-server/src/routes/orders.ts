@@ -358,7 +358,7 @@ router.patch("/orders/:id", requireUser, requireRole("staff", "admin"), async (r
       .where(eq(ordersTable.id, id))
       .returning();
 
-    if (body.status === "completed" && current[0].status !== "completed") {
+    if ((body.status === "delivered" || body.status === "completed") && current[0].status !== body.status) {
       const [user] = await tx
         .select({ id: usersTable.id })
         .from(usersTable)
@@ -374,7 +374,7 @@ router.patch("/orders/:id", requireUser, requireRole("staff", "admin"), async (r
           await tx.insert(loyaltyTransactionsTable).values({
             userId: user.id,
             orderId: id,
-            points: Math.floor(current[0].totalCents / 100),
+            points: Math.floor(current[0].totalCents / 100) * 50,
             description: `Points earned from order #${id}`,
           });
         }

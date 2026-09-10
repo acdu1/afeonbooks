@@ -78,7 +78,7 @@ export default function Order() {
               <div className="font-medium space-y-1">
                 <p>{order.customerName}</p>
                 <p>{order.customerEmail}</p>
-                <p>{order.customerPhone}</p>
+                <p>Student ID: {order.customerPhone}</p>
               </div>
             </div>
             <div>

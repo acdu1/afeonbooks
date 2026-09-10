@@ -21,10 +21,22 @@ async function ensureOrderColumns() {
   // Keep startup self-healing so the Drizzle schema matches the live database.
   await pool.query(`
     ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS school text NOT NULL DEFAULT 'alvarado',
       ADD COLUMN IF NOT EXISTS order_type text NOT NULL DEFAULT 'sale',
       ADD COLUMN IF NOT EXISTS payment_status text NOT NULL DEFAULT 'due'
   `);
   logger.info("Verified orders.order_type and orders.payment_status columns");
+}
+
+async function ensureContentColumns() {
+  await pool.query(`
+    ALTER TABLE site_content
+      ADD COLUMN IF NOT EXISTS school text NOT NULL DEFAULT 'alvarado',
+      ADD COLUMN IF NOT EXISTS admin_pin text NOT NULL DEFAULT '2026',
+      ADD COLUMN IF NOT EXISTS orders_enabled text NOT NULL DEFAULT 'true',
+      ADD COLUMN IF NOT EXISTS checkout_fields text NOT NULL DEFAULT '[]'
+  `);
+  logger.info("Verified site_content compatibility columns");
 }
 
 async function ensureAuthTables() {
@@ -61,6 +73,7 @@ async function ensureAuthTables() {
 }
 
 await ensureOrderColumns();
+await ensureContentColumns();
 await ensureAuthTables();
 
 app.listen(port, (err) => {

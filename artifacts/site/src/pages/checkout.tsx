@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,13 +16,13 @@ import { useCart } from "@/lib/cart";
 import { useUtm, utmPayload } from "@/lib/utm";
 import { toast } from "sonner";
 import { useSchool } from "@/lib/school";
-import { useAuth } from "@/lib/auth";
+import { authApiRequest, useAuth } from "@/lib/auth";
 
 const checkoutSchema = z
   .object({
     customerName: z.string().min(1, "Name is required"),
     customerEmail: z.string().email("Invalid email address"),
-    customerPhone: z.string().min(3, "Phone number is required"),
+    customerPhone: z.string().min(3, "Student ID is required"),
     useDefaultAddress: z.boolean(),
     classroom: z.string().optional(),
     shippingAddress: z.string().optional(),
@@ -68,6 +68,9 @@ export default function Checkout() {
   const { utm, clear: clearUtm } = useUtm();
   const createOrder = useCreateOrder();
   const queryClient = useQueryClient();
+  const [loyaltyBalance, setLoyaltyBalance] = useState(0);
+  const [pointsToRedeem, setPointsToRedeem] = useState("");
+  const [redeemedPoints, setRedeemedPoints] = useState(0);
 
   const hasDefaultAddress = Boolean(
     content?.defaultShippingAddress &&
@@ -80,6 +83,33 @@ export default function Checkout() {
     const price = item.product?.priceCents || 0;
     return sum + price * item.quantity;
   }, 0);
+  const estimatedPoints = Math.floor(subtotalCents / 100) * 50;
+  const loyaltyDiscountCents = (redeemedPoints / 1000) * 1000;
+
+  useEffect(() => {
+    if (!user) {
+      setLoyaltyBalance(0);
+      setRedeemedPoints(0);
+      return;
+    }
+    authApiRequest<{ balance: number }>("/api/auth/loyalty")
+      .then((data) => setLoyaltyBalance(data.balance))
+      .catch(() => setLoyaltyBalance(0));
+  }, [user]);
+
+  const redeemPoints = () => {
+    const points = Number(pointsToRedeem);
+    if (!Number.isInteger(points) || points < 1000 || points % 1000 !== 0) {
+      toast.error("Redeem points in 1,000-point increments.");
+      return;
+    }
+    if (points > loyaltyBalance) {
+      toast.error("You do not have enough points.");
+      return;
+    }
+    setRedeemedPoints(points);
+    toast.success(`${points.toLocaleString()} points selected for redemption.`);
+  };
 
   const form = useForm<CheckoutValues>({
     resolver: zodResolver(checkoutSchema),
@@ -445,13 +475,44 @@ export default function Checkout() {
             </div>
 
             <div className="space-y-4 mb-8 pt-6 border-t border-black/10 font-medium text-sm">
+              {user && (
+                <div className="border-b border-black/10 pb-6 mb-2">
+                  <h3 className="font-bold text-base">Use Your AFEON Rewards Points</h3>
+                  <p className="text-black/60 mt-1">Available Points: {loyaltyBalance.toLocaleString()}</p>
+                  <div className="flex gap-2 mt-4">
+                    <Input
+                      type="number"
+                      min={1000}
+                      step={1000}
+                      value={pointsToRedeem}
+                      onChange={(event) => setPointsToRedeem(event.target.value)}
+                      placeholder="1,000"
+                      className="h-10 rounded-none"
+                    />
+                    <Button type="button" onClick={redeemPoints} className="h-10 rounded-none bg-[#72C5C1] hover:bg-[#5CB2AE] text-white">
+                      Redeem
+                    </Button>
+                  </div>
+                  <p className="text-xs text-black/50 mt-2">1,000 points = $10 off your next purchase.</p>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-black/60">Subtotal</span>
                 <span>{formatPrice(subtotalCents)}</span>
               </div>
+              {redeemedPoints > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-black/60">Rewards discount</span>
+                  <span>-{formatPrice(loyaltyDiscountCents)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-black/60">Shipping</span>
                 <span>Free</span>
+              </div>
+              <div className="flex justify-between text-[#9A5B13]">
+                <span>Points earned</span>
+                <span className="font-bold">+{estimatedPoints.toLocaleString()}</span>
               </div>
             </div>
 
@@ -460,7 +521,7 @@ export default function Checkout() {
                 <span className="block text-xs uppercase tracking-widest text-black/50 font-bold mb-1">Total to pay</span>
                 <span className="text-sm font-medium text-black/40">Cash on delivery</span>
               </div>
-              <span className="text-3xl font-bold">{formatPrice(subtotalCents)}</span>
+              <span className="text-3xl font-bold">{formatPrice(Math.max(0, subtotalCents - loyaltyDiscountCents))}</span>
             </div>
           </div>
 
