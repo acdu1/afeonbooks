@@ -139,17 +139,35 @@ export default {
       return new Response("Not Found", { status: 404 });
     }
 
+    if (path.startsWith("/api/")) {
+      const apiUrl = new URL(`https://api.afeonbooks.com${path}${url.search}`);
+      return fetch(new Request(apiUrl, request));
+    }
+
+    if (url.hostname === "admin.afeonbooks.com") {
+      const adminAppPath = path === "/" || path === "/pos" || path === "/pos/" || path === "/zoho-mail" || path === "/zoho-mail/";
+      if (adminAppPath) {
+        return env.ASSETS.fetch(new Request(new URL("/admin/index.html", request.url), request));
+      }
+      if (path.startsWith("/admin/")) {
+        return env.ASSETS.fetch(new Request(new URL(path, request.url), request));
+      }
+      const adminAsset = await env.ASSETS.fetch(new Request(new URL(`/admin${path}`, request.url), request));
+      if (adminAsset.status !== 404) return adminAsset;
+      return env.ASSETS.fetch(new Request(new URL("/admin/index.html", request.url), request));
+    }
+
+    if (url.hostname === "afeonbooks.com" && (path === "/admin" || path.startsWith("/admin/"))) {
+      const adminPath = path.replace(/^\/admin\/?/, "/");
+      return Response.redirect(`https://admin.afeonbooks.com${adminPath}${url.search}`, 301);
+    }
+
     if (path === "/api/debug-info") {
       const version = env.CF_VERSION_METADATA;
       return Response.json(
         { build: version?.id ?? "unknown", ip: request.headers.get("CF-Connecting-IP") || request.headers.get("X-Forwarded-For") || "unknown", host: url.host },
         { headers: { "Cache-Control": "no-store" } },
       );
-    }
-
-    if (path.startsWith("/api/")) {
-      const apiUrl = new URL(`https://api.afeonbooks.com${path}${url.search}`);
-      return fetch(new Request(apiUrl, request));
     }
 
     const orderPdfMatch = path.match(/^\/order\/([^/]+)\/pdf\/?$/);

@@ -362,8 +362,10 @@ function useDevAudit() {
 
 function App() {
   useDevAudit();
-  const isPosPath = window.location.pathname === "/admin/pos" || window.location.pathname === "/admin/pos/";
-  const isZohoMailPath = window.location.pathname === "/admin/zoho-mail" || window.location.pathname === "/admin/zoho-mail/";
+  const isAdminSubdomain = window.location.hostname === "admin.afeonbooks.com";
+  const adminBase = isAdminSubdomain ? "" : "/admin";
+  const isPosPath = window.location.pathname === `${adminBase}/pos` || window.location.pathname === `${adminBase}/pos/`;
+  const isZohoMailPath = window.location.pathname === `${adminBase}/zoho-mail` || window.location.pathname === `${adminBase}/zoho-mail/`;
   const [adminView, setAdminView] = useState(() => window.location.hash);
 
   useEffect(() => {
@@ -384,7 +386,7 @@ function App() {
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
-      window.location.assign(`${window.location.origin}/admin/pos/`);
+      window.location.assign(`${window.location.origin}${adminBase}/pos/`);
     };
 
     document.addEventListener("click", onClick, true);
@@ -399,7 +401,7 @@ function App() {
         ) : isZohoMailPath || adminView === "#zoho-mail" ? (
           <ZohoMail />
         ) : (
-          <WouterRouter base="/admin">
+          <WouterRouter base={adminBase}>
             <Router />
           </WouterRouter>
         )}
