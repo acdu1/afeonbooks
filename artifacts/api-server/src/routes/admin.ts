@@ -3,6 +3,7 @@ import { db, siteContentTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { getOrCreateContent } from "./content";
 import { requireRole, requireUser } from "../lib/auth";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -15,18 +16,21 @@ router.post("/admin/verify-pin", async (req, res): Promise<void> => {
 
   if (record.lockedUntil > now) {
     const secs = Math.ceil((record.lockedUntil - now) / 1000);
+    if (process.env.DEV_AUDIT_LOGS === "true") logger.warn({ audit: true, event: "admin_pin_locked", ip }, "dev_audit");
     res.status(429).json({ error: `Too many attempts. Try again in ${secs}s.` });
     return;
   }
 
   const { pin } = req.body as { pin?: unknown };
   if (typeof pin !== "string" || !/^\d{4}$/.test(pin)) {
+    if (process.env.DEV_AUDIT_LOGS === "true") logger.warn({ audit: true, event: "admin_pin_invalid_format", digits: typeof pin === "string" ? pin.length : 0, ip }, "dev_audit");
     res.status(400).json({ error: "PIN must be exactly 4 digits" });
     return;
   }
 
   const content = await getOrCreateContent();
   const success = content.adminPin === pin;
+  if (process.env.DEV_AUDIT_LOGS === "true") logger.info({ audit: true, event: "admin_pin_attempt", success, digits: pin.length, ip }, "dev_audit");
 
   if (success) {
     attempts.delete(ip);
@@ -48,6 +52,7 @@ router.put("/admin/pin", requireUser, requireRole("admin"), async (req, res): Pr
     res.status(400).json({ error: "PIN must be exactly 4 digits" });
     return;
   }
+  if (process.env.DEV_AUDIT_LOGS === "true") logger.info({ audit: true, event: "admin_pin_changed", ip: req.ip }, "dev_audit");
   const content = await getOrCreateContent();
   await db
     .update(siteContentTable)

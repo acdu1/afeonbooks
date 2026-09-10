@@ -37,6 +37,8 @@ async function ensureAuthTables() {
       role text,
       created_at timestamptz NOT NULL DEFAULT now()
     );
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at timestamptz;
+    UPDATE users SET email_verified_at = now() WHERE email_verified_at IS NULL;
     CREATE TABLE IF NOT EXISTS sessions (
       id serial PRIMARY KEY,
       token_hash text NOT NULL UNIQUE,
@@ -44,6 +46,16 @@ async function ensureAuthTables() {
       expires_at timestamptz NOT NULL
     );
     CREATE INDEX IF NOT EXISTS sessions_token_hash_idx ON sessions(token_hash);
+    CREATE TABLE IF NOT EXISTS auth_tokens (
+      id serial PRIMARY KEY,
+      user_id integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash text NOT NULL UNIQUE,
+      type text NOT NULL,
+      expires_at timestamptz NOT NULL,
+      used_at timestamptz,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS auth_tokens_user_type_idx ON auth_tokens(user_id, type);
   `);
   logger.info("Verified auth tables");
 }

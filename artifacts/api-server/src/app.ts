@@ -16,6 +16,7 @@ app.use(
           id: req.id,
           method: req.method,
           url: req.url?.split("?")[0],
+          ip: req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() || req.socket.remoteAddress,
         };
       },
       res(res) {

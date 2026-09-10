@@ -5,6 +5,8 @@ import {
   orderItemsTable,
   productsTable,
   siteContentTable,
+  usersTable,
+  loyaltyTransactionsTable,
   type OrderRow,
   type OrderItemRow,
 } from "@workspace/db";
@@ -100,6 +102,41 @@ router.get("/orders", requireUser, requireRole("staff", "admin"), async (req, re
   );
 });
 
+router.get("/orders/mine", requireUser, async (req, res) => {
+  const email = req.user!.email.toLowerCase();
+  const orders = await db
+    .select()
+    .from(ordersTable)
+    .where(eq(ordersTable.customerEmail, email))
+    .orderBy(desc(ordersTable.createdAt));
+
+  if (orders.length === 0) {
+    res.json([]);
+    return;
+  }
+
+  const items = await db
+    .select()
+    .from(orderItemsTable)
+    .where(
+      inArray(
+        orderItemsTable.orderId,
+        orders.map((o) => o.id),
+      ),
+    );
+
+  const byOrder = new Map<number, OrderItemRow[]>();
+  for (const it of items) {
+    const arr = byOrder.get(it.orderId) ?? [];
+    arr.push(it);
+    byOrder.set(it.orderId, arr);
+  }
+
+  res.json(
+    orders.map((o) => serializeOrder(o, byOrder.get(o.id) ?? [])),
+  );
+});
+
 router.get("/orders/summary", requireUser, requireRole("staff", "admin"), async (_req, res) => {
   const r = (
     await db
@@ -121,13 +158,23 @@ router.get("/orders/summary", requireUser, requireRole("staff", "admin"), async 
   );
 });
 
-router.get("/orders/:id", requireUser, requireRole("staff", "admin"), async (req, res): Promise<void> => {
+router.get("/orders/:id", async (req, res): Promise<void> => {
   const { id } = GetOrderParams.parse(req.params);
   const found = await db.select().from(ordersTable).where(eq(ordersTable.id, id)).limit(1);
   if (!found[0]) {
     res.status(404).json({ error: "not found" });
     return;
   }
+
+  if (req.user) {
+    const isStaffOrAdmin = req.user.role === "staff" || req.user.role === "admin";
+    const isOwner = found[0].customerEmail.toLowerCase() === req.user.email.toLowerCase();
+    if (!isStaffOrAdmin && !isOwner) {
+      res.status(403).json({ error: "Not allowed" });
+      return;
+    }
+  }
+
   const items = await db
     .select()
     .from(orderItemsTable)
@@ -301,11 +348,40 @@ router.post("/orders", async (req, res): Promise<void> => {
 router.patch("/orders/:id", requireUser, requireRole("staff", "admin"), async (req, res): Promise<void> => {
   const { id } = UpdateOrderStatusParams.parse(req.params);
   const body = UpdateOrderStatusBody.parse(req.body);
-  const updated = await db
-    .update(ordersTable)
-    .set({ status: body.status })
-    .where(eq(ordersTable.id, id))
-    .returning();
+  const updated = await db.transaction(async (tx) => {
+    const current = await tx.select().from(ordersTable).where(eq(ordersTable.id, id)).limit(1);
+    if (!current[0]) return [];
+
+    const changed = await tx
+      .update(ordersTable)
+      .set({ status: body.status })
+      .where(eq(ordersTable.id, id))
+      .returning();
+
+    if (body.status === "completed" && current[0].status !== "completed") {
+      const [user] = await tx
+        .select({ id: usersTable.id })
+        .from(usersTable)
+        .where(eq(usersTable.email, current[0].customerEmail.toLowerCase()))
+        .limit(1);
+      if (user) {
+        const existing = await tx
+          .select({ id: loyaltyTransactionsTable.id })
+          .from(loyaltyTransactionsTable)
+          .where(eq(loyaltyTransactionsTable.orderId, id))
+          .limit(1);
+        if (!existing[0]) {
+          await tx.insert(loyaltyTransactionsTable).values({
+            userId: user.id,
+            orderId: id,
+            points: Math.floor(current[0].totalCents / 100),
+            description: `Points earned from order #${id}`,
+          });
+        }
+      }
+    }
+    return changed;
+  });
   if (!updated[0]) {
     res.status(404).json({ error: "not found" });
     return;

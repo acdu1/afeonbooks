@@ -50,11 +50,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (name: string, email: string, password: string) => {
-    const data = await authRequest<{ user: User }>("/api/auth/register", {
+    await authRequest<{ requiresVerification: boolean }>("/api/auth/register", {
       method: "POST",
       body: JSON.stringify({ name, email, password }),
     });
-    setUser(data.user);
   };
 
   const signOut = async () => {

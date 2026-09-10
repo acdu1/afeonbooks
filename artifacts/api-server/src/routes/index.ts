@@ -9,6 +9,7 @@ import adminRouter from "./admin";
 import devTestingRouter from "./dev-testing";
 import renderLogsRouter from "./render-logs";
 import authRouter from "./auth";
+import devEventsRouter from "./dev-events";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(adminRouter);
 router.use(devTestingRouter);
 router.use(renderLogsRouter);
 router.use(authRouter);
+router.use(devEventsRouter);
 
 export default router;

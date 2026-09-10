@@ -72,8 +72,33 @@ function useImageProtection() {
   }, []);
 }
 
+function useDevAudit() {
+  useEffect(() => {
+    if (import.meta.env.PROD) return;
+    const storageKey = "afeonbooks_dev_visitor_id";
+    const visitorId = localStorage.getItem(storageKey) ?? `UV${Math.floor(10000 + Math.random() * 90000)}`;
+    localStorage.setItem(storageKey, visitorId);
+    const send = (event: string, details: Record<string, unknown> = {}) => {
+      void fetch("/api/dev-events", { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event, visitorId, path: window.location.pathname, ...details }) }).catch(() => undefined);
+    };
+    const onClick = (event: MouseEvent) => {
+      const target = (event.target as Element | null)?.closest<HTMLElement>("button, a, select, input, textarea, [role='button']");
+      if (target) send("click", { target: target.tagName.toLowerCase(), field: target.getAttribute("name") ?? target.getAttribute("aria-label") ?? undefined });
+    };
+    const onInput = (event: Event) => {
+      const target = event.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) send("input_changed", { target: target.tagName.toLowerCase(), field: target.name || target.type || "unnamed", valueLength: target.value.length });
+    };
+    send("page_view");
+    document.addEventListener("click", onClick);
+    document.addEventListener("input", onInput);
+    return () => { document.removeEventListener("click", onClick); document.removeEventListener("input", onInput); };
+  }, []);
+}
+
 function App() {
   useImageProtection();
+  useDevAudit();
   return (
     <QueryClientProvider client={queryClient}>
       <UtmProvider>

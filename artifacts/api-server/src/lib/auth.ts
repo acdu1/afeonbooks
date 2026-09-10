@@ -1,8 +1,8 @@
 import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import type { NextFunction, Request, Response } from "express";
-import { and, eq, gt } from "drizzle-orm";
-import { db, sessionsTable, usersTable, type UserRow } from "@workspace/db";
+import { and, eq, gt, isNull } from "drizzle-orm";
+import { authTokensTable, db, sessionsTable, usersTable, type UserRow } from "@workspace/db";
 
 const scrypt = promisify(scryptCallback);
 const SESSION_COOKIE = "afeonbooks_session";
@@ -22,6 +22,33 @@ function normalizeEmail(email: string): string {
 
 function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
+}
+
+export async function createAuthToken(userId: number, type: "verify_email" | "reset_password", ttlMs: number): Promise<string> {
+  const token = randomBytes(32).toString("base64url");
+  await db.delete(authTokensTable).where(and(eq(authTokensTable.userId, userId), eq(authTokensTable.type, type)));
+  await db.insert(authTokensTable).values({
+    userId,
+    tokenHash: hashToken(token),
+    type,
+    expiresAt: new Date(Date.now() + ttlMs),
+  });
+  return token;
+}
+
+export async function consumeAuthToken(token: string, type: "verify_email" | "reset_password"): Promise<number | undefined> {
+  const [found] = await db
+    .select()
+    .from(authTokensTable)
+    .where(and(eq(authTokensTable.tokenHash, hashToken(token)), eq(authTokensTable.type, type), isNull(authTokensTable.usedAt), gt(authTokensTable.expiresAt, new Date())))
+    .limit(1);
+  if (!found) return undefined;
+  const [used] = await db
+    .update(authTokensTable)
+    .set({ usedAt: new Date() })
+    .where(and(eq(authTokensTable.id, found.id), isNull(authTokensTable.usedAt)))
+    .returning({ userId: authTokensTable.userId });
+  return used?.userId;
 }
 
 export async function hashPassword(password: string): Promise<string> {
