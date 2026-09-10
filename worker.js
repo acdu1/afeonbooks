@@ -191,7 +191,13 @@ export default {
 
     const assetResponse = await env.ASSETS.fetch(request);
     if (assetResponse.status !== 404) return assetResponse;
-    if (!path.split("/").pop()?.includes(".")) return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
+    if (!path.split("/").pop()?.includes(".")) {
+      const notFoundPage = await env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
+      return new Response(notFoundPage.body, {
+        status: 404,
+        headers: notFoundPage.headers,
+      });
+    }
     return new Response("Not Found", { status: 404 });
   },
 };

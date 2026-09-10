@@ -8,6 +8,7 @@ import Editor from "@/pages/editor";
 import Pos from "@/pages/pos";
 import Dev from "@/pages/dev";
 import ZohoMail from "@/pages/zoho-mail";
+import { MaintenancePage } from "@/pages/maintenance";
 
 const queryClient = new QueryClient();
 
@@ -367,8 +368,16 @@ function AdminHome() {
 }
 
 function Router() {
+  const MaintenanceRoute = () => {
+    const fromAdminButton = new URLSearchParams(window.location.search).get("preview") === "1";
+    if (!fromAdminButton && sessionStorage.getItem("afeonbooks_maintenance_preview") !== "true") return <NotFound />;
+    sessionStorage.removeItem("afeonbooks_maintenance_preview");
+    return <MaintenancePage />;
+  };
   return (
     <Switch>
+      <Route path="/maintenance" component={MaintenanceRoute} />
+      <Route path="/maintenance/" component={MaintenanceRoute} />
       <Route path="/pos/" component={Pos} />
       <Route path="/pos" component={Pos} />
       <Route path="/zoho-mail" component={ZohoMail} />
