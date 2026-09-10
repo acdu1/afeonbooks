@@ -16,6 +16,7 @@ import { useCart } from "@/lib/cart";
 import { useUtm, utmPayload } from "@/lib/utm";
 import { toast } from "sonner";
 import { useSchool } from "@/lib/school";
+import { useAuth } from "@/lib/auth";
 
 const checkoutSchema = z
   .object({
@@ -61,6 +62,7 @@ type CheckoutValues = z.infer<typeof checkoutSchema>;
 export default function Checkout() {
   const [, setLocation] = useLocation();
   const { school } = useSchool();
+  const { user, loading: authLoading } = useAuth();
   const { data: content } = useGetContent({ school: school ?? "alvarado" });
   const { enrichedItems, itemCount, clear } = useCart();
   const { utm, clear: clearUtm } = useUtm();
@@ -199,6 +201,17 @@ export default function Checkout() {
       <SiteHeader simple />
 
       <main className="flex-1 w-full px-6 py-12">
+        {!authLoading && !user && (
+          <div className="mx-auto mb-8 flex max-w-[1200px] flex-col gap-4 border border-black/10 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-bold">Sign in to earn points!</p>
+              <p className="mt-1 text-sm text-black/55">Create an account or sign in to keep your orders and earn loyalty rewards on completed purchases.</p>
+            </div>
+            <Button asChild variant="outline" className="w-fit shrink-0 rounded-none border-black/25 text-xs font-bold uppercase tracking-widest">
+              <Link href="/account">Sign in or create account</Link>
+            </Button>
+          </div>
+        )}
         <div className="max-w-[1200px] mx-auto flex flex-col-reverse lg:flex-row gap-12 lg:gap-20 items-start">
           
           {/* Checkout Form */}
