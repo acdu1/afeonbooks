@@ -29,9 +29,10 @@ if (apiBaseUrl) {
 }
 
 function Router() {
+  const HomeRoute = () => new URLSearchParams(window.location.search).has("reset_token") ? <Account /> : <Home />;
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/" component={HomeRoute} />
       <Route path="/shop" component={Shop} />
       <Route path="/product/:id" component={Product} />
       <Route path="/cart" component={Cart} />

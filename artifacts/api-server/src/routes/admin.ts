@@ -1,8 +1,8 @@
 import { Router, type IRouter } from "express";
-import { db, siteContentTable } from "@workspace/db";
+import { db, siteContentTable, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { getOrCreateContent } from "./content";
-import { requireRole, requireUser } from "../lib/auth";
+import { createSession, requireRole, requireUser } from "../lib/auth";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
@@ -34,6 +34,8 @@ router.post("/admin/verify-pin", async (req, res): Promise<void> => {
 
   if (success) {
     attempts.delete(ip);
+    const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.role, "admin")).limit(1);
+    if (admin) await createSession(admin.id, res);
     res.json({ success: true });
   } else {
     record.count += 1;

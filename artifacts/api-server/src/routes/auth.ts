@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { randomBytes } from "node:crypto";
 import { count, desc, eq } from "drizzle-orm";
 import { db, loyaltyTransactionsTable, usersTable } from "@workspace/db";
 import {
@@ -105,7 +106,7 @@ router.post("/auth/forgot-password", async (req, res): Promise<void> => {
   const [user] = email ? await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1) : [];
   if (user) {
     const token = await createAuthToken(user.id, "reset_password", 1000 * 60 * 30);
-    const link = `${SITE_URL}/account?reset_token=${encodeURIComponent(token)}`;
+    const link = `${SITE_URL}/?reset_token=${encodeURIComponent(token)}`;
     try {
       await sendAuthEmail(user.email, "Reset your AFEON Books password", authEmailHtml("Reset your password", "Use the link below to choose a new password. This link expires in 30 minutes.", link, "Reset password"));
     } catch (error) {
@@ -155,6 +156,43 @@ router.post("/auth/verify-email", async (req, res): Promise<void> => {
 router.get("/auth/users", requireUser, requireRole("admin"), async (_req, res): Promise<void> => {
   const users = await db.select().from(usersTable).orderBy(desc(usersTable.createdAt));
   res.json({ users: users.map(publicUser) });
+});
+
+router.get("/auth/users/by-email", requireUser, requireRole("admin"), async (req, res): Promise<void> => {
+  const email = typeof req.query.email === "string" ? normalizeEmail(req.query.email) : "";
+  const [user] = email ? await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email }).from(usersTable).where(eq(usersTable.email, email)).limit(1) : [];
+  res.json({ user: user ?? null });
+});
+
+router.post("/auth/admin/create-user", requireUser, requireRole("admin"), async (req, res): Promise<void> => {
+  const { email, name } = req.body as { email?: unknown; name?: unknown };
+  if (typeof email !== "string" || !/^\S+@\S+\.\S+$/.test(email.trim()) || typeof name !== "string" || name.trim().length < 2) {
+    res.status(400).json({ error: "A valid name and email are required" });
+    return;
+  }
+  const normalizedEmail = normalizeEmail(email);
+  const existing = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, normalizedEmail)).limit(1);
+  if (existing[0]) {
+    res.status(409).json({ error: "An account already exists for this email" });
+    return;
+  }
+
+  const [user] = await db.insert(usersTable).values({
+    email: normalizedEmail,
+    name: name.trim(),
+    passwordHash: await hashPassword(randomBytes(32).toString("base64url")),
+    role: null,
+    emailVerifiedAt: new Date(),
+  }).returning();
+  const token = await createAuthToken(user.id, "reset_password", 1000 * 60 * 60 * 24 * 7);
+  const link = `${SITE_URL}/?reset_token=${encodeURIComponent(token)}`;
+  try {
+    await sendAuthEmail(user.email, "An AFEON Books admin created your account", authEmailHtml("Your AFEON Books account is ready", "An AFEON Books admin has added an account for you. Set your password using the link below to access your order history.", link, "Set your password"));
+  } catch (error) {
+    await db.delete(usersTable).where(eq(usersTable.id, user.id));
+    throw error;
+  }
+  res.status(201).json({ user: publicUser(user) });
 });
 
 router.get("/auth/loyalty", requireUser, async (req, res): Promise<void> => {
