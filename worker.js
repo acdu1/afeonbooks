@@ -145,6 +145,12 @@ export default {
     }
 
     if (url.hostname === "admin.afeonbooks.com") {
+      if (path === "/admin" || path === "/admin/") {
+        return Response.redirect(`https://admin.afeonbooks.com/${url.search}`, 301);
+      }
+      if (path.startsWith("/admin/")) {
+        return Response.redirect(`https://admin.afeonbooks.com${path.replace(/^\/admin/, "")}${url.search}`, 301);
+      }
       const adminAppPath = path === "/" || path === "/pos" || path === "/pos/" || path === "/zoho-mail" || path === "/zoho-mail/";
       if (adminAppPath) {
         return env.ASSETS.fetch(new Request(new URL("/admin/index.html", request.url), request));
@@ -155,11 +161,6 @@ export default {
       const adminAsset = await env.ASSETS.fetch(new Request(new URL(`/admin${path}`, request.url), request));
       if (adminAsset.status !== 404) return adminAsset;
       return env.ASSETS.fetch(new Request(new URL("/admin/index.html", request.url), request));
-    }
-
-    if (url.hostname === "afeonbooks.com" && (path === "/admin" || path.startsWith("/admin/"))) {
-      const adminPath = path.replace(/^\/admin\/?/, "/");
-      return Response.redirect(`https://admin.afeonbooks.com${adminPath}${url.search}`, 301);
     }
 
     if (path === "/api/debug-info") {

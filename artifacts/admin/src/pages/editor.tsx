@@ -636,7 +636,9 @@ export default function Editor() {
               type="button"
               onClick={() => {
                 sessionStorage.setItem("afeonbooks_maintenance_preview", "true");
-                window.location.assign(`${window.location.hostname === "admin.afeonbooks.com" ? "" : "/admin"}/maintenance?preview=1`);
+                const adminBase = window.location.hostname === "admin.afeonbooks.com" ? "" : "/admin";
+                const maintenanceUrl = new URL(`${adminBase}/maintenance?preview=1`, window.location.origin);
+                window.location.assign(maintenanceUrl.toString());
               }}
               className="inline-flex items-center justify-center min-h-9 px-4 py-2 rounded-md text-sm font-medium border border-amber-400 text-amber-800 hover:bg-amber-50 transition-colors"
             >
