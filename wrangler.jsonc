@@ -13,7 +13,7 @@
   },
   "routes": [
     {
-      "pattern": "afeonbooks.com/order/*",
+      "pattern": "afeonbooks.com/*",
       "zone_name": "afeonbooks.com"
     }
   ]

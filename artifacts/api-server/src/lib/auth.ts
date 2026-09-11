@@ -7,6 +7,8 @@ import { authTokensTable, db, sessionsTable, usersTable, type UserRow } from "@w
 const scrypt = promisify(scryptCallback);
 const SESSION_COOKIE = "afeonbooks_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
+const IS_PRODUCTION = process.env.NODE_ENV === "production" || process.env.RENDER === "true";
+const SESSION_COOKIE_DOMAIN = IS_PRODUCTION ? ".afeonbooks.com" : undefined;
 
 declare global {
   namespace Express {
@@ -78,8 +80,9 @@ export async function createSession(userId: number, response: Response): Promise
   });
   response.cookie(SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: IS_PRODUCTION,
     sameSite: "lax",
+    domain: SESSION_COOKIE_DOMAIN,
     maxAge: SESSION_TTL_MS,
     path: "/",
   });
@@ -88,7 +91,7 @@ export async function createSession(userId: number, response: Response): Promise
 export async function destroySession(request: Request, response: Response): Promise<void> {
   const token = request.cookies?.[SESSION_COOKIE];
   if (token) await db.delete(sessionsTable).where(eq(sessionsTable.tokenHash, hashToken(token)));
-  response.clearCookie(SESSION_COOKIE, { httpOnly: true, sameSite: "lax", path: "/" });
+  response.clearCookie(SESSION_COOKIE, { httpOnly: true, sameSite: "lax", domain: SESSION_COOKIE_DOMAIN, path: "/" });
 }
 
 export async function loadUser(request: Request): Promise<UserRow | undefined> {
