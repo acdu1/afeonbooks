@@ -200,8 +200,8 @@ export default {
 
     const isAdminPath = path === "/admin" || path.startsWith("/admin/");
     const isApiPath = path.startsWith("/api/");
-    const isOrderPdfPath = /^\/order\/[^/]+\/pdf\/?$/.test(path);
-    if (!isAdminPath && !isApiPath && !isOrderPdfPath && path !== "/totec-maintenance.svg") {
+    const isHomepage = path === "/";
+    if (!isAdminPath && !isApiPath && !isHomepage && path !== "/totec-maintenance.svg") {
       const maintenanceStatus = await fetch("https://afeonbooks-api.onrender.com/api/maintenance/status", { headers: { Accept: "application/json" } });
       if (maintenanceStatus.ok) {
         const status = await maintenanceStatus.json();
