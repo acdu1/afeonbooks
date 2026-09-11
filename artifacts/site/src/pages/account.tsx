@@ -214,13 +214,16 @@ function OrdersPanel() {
 function LoyaltyPanel() {
   const { user } = useAuth();
   const [loyalty, setLoyalty] = useState<LoyaltyData | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!user) return;
-    authApiRequest<LoyaltyData>("/api/auth/loyalty").then(setLoyalty).catch(() => setLoyalty(null));
+    authApiRequest<LoyaltyData>("/api/auth/loyalty")
+      .then(setLoyalty)
+      .catch((err) => setError(err instanceof Error ? err.message : "Unable to load loyalty rewards"));
   }, [user]);
 
-  if (!user || !loyalty) return null;
+  if (!user) return null;
 
   return (
     <section className="mt-16 border-t border-black/10 pt-10">
@@ -229,17 +232,18 @@ function LoyaltyPanel() {
           <Gift className="mt-1 h-6 w-6" />
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-black/45">Loyalty rewards</p>
-            <h2 className="mt-2 text-2xl font-bold">{loyalty.balance.toLocaleString()} points</h2>
+            <h2 className="mt-2 text-2xl font-bold">{(loyalty?.balance ?? 0).toLocaleString()} points</h2>
             <p className="mt-2 text-sm text-black/60">Earn 1 point for every dollar on completed orders.</p>
           </div>
         </div>
-        {loyalty.transactions.length > 0 && (
+        {(loyalty?.transactions.length ?? 0) > 0 && (
           <div className="text-sm text-black/60 sm:text-right">
             <p className="font-semibold text-black">Latest activity</p>
-            <p className="mt-1">+{loyalty.transactions[0].points} points</p>
+            <p className="mt-1">+{loyalty!.transactions[0].points} points</p>
           </div>
         )}
       </div>
+      {error && <p className="mt-3 text-sm text-red-700">{error}</p>}
     </section>
   );
 }

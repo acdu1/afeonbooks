@@ -70,6 +70,15 @@ async function ensureAuthTables() {
       created_at timestamptz NOT NULL DEFAULT now()
     );
     CREATE INDEX IF NOT EXISTS auth_tokens_user_type_idx ON auth_tokens(user_id, type);
+    CREATE TABLE IF NOT EXISTS loyalty_transactions (
+      id serial PRIMARY KEY,
+      user_id integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      order_id integer,
+      points integer NOT NULL,
+      description text NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS loyalty_transactions_user_id_idx ON loyalty_transactions(user_id);
   `);
   logger.info("Verified auth tables");
 }

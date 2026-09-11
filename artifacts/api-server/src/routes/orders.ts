@@ -108,7 +108,7 @@ router.get("/orders/mine", requireUser, async (req, res) => {
   const orders = await db
     .select()
     .from(ordersTable)
-    .where(eq(ordersTable.customerEmail, email))
+    .where(sql`lower(trim(${ordersTable.customerEmail})) = ${email}`)
     .orderBy(desc(ordersTable.createdAt));
 
   if (orders.length === 0) {
