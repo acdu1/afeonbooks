@@ -310,8 +310,15 @@ export default function Editor() {
   const sendTestEmail = useSendTestEmail();
 
   const handleStatusChange = (orderId: number, status: UpdateOrderStatusStatus) => {
+    const estimatedDeliveryDate = status === "shipped"
+      ? window.prompt("When is this order expected to be delivered? Enter a date (YYYY-MM-DD):", "")?.trim()
+      : undefined;
+    if (status === "shipped" && (!estimatedDeliveryDate || !/^\d{4}-\d{2}-\d{2}$/.test(estimatedDeliveryDate))) {
+      toast.error("A delivery date in YYYY-MM-DD format is required");
+      return;
+    }
     updateOrderStatus.mutate(
-      { id: orderId, data: { status } },
+      { id: orderId, data: { status, ...(estimatedDeliveryDate ? { estimatedDeliveryDate } : {}) } },
       {
         onSuccess: () => {
           toast.success(`Order #${orderId} marked as ${status}`);

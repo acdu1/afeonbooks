@@ -18,6 +18,7 @@ export const ordersTable = pgTable("orders", {
   orderType: text("order_type").notNull().default("sale"),
   paymentStatus: text("payment_status").notNull().default("due"),
   status: text("status").notNull().default("pending"),
+  estimatedDeliveryDate: text("estimated_delivery_date"),
   subtotalCents: integer("subtotal_cents").notNull(),
   shippingCents: integer("shipping_cents").notNull().default(0),
   totalCents: integer("total_cents").notNull(),

@@ -267,6 +267,7 @@ export const UpdateOrderStatusStatus = {
 
 export interface UpdateOrderStatus {
   status: UpdateOrderStatusStatus;
+  estimatedDeliveryDate?: string;
 }
 
 export interface SendTestEmail {

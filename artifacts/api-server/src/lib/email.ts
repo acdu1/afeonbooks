@@ -138,3 +138,31 @@ export async function sendOrderConfirmation(input:RenderEmailInput):Promise<void
     logger.error({err,orderId:order.id},"failed to send order confirmation email via Zoho Mail");
   }
 }
+
+export async function sendOrderStatusUpdateEmail(order: OrderRow, status: string, estimatedDeliveryDate?: string | null): Promise<void> {
+  const configured = Boolean(process.env.ZOHO_MAIL_REFRESH_TOKEN && process.env.ZOHO_CLIENT_ID && process.env.ZOHO_CLIENT_SECRET && process.env.ZOHO_MAIL_ACCOUNT_ID);
+  if (!configured) {
+    logger.warn({ orderId: order.id, status }, "order status email skipped: Zoho Mail credentials are not fully configured");
+    return;
+  }
+
+  const fromAddress = "noreply@afeonbooks.com";
+  const orderUrl = `https://afeonbooks.com/order/${order.id}`;
+  const customerName = escapeHtml(order.customerName);
+  const safeStatus = escapeHtml(status.replace(/_/g, " "));
+  const deliveryHtml = estimatedDeliveryDate ? `<p>Estimated delivery date: <strong>${escapeHtml(estimatedDeliveryDate)}</strong></p>` : "";
+  const html = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#222;line-height:1.6"><h2>Order #${order.id} status updated</h2><p>Hello ${customerName},</p><p>Your order status is now <strong>${safeStatus}</strong>.</p>${deliveryHtml}<p><a href="${orderUrl}">View your order</a></p><p>Thank you,<br>AFEON Books</p></body></html>`;
+
+  try {
+    const result = await sendEmail({
+      from: `AFEON Books <${fromAddress}>`,
+      to: order.customerEmail,
+      replyTo: "noreply@afeonbooks.com",
+      subject: `Order #${order.id} status updated: ${status.replace(/_/g, " ")}${estimatedDeliveryDate ? ` (estimated delivery ${estimatedDeliveryDate})` : ""}`,
+      html,
+    });
+    logger.info({ orderId: order.id, status, emailId: result.id, fromAddress }, "order status email sent via Zoho Mail");
+  } catch (err) {
+    logger.error({ err, orderId: order.id, status }, "failed to send order status email via Zoho Mail");
+  }
+}

@@ -386,6 +386,7 @@ export const UpdateOrderStatusBody = zod.object({
     "delivered",
     "cancelled",
   ]),
+  estimatedDeliveryDate: zod.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
 export const UpdateOrderStatusResponse = zod.object({
@@ -406,6 +407,7 @@ export const UpdateOrderStatusResponse = zod.object({
   orderType: zod.enum(["sale", "preorder"]),
   paymentStatus: zod.enum(["due", "due_later", "paid"]),
   status: zod.string(),
+  estimatedDeliveryDate: zod.string().optional(),
   subtotalCents: zod.number(),
   shippingCents: zod.number(),
   totalCents: zod.number(),

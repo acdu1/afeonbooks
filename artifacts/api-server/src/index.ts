@@ -23,7 +23,8 @@ async function ensureOrderColumns() {
     ALTER TABLE orders
       ADD COLUMN IF NOT EXISTS school text NOT NULL DEFAULT 'alvarado',
       ADD COLUMN IF NOT EXISTS order_type text NOT NULL DEFAULT 'sale',
-      ADD COLUMN IF NOT EXISTS payment_status text NOT NULL DEFAULT 'due'
+      ADD COLUMN IF NOT EXISTS payment_status text NOT NULL DEFAULT 'due',
+      ADD COLUMN IF NOT EXISTS estimated_delivery_date text
   `);
   logger.info("Verified orders.order_type and orders.payment_status columns");
 }

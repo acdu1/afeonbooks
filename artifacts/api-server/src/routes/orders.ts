@@ -22,7 +22,7 @@ import {
   DeleteOrderParams,
 } from "@workspace/api-zod";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
-import { sendOrderConfirmation } from "../lib/email";
+import { sendOrderConfirmation, sendOrderStatusUpdateEmail } from "../lib/email";
 import { normalizeEmail, requireRole, requireUser } from "../lib/auth";
 
 const router: IRouter = Router();
@@ -57,6 +57,7 @@ function serializeOrder(o: OrderRow, items: OrderItemRow[]) {
     utmContent: o.utmContent ?? undefined,
     referrer: o.referrer ?? undefined,
     landingPage: o.landingPage ?? undefined,
+    estimatedDeliveryDate: o.estimatedDeliveryDate ?? undefined,
     createdAt: o.createdAt.toISOString(),
     items: items.map((it) => ({
       id: it.id,
@@ -348,13 +349,19 @@ router.post("/orders", async (req, res): Promise<void> => {
 router.patch("/orders/:id", requireUser, requireRole("staff", "admin"), async (req, res): Promise<void> => {
   const { id } = UpdateOrderStatusParams.parse(req.params);
   const body = UpdateOrderStatusBody.parse(req.body);
+  if (body.status === "shipped" && !body.estimatedDeliveryDate) {
+    res.status(400).json({ error: "Estimated delivery date is required when shipping an order" });
+    return;
+  }
+  let previousStatus: string | undefined;
   const updated = await db.transaction(async (tx) => {
     const current = await tx.select().from(ordersTable).where(eq(ordersTable.id, id)).limit(1);
     if (!current[0]) return [];
+    previousStatus = current[0].status;
 
     const changed = await tx
       .update(ordersTable)
-      .set({ status: body.status })
+      .set({ status: body.status, estimatedDeliveryDate: body.estimatedDeliveryDate ?? null })
       .where(eq(ordersTable.id, id))
       .returning();
 
@@ -390,6 +397,7 @@ router.patch("/orders/:id", requireUser, requireRole("staff", "admin"), async (r
     .select()
     .from(orderItemsTable)
     .where(eq(orderItemsTable.orderId, id));
+  if (previousStatus !== body.status || body.estimatedDeliveryDate) void sendOrderStatusUpdateEmail(updated[0], body.status, body.estimatedDeliveryDate);
   res.json(UpdateOrderStatusResponse.parse(serializeOrder(updated[0], items)));
 });
 

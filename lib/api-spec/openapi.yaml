@@ -381,6 +381,7 @@ components:
         orderType: { type: string, enum: [sale, preorder] }
         paymentStatus: { type: string, enum: [due, due_later, paid] }
         status: { type: string }
+        estimatedDeliveryDate: { type: string, format: date }
         subtotalCents: { type: integer }
         shippingCents: { type: integer }
         totalCents: { type: integer }
@@ -437,6 +438,9 @@ components:
         status:
           type: string
           enum: [pending, confirmed, shipped, delivered, cancelled]
+        estimatedDeliveryDate:
+          type: string
+          format: date
       required: [status]
     SendTestEmail:
       type: object
