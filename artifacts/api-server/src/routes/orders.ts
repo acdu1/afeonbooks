@@ -23,7 +23,7 @@ import {
 } from "@workspace/api-zod";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { sendOrderConfirmation } from "../lib/email";
-import { requireRole, requireUser } from "../lib/auth";
+import { normalizeEmail, requireRole, requireUser } from "../lib/auth";
 
 const router: IRouter = Router();
 
@@ -362,7 +362,7 @@ router.patch("/orders/:id", requireUser, requireRole("staff", "admin"), async (r
       const [user] = await tx
         .select({ id: usersTable.id })
         .from(usersTable)
-        .where(eq(usersTable.email, current[0].customerEmail.toLowerCase()))
+        .where(eq(usersTable.email, normalizeEmail(current[0].customerEmail)))
         .limit(1);
       if (user) {
         const existing = await tx
