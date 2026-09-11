@@ -54,6 +54,36 @@ export default function Pos() {
   const [, navigate] = useLocation();
   const qc = useQueryClient();
 
+  // -- DATA --
+  const { data: orders } = useListOrders();
+  const { data: products } = useListProducts();
+  const updateStatus = useUpdateOrderStatus();
+  const createOrder = useCreateOrder();
+
+  const activeProducts = useMemo(() => (products ?? []).filter((p) => p.active), [products]);
+
+  // -- POS STATE --
+  const [phase, setPhase] = useState<Phase>("lookup");
+  const [search, setSearch] = useState("");
+  const [customer, setCustomer] = useState<CustomerInfo>({ name: "", studentId: "", classroom: "", email: "" });
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [walkin, setWalkin] = useState({ name: "", studentId: "", classroom: "", email: "", preorder: false });
+  const [addProductId, setAddProductId] = useState("");
+  const [manualBarcode, setManualBarcode] = useState("");
+  const [cashCents, setCashCents] = useState(0);
+  const [completing, setCompleting] = useState(false);
+  const [saleComplete, setSaleComplete] = useState(false);
+  const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
+  const queryLoadedRef = useRef(false);
+
+  useEffect(() => {
+    if (queryLoadedRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const orderIdParam = params.get("orderId");
+    if (!orderIdParam || !orders) return;
+
+    const orderId = Number(orderIdParam);
+    if (Number.isNaN(orderId)) return;
 
     const targetOrder = orders.find((it) => it.id === orderId);
     if (!targetOrder) return;
