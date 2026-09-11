@@ -1,15 +1,15 @@
 import { Router, type IRouter } from "express";
-import { db, siteContentTable, usersTable } from "@workspace/db";
+import { db, siteContentTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { getOrCreateContent } from "./content";
-import { createSession, requireRole, requireUser } from "../lib/auth";
+import { requireRole, requireUser } from "../lib/auth";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
 const attempts: Map<string, { count: number; lockedUntil: number }> = new Map();
 
-router.post("/admin/verify-pin", async (req, res): Promise<void> => {
+router.post("/admin/verify-pin", requireUser, requireRole("admin"), async (req, res): Promise<void> => {
   const ip = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "unknown";
   const now = Date.now();
   const record = attempts.get(ip) ?? { count: 0, lockedUntil: 0 };
@@ -34,8 +34,6 @@ router.post("/admin/verify-pin", async (req, res): Promise<void> => {
 
   if (success) {
     attempts.delete(ip);
-    const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.role, "admin")).limit(1);
-    if (admin) await createSession(admin.id, res);
     res.json({ success: true });
   } else {
     record.count += 1;

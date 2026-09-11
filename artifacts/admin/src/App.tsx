@@ -388,6 +388,36 @@ function Router() {
   );
 }
 
+function AdminAccessGate({ children }: { children: React.ReactNode }) {
+  const [status, setStatus] = useState<"loading" | "allowed" | "denied">("loading");
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/auth/me", { credentials: "include", cache: "no-store" })
+      .then((response) => response.json() as Promise<{ user?: { role?: string } | null }>)
+      .then(({ user }) => {
+        if (!cancelled) setStatus(user?.role === "admin" ? "allowed" : "denied");
+      })
+      .catch(() => {
+        if (!cancelled) setStatus("denied");
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (status === "loading") return null;
+  if (status === "denied") {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-background px-6 text-center">
+        <div>
+          <h1 className="text-xl font-semibold">Admin access required</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Sign in with an account assigned the admin role.</p>
+        </div>
+      </main>
+    );
+  }
+  return <>{children}</>;
+}
+
 function useDevAudit() {
   useEffect(() => {
     if (import.meta.env.PROD) return;
@@ -447,18 +477,20 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        {isPosPath ? (
-          <Pos />
-        ) : isZohoMailPath || adminView === "#zoho-mail" ? (
-          <ZohoMail />
-        ) : (
-          <WouterRouter base={adminBase}>
-            <Router />
-          </WouterRouter>
-        )}
+        <AdminAccessGate>
+          {isPosPath ? (
+            <Pos />
+          ) : isZohoMailPath || adminView === "#zoho-mail" ? (
+            <ZohoMail />
+          ) : (
+            <WouterRouter base={adminBase}>
+              <Router />
+            </WouterRouter>
+          )}
+          {!isPosPath && !isZohoMailPath && <OrderEmailOverlay />}
+        </AdminAccessGate>
         <Toaster position="top-center" richColors />
         <DebugOverlay />
-        {!isPosPath && !isZohoMailPath && <OrderEmailOverlay />}
       </TooltipProvider>
     </QueryClientProvider>
   );
