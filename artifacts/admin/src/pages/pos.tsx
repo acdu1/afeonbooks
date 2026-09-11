@@ -50,94 +50,10 @@ type Phase = "lookup" | "walkin-form" | "cart" | "payment" | "signature" | "done
 
 const CASH_PRESETS = [500, 1000, 2000, 5000, 10000];
 
-function isPinAuthed() {
-  return sessionStorage.getItem("adminAuthed") === "0";
-}
-
 export default function Pos() {
   const [, navigate] = useLocation();
   const qc = useQueryClient();
 
-  // ── PIN AUTH ──
-  const [authed, setAuthed] = useState(isPinAuthed);
-  const [pinDigits, setPinDigits] = useState(["", "", "", ""]);
-  const [pinError, setPinError] = useState("");
-  const [pinShake, setPinShake] = useState(false);
-  const [pinLoading, setPinLoading] = useState(false);
-  const pinRefs = [
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-  ];
-
-  const submitPin = async (digits: string[]) => {
-    const pin = digits.join("");
-    if (pin.length !== 4) return;
-    setPinLoading(true);
-    setPinError("");
-    try {
-      const res = await fetch("/api/admin/verify-pin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin }),
-      });
-      const data = (await res.json()) as { success?: boolean; error?: string };
-      if (data.success) {
-        sessionStorage.setItem("adminAuthed", "1");
-        setAuthed(true);
-      } else {
-        setPinShake(true);
-        setPinError(data.error ?? "Incorrect PIN.");
-        setPinDigits(["", "", "", ""]);
-        setTimeout(() => { setPinShake(false); pinRefs[0].current?.focus(); }, 600);
-      }
-    } catch { setPinError("Connection error."); }
-    finally { setPinLoading(false); }
-  };
-
-  const handlePinKey = (idx: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !pinDigits[idx] && idx > 0) pinRefs[idx - 1].current?.focus();
-  };
-  const handlePinInput = (idx: number, val: string) => {
-    const digit = val.replace(/\D/g, "").slice(-1);
-    const next = [...pinDigits];
-    next[idx] = digit;
-    setPinDigits(next);
-    if (digit && idx < 3) pinRefs[idx + 1].current?.focus();
-    else if (digit && idx === 3) submitPin(next);
-  };
-
-  // ── DATA ──
-  const { data: orders } = useListOrders();
-  const { data: products } = useListProducts();
-  const updateStatus = useUpdateOrderStatus();
-  const createOrder = useCreateOrder();
-
-  const activeProducts = useMemo(() => (products ?? []).filter((p) => p.active), [products]);
-
-  // ── POS STATE ──
-  const [phase, setPhase] = useState<Phase>("lookup");
-  const [search, setSearch] = useState("");
-  const [customer, setCustomer] = useState<CustomerInfo>({ name: "", studentId: "", classroom: "", email: "" });
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [walkin, setWalkin] = useState({ name: "", studentId: "", classroom: "", email: "", preorder: false });
-  const [addProductId, setAddProductId] = useState("");
-  const [manualBarcode, setManualBarcode] = useState("");
-  const [cashCents, setCashCents] = useState(0);
-  const [completing, setCompleting] = useState(false);
-  const [saleComplete, setSaleComplete] = useState(false);
-  const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
-  const queryLoadedRef = useRef(false);
-
-  useEffect(() => {
-    if (queryLoadedRef.current) return;
-    const params = new URLSearchParams(window.location.search);
-    const orderIdParam = params.get("orderId");
-    if (!orderIdParam || !orders) return;
-
-    const orderId = Number(orderIdParam);
-    if (Number.isNaN(orderId)) return;
 
     const targetOrder = orders.find((it) => it.id === orderId);
     if (!targetOrder) return;
@@ -360,37 +276,6 @@ export default function Pos() {
     lastScanRef.current = "";
     setManualBarcode("");
     setAddProductId("");
-  }
-
-  // ── PIN SCREEN ──
-  if (!authed) {
-    return (
-      <div className="min-h-screen bg-[#FAF7F2] flex flex-col items-center justify-center px-6">
-        <style>{`@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}`}</style>
-        <div className="w-full max-w-sm">
-          <div className="text-center mb-10">
-            <img src={xlogo} alt="" className="w-12 h-12 object-contain mx-auto mb-6" draggable={false} />
-            <h1 className="text-2xl font-bold tracking-tight">POS Access</h1>
-            <p className="text-black/50 text-sm mt-2">Enter your 4-digit PIN</p>
-          </div>
-          <div className="flex justify-center gap-4 mb-6" style={pinShake ? { animation: "shake 0.5s ease-in-out" } : {}}>
-            {pinDigits.map((d, i) => (
-              <input key={i} ref={pinRefs[i]} type="tel" inputMode="numeric" maxLength={1} value={d}
-                autoFocus={i === 0} disabled={pinLoading}
-                onChange={(e) => handlePinInput(i, e.target.value)}
-                onKeyDown={(e) => handlePinKey(i, e)}
-                className="w-14 h-16 text-center text-2xl font-bold border-2 border-black/20 bg-white focus:border-black focus:outline-none rounded-none transition-colors disabled:opacity-50"
-              />
-            ))}
-          </div>
-          {pinError && <p className="text-center text-red-600 text-sm mb-4">{pinError}</p>}
-          <button onClick={() => submitPin(pinDigits)} disabled={pinLoading || pinDigits.join("").length !== 4}
-            className="w-full bg-black text-white py-3 text-sm font-bold uppercase tracking-widest disabled:opacity-40">
-            {pinLoading ? "Verifying..." : "Enter"}
-          </button>
-        </div>
-      </div>
-    );
   }
 
   // ── HEADER ──
