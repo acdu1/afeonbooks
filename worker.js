@@ -122,18 +122,16 @@ async function orderPdfResponse(request, orderId) {
   });
 }
 
-function maintenanceResponse() {
-  return new Response(`<!doctype html>
-<html lang="en">
-  <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Maintenance in Progress</title></head>
-  <body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#0f172a;color:#fff;font-family:system-ui,sans-serif;text-align:center">
-    <main style="max-width:32rem;padding:2rem">
-      <img src="/totec-maintenance.svg" alt="Maintenance" style="width:12rem;height:12rem;object-fit:contain">
-      <h1>Maintenance in Progress</h1>
-      <p style="color:#cbd5e1">We're working to improve your experience. We'll be back soon.</p>
-    </main>
-  </body>
-</html>`, { status: 503, headers: { "Content-Type": "text/html; charset=utf-8", "Retry-After": "3600", "Cache-Control": "no-store" } });
+async function maintenanceResponse(request, env) {
+  const assetResponse = await env.ASSETS.fetch(new Request(new URL("/totec-maintenance.svg", request.url), request));
+  return new Response(assetResponse.body, {
+    status: 503,
+    headers: {
+      "Content-Type": "image/svg+xml; charset=utf-8",
+      "Retry-After": "3600",
+      "Cache-Control": "no-store",
+    },
+  });
 }
 
 function directoryKeyMatches(url, env) {
@@ -206,7 +204,7 @@ export default {
       const maintenanceStatus = await fetch("https://afeonbooks-api.onrender.com/api/maintenance/status", { headers: { Accept: "application/json" } });
       if (maintenanceStatus.ok) {
         const status = await maintenanceStatus.json();
-        if (status.enabled === true) return maintenanceResponse();
+        if (status.enabled === true) return maintenanceResponse(request, env);
       }
     }
 
