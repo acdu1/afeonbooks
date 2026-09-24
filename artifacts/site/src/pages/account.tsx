@@ -220,7 +220,7 @@ function LoyaltyPanel() {
     if (!user) return;
     authApiRequest<LoyaltyData>("/api/auth/loyalty")
       .then(setLoyalty)
-      .catch((err) => setError(err instanceof Error ? err.message : "Unable to load loyalty rewards"));
+      .catch((err) => setError(err instanceof Error ? err.message : "Unable to load Pages"));
   }, [user]);
 
   if (!user) return null;
@@ -231,15 +231,15 @@ function LoyaltyPanel() {
         <div className="flex items-start gap-4">
           <Gift className="mt-1 h-6 w-6" />
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-black/45">Loyalty rewards</p>
-            <h2 className="mt-2 text-2xl font-bold">{(loyalty?.balance ?? 0).toLocaleString()} points</h2>
-            <p className="mt-2 text-sm text-black/60">Earn 1 point for every dollar on completed orders.</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-black/45">Pages</p>
+            <h2 className="mt-2 text-2xl font-bold">{(loyalty?.balance ?? 0).toLocaleString()} Pages</h2>
+            <p className="mt-2 text-sm text-black/60">Earn 1 Page for every dollar on completed orders.</p>
           </div>
         </div>
         {(loyalty?.transactions.length ?? 0) > 0 && (
           <div className="text-sm text-black/60 sm:text-right">
             <p className="font-semibold text-black">Latest activity</p>
-            <p className="mt-1">+{loyalty!.transactions[0].points} points</p>
+            <p className="mt-1">+{loyalty!.transactions[0].points} Pages</p>
           </div>
         )}
       </div>

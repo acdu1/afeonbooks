@@ -705,8 +705,8 @@ export default function Editor() {
 
                 <div className="bg-white p-8 border border-black/5 shadow-sm space-y-6">
                   <div>
-                    <h2 className="text-xl font-bold border-b border-black/10 pb-4">Book 6 Progress</h2>
-                    <p className="text-sm text-black/50 mt-3">This content appears at /book-6-progress. Separate paragraphs with a blank line.</p>
+                    <h2 className="text-xl font-bold border-b border-black/10 pb-4">Progress Update</h2>
+                    <p className="text-sm text-black/50 mt-3">This content appears on the public progress page. Separate paragraphs with a blank line.</p>
                   </div>
                   <FormField control={contentForm.control} name="blogTitle" render={({ field }) => (
                     <FormItem><FormLabel>Page Title</FormLabel><FormControl><Input {...field} className="rounded-none" /></FormControl></FormItem>

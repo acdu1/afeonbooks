@@ -41,5 +41,10 @@ export interface SiteContent {
   emailButtonLabel: string;
   emailFooter: string;
   emailAccentColor: string;
+  blogTitle: string;
+  blogSubtitle: string;
+  blogDate: string;
+  blogHeroImageUrl: string;
+  blogBody: string;
   updatedAt: string;
 }

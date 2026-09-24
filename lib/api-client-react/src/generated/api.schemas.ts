@@ -56,6 +56,11 @@ export interface SiteContent {
   emailButtonLabel: string;
   emailFooter: string;
   emailAccentColor: string;
+  blogTitle: string;
+  blogSubtitle: string;
+  blogDate: string;
+  blogHeroImageUrl: string;
+  blogBody: string;
   updatedAt: string;
 }
 
@@ -96,6 +101,11 @@ export interface UpdateSiteContent {
   emailButtonLabel: string;
   emailFooter: string;
   emailAccentColor: string;
+  blogTitle: string;
+  blogSubtitle: string;
+  blogDate: string;
+  blogHeroImageUrl: string;
+  blogBody: string;
 }
 
 export type ProductSchool = (typeof ProductSchool)[keyof typeof ProductSchool];

@@ -100,15 +100,15 @@ export default function Checkout() {
   const redeemPoints = () => {
     const points = Number(pointsToRedeem);
     if (!Number.isInteger(points) || points < 1000 || points % 1000 !== 0) {
-      toast.error("Redeem points in 1,000-point increments.");
+      toast.error("Redeem Pages in 1,000-Page increments.");
       return;
     }
     if (points > loyaltyBalance) {
-      toast.error("You do not have enough points.");
+      toast.error("You do not have enough Pages.");
       return;
     }
     setRedeemedPoints(points);
-    toast.success(`${points.toLocaleString()} points selected for redemption.`);
+    toast.success(`${points.toLocaleString()} Pages selected for redemption.`);
   };
 
   const form = useForm<CheckoutValues>({
@@ -234,11 +234,23 @@ export default function Checkout() {
         {!authLoading && !user && (
           <div className="mx-auto mb-8 flex max-w-[1200px] flex-col gap-4 border border-[#B8860B] bg-[#D4A72C] px-5 py-4 text-black sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-bold">Sign in to earn points!</p>
-              <p className="mt-1 text-sm text-black/55">Create an account or sign in to keep your orders and earn loyalty rewards on completed purchases.</p>
+              <p className="text-sm font-bold">Log in to get "Pages"!</p>
+              <p className="mt-1 text-sm text-black/55">Create an account or sign in to track your Pages and keep your orders in one place.</p>
             </div>
             <Button asChild variant="outline" className="w-fit shrink-0 rounded-none border-black/25 text-xs font-bold uppercase tracking-widest">
               <Link href="/account">Sign in or create account</Link>
+            </Button>
+          </div>
+        )}
+
+        {!authLoading && user && loyaltyBalance > 0 && (
+          <div className="mx-auto mb-8 flex max-w-[1200px] flex-col gap-4 border border-[#B8860B] bg-[#D4A72C] px-5 py-4 text-black sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-bold">Redeem your Pages</p>
+              <p className="mt-1 text-sm text-black/55">You have {loyaltyBalance.toLocaleString()} Pages ready to use on a product.</p>
+            </div>
+            <Button asChild variant="outline" className="w-fit shrink-0 rounded-none border-black/25 text-xs font-bold uppercase tracking-widest">
+              <Link href="/redeem-pages">Redeem now</Link>
             </Button>
           </div>
         )}
@@ -477,8 +489,8 @@ export default function Checkout() {
             <div className="space-y-4 mb-8 pt-6 border-t border-black/10 font-medium text-sm">
               {user && (
                 <div className="border-b border-black/10 pb-6 mb-2">
-                  <h3 className="font-bold text-base">Use Your AFEON Rewards Points</h3>
-                  <p className="text-black/60 mt-1">Available Points: {loyaltyBalance.toLocaleString()}</p>
+                  <h3 className="font-bold text-base">Use Your AFEON Pages</h3>
+                  <p className="text-black/60 mt-1">Available Pages: {loyaltyBalance.toLocaleString()}</p>
                   <div className="flex gap-2 mt-4">
                     <Input
                       type="number"
@@ -493,7 +505,7 @@ export default function Checkout() {
                       Redeem
                     </Button>
                   </div>
-                  <p className="text-xs text-black/50 mt-2">1,000 points = $10 off your next purchase.</p>
+                  <p className="text-xs text-black/50 mt-2">1,000 Pages = $10 off your next purchase.</p>
                 </div>
               )}
               <div className="flex justify-between">
@@ -511,7 +523,7 @@ export default function Checkout() {
                 <span>Free</span>
               </div>
               <div className="flex justify-between text-[#9A5B13]">
-                <span>Points earned</span>
+                <span>Pages earned</span>
                 <span className="font-bold">+{estimatedPoints.toLocaleString()}</span>
               </div>
             </div>

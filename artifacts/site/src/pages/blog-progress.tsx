@@ -3,7 +3,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { useSchool } from "@/lib/school";
 
-export default function Book6Progress() {
+export default function BlogProgress() {
   const { school } = useSchool();
   const { data: content, isLoading } = useGetContent({ school: school ?? "alvarado" });
 

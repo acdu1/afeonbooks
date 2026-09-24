@@ -54,6 +54,11 @@ export const GetContentResponse = zod.object({
   emailButtonLabel: zod.string(),
   emailFooter: zod.string(),
   emailAccentColor: zod.string(),
+  blogTitle: zod.string(),
+  blogSubtitle: zod.string(),
+  blogDate: zod.string(),
+  blogHeroImageUrl: zod.string(),
+  blogBody: zod.string(),
   updatedAt: zod.string(),
 });
 
@@ -100,6 +105,11 @@ export const UpdateContentBody = zod.object({
   emailButtonLabel: zod.string(),
   emailFooter: zod.string(),
   emailAccentColor: zod.string(),
+  blogTitle: zod.string(),
+  blogSubtitle: zod.string(),
+  blogDate: zod.string(),
+  blogHeroImageUrl: zod.string(),
+  blogBody: zod.string(),
 });
 
 export const UpdateContentResponse = zod.object({
@@ -141,6 +151,11 @@ export const UpdateContentResponse = zod.object({
   emailButtonLabel: zod.string(),
   emailFooter: zod.string(),
   emailAccentColor: zod.string(),
+  blogTitle: zod.string(),
+  blogSubtitle: zod.string(),
+  blogDate: zod.string(),
+  blogHeroImageUrl: zod.string(),
+  blogBody: zod.string(),
   updatedAt: zod.string(),
 });
 

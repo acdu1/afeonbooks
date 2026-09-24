@@ -13,7 +13,8 @@ import Cart from "@/pages/cart";
 import Checkout from "@/pages/checkout";
 import Order from "@/pages/order";
 import Account from "@/pages/account";
-import Book6Progress from "@/pages/book-6-progress";
+import BlogProgress from "@/pages/blog-progress";
+import RedeemPages from "@/pages/redeem-pages";
 const queryClient = new QueryClient();
 
 import React from 'react';
@@ -45,7 +46,8 @@ function Router() {
       {/* Keep existing singular links working while plural is canonical. */}
       <Route path="/order/:id" component={Order} />
       <Route path="/account" component={Account} />
-      <Route path="/book-6-progress" component={Book6Progress} />
+      <Route path="/book-6-progress" component={BlogProgress} />
+      <Route path="/redeem-pages" component={RedeemPages} />
       <Route component={NotFound} />
     </Switch>
   );

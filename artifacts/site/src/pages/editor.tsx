@@ -79,6 +79,11 @@ const contentSchema = z.object({
   emailButtonLabel: z.string().min(1, "Button label is required"),
   emailFooter: z.string(),
   emailAccentColor: z.string().min(1),
+  blogTitle: z.string().min(1),
+  blogSubtitle: z.string().min(1),
+  blogDate: z.string().min(1),
+  blogHeroImageUrl: z.string(),
+  blogBody: z.string().min(1),
 });
 
 // --- Product Editor Schema ---
@@ -260,6 +265,11 @@ export default function Editor() {
       emailButtonLabel: "View your order",
       emailFooter: "",
       emailAccentColor: "#E2553B",
+      blogTitle: "Progress Update",
+      blogSubtitle: "A look inside the latest adventure from the AFEON Books team.",
+      blogDate: "September 15, 2026",
+      blogHeroImageUrl: "",
+      blogBody: "We are back at the writing table, building the next mystery one clue at a time.\n\nThe next book is taking shape with bigger questions, stranger discoveries, and a brand-new trail for our detectives to follow. We cannot wait to share more soon.",
     },
   });
 

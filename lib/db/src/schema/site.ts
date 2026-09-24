@@ -35,11 +35,11 @@ export const siteContentTable = pgTable("site_content", {
   emailFooter: text("email_footer").notNull().default("Questions about your order? Just reply to this email."),
   emailAccentColor: text("email_accent_color").notNull().default("#E2553B"),
   checkoutFields: text("checkout_fields").notNull().default("[]"),
-  blogTitle: text("blog_title").notNull().default("Book 6 Progress"),
-  blogSubtitle: text("blog_subtitle").notNull().default("A look inside the next adventure from the AFEON Books team."),
+  blogTitle: text("blog_title").notNull().default("Progress Update"),
+  blogSubtitle: text("blog_subtitle").notNull().default("A look inside the latest adventure from the AFEON Books team."),
   blogDate: text("blog_date").notNull().default("September 15, 2026"),
   blogHeroImageUrl: text("blog_hero_image_url").notNull().default(""),
-  blogBody: text("blog_body").notNull().default("We are back at the writing table, building the next mystery one clue at a time.\n\nBook 6 is taking shape with bigger questions, stranger discoveries, and a brand-new trail for our detectives to follow. We cannot wait to share more soon."),
+  blogBody: text("blog_body").notNull().default("We are back at the writing table, building the next mystery one clue at a time.\n\nThe next book is taking shape with bigger questions, stranger discoveries, and a brand-new trail for our detectives to follow. We cannot wait to share more soon."),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
