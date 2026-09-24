@@ -283,8 +283,13 @@ components:
         emailButtonLabel: { type: string }
         emailFooter: { type: string }
         emailAccentColor: { type: string }
+        blogTitle: { type: string }
+        blogSubtitle: { type: string }
+        blogDate: { type: string }
+        blogHeroImageUrl: { type: string }
+        blogBody: { type: string }
         updatedAt: { type: string }
-      required: [id, school, checkoutFields, brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, ordersEnabled, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor, updatedAt]
+      required: [id, school, checkoutFields, brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, ordersEnabled, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor, blogTitle, blogSubtitle, blogDate, blogHeroImageUrl, blogBody, updatedAt]
     UpdateSiteContent:
       type: object
       properties:
@@ -326,7 +331,12 @@ components:
         emailButtonLabel: { type: string }
         emailFooter: { type: string }
         emailAccentColor: { type: string }
-      required: [brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, ordersEnabled, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor]
+        blogTitle: { type: string }
+        blogSubtitle: { type: string }
+        blogDate: { type: string }
+        blogHeroImageUrl: { type: string }
+        blogBody: { type: string }
+      required: [brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, ordersEnabled, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor, blogTitle, blogSubtitle, blogDate, blogHeroImageUrl, blogBody]
     Product:
       type: object
       properties:

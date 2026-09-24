@@ -17,7 +17,7 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-const apiBaseUrl = import.meta.env.VITE_API_URL ?? "";
+const apiBaseUrl = import.meta.env.DEV ? (import.meta.env.VITE_API_URL ?? "") : "";
 
 async function authRequest<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path}`, {

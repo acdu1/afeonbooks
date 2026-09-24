@@ -28,6 +28,11 @@ const DEFAULT_CONTENT = {
   defaultShippingPostalCode: "",
   defaultShippingCountry: "",
   checkoutFields: "[]",
+  blogTitle: "Book 6 Progress",
+  blogSubtitle: "A look inside the next adventure from the AFEON Books team.",
+  blogDate: "September 15, 2026",
+  blogHeroImageUrl: "",
+  blogBody: "We are back at the writing table, building the next mystery one clue at a time.\n\nBook 6 is taking shape with bigger questions, stranger discoveries, and a brand-new trail for our detectives to follow. We cannot wait to share more soon.",
 };
 
 const SCHOOL_NAMES = { alvarado: "Alvarado Intermediate", shelyn: "Shelyn Elementary" } as const;
@@ -69,6 +74,11 @@ export function serializeContent(row: SiteContentRow) {
     emailFooter: row.emailFooter,
     emailAccentColor: row.emailAccentColor,
     checkoutFields: JSON.parse(row.checkoutFields || "[]"),
+    blogTitle: row.blogTitle,
+    blogSubtitle: row.blogSubtitle,
+    blogDate: row.blogDate,
+    blogHeroImageUrl: row.blogHeroImageUrl,
+    blogBody: row.blogBody,
     updatedAt: row.updatedAt.toISOString(),
   };
 }

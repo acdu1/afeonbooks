@@ -83,6 +83,11 @@ const contentSchema = z.object({
   emailButtonLabel: z.string().min(1, "Button label is required"),
   emailFooter: z.string(),
   emailAccentColor: z.string().min(1),
+  blogTitle: z.string().min(1),
+  blogSubtitle: z.string().min(1),
+  blogDate: z.string().min(1),
+  blogHeroImageUrl: z.string(),
+  blogBody: z.string().min(1),
 });
 
 const productSchema = z.object({
@@ -337,6 +342,11 @@ export default function Editor() {
       emailButtonLabel: "View your order",
       emailFooter: "",
       emailAccentColor: "#E2553B",
+      blogTitle: "",
+      blogSubtitle: "",
+      blogDate: "",
+      blogHeroImageUrl: "",
+      blogBody: "",
       checkoutFields: [],
     },
   });
@@ -691,6 +701,30 @@ export default function Editor() {
                       <FormItem><FormLabel>Illustrator</FormLabel><FormControl><Input {...field} className="rounded-none" /></FormControl></FormItem>
                     )} />
                   </div>
+                </div>
+
+                <div className="bg-white p-8 border border-black/5 shadow-sm space-y-6">
+                  <div>
+                    <h2 className="text-xl font-bold border-b border-black/10 pb-4">Book 6 Progress</h2>
+                    <p className="text-sm text-black/50 mt-3">This content appears at /book-6-progress. Separate paragraphs with a blank line.</p>
+                  </div>
+                  <FormField control={contentForm.control} name="blogTitle" render={({ field }) => (
+                    <FormItem><FormLabel>Page Title</FormLabel><FormControl><Input {...field} className="rounded-none" /></FormControl></FormItem>
+                  )} />
+                  <FormField control={contentForm.control} name="blogSubtitle" render={({ field }) => (
+                    <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Input {...field} className="rounded-none" /></FormControl></FormItem>
+                  )} />
+                  <div className="grid grid-cols-2 gap-6">
+                    <FormField control={contentForm.control} name="blogDate" render={({ field }) => (
+                      <FormItem><FormLabel>Published Date</FormLabel><FormControl><Input {...field} className="rounded-none" /></FormControl></FormItem>
+                    )} />
+                    <FormField control={contentForm.control} name="blogHeroImageUrl" render={({ field }) => (
+                      <FormItem><FormLabel>Hero Image URL</FormLabel><FormControl><Input {...field} className="rounded-none" placeholder="Optional" /></FormControl></FormItem>
+                    )} />
+                  </div>
+                  <FormField control={contentForm.control} name="blogBody" render={({ field }) => (
+                    <FormItem><FormLabel>Article Body</FormLabel><FormControl><Textarea {...field} className="min-h-[280px] rounded-none" /></FormControl></FormItem>
+                  )} />
                 </div>
 
                 <div className="bg-white p-8 border border-black/5 shadow-sm space-y-5">
