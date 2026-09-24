@@ -10,15 +10,27 @@ import { useSchool, SCHOOL_OPTIONS } from "@/lib/school";
 
 export default function Home() {
   const { school } = useSchool();
-  const { data: content, isLoading: contentLoading } = useGetContent({ school: school ?? "alvarado" });
-  const { data: products, isLoading: productsLoading } = useListProducts({ school: school ?? "alvarado" });
+  const { data: content, isLoading: contentLoading, isError: contentError } = useGetContent({ school: school ?? "alvarado" });
+  const { data: products, isLoading: productsLoading, isError: productsError } = useListProducts({ school: school ?? "alvarado" });
   const { addItem } = useCart();
 
-  if (contentLoading || productsLoading || !content) {
+  if (contentLoading || productsLoading) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-[#FAF7F2]">
         <div className="animate-pulse flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (contentError || productsError || !content) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#FAF7F2] px-6">
+        <div className="max-w-lg text-center">
+          <p className="text-sm font-bold uppercase tracking-[0.24em] text-black/50">Store status</p>
+          <h1 className="mt-4 text-3xl font-bold tracking-tight text-black">We couldn’t load the storefront.</h1>
+          <p className="mt-4 text-black/60">The site is temporarily unable to reach the API. Please refresh the page or try again in a few minutes.</p>
         </div>
       </div>
     );

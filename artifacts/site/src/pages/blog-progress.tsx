@@ -5,10 +5,22 @@ import { useSchool } from "@/lib/school";
 
 export default function BlogProgress() {
   const { school } = useSchool();
-  const { data: content, isLoading } = useGetContent({ school: school ?? "alvarado" });
+  const { data: content, isLoading, isError } = useGetContent({ school: school ?? "alvarado" });
 
-  if (isLoading || !content) {
+  if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-[#F4EFE7]">Loading...</div>;
+  }
+
+  if (isError || !content) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F4EFE7] px-6 text-center">
+        <div className="max-w-lg">
+          <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#657267]">Blog status</p>
+          <h1 className="mt-4 text-3xl font-bold text-[#1E2621]">We couldn’t load this page.</h1>
+          <p className="mt-3 text-[#526056]">Please refresh or try again later.</p>
+        </div>
+      </div>
+    );
   }
 
   const paragraphs = content.blogBody.split(/\n\s*\n/).filter(Boolean);

@@ -10,8 +10,8 @@ import { useSchool } from "@/lib/school";
 
 export default function Shop() {
   const { school } = useSchool();
-  const { data: content } = useGetContent({ school: school ?? "alvarado" });
-  const { data: products, isLoading } = useListProducts({ school: school ?? "alvarado" });
+  const { data: content, isError: contentError } = useGetContent({ school: school ?? "alvarado" });
+  const { data: products, isLoading, isError: productsError } = useListProducts({ school: school ?? "alvarado" });
   const { addItem } = useCart();
 
   if (isLoading) {
@@ -19,6 +19,18 @@ export default function Shop() {
       <div className="min-h-screen w-full flex items-center justify-center bg-[#FAF7F2]">
         <div className="animate-pulse flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full border-4 border-black border-t-transparent animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (contentError || productsError || !content) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#FAF7F2] px-6">
+        <div className="max-w-lg text-center">
+          <p className="text-sm font-bold uppercase tracking-[0.24em] text-black/50">Shop status</p>
+          <h1 className="mt-4 text-3xl font-bold tracking-tight text-black">We couldn’t load the products.</h1>
+          <p className="mt-4 text-black/60">Please refresh the page or try again shortly.</p>
         </div>
       </div>
     );
