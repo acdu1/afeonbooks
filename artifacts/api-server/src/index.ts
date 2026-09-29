@@ -83,9 +83,24 @@ async function ensureAuthTables() {
   logger.info("Verified auth tables");
 }
 
+async function ensureAuthenticatorTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS authenticator_accounts (
+      id serial PRIMARY KEY,
+      user_id integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name text NOT NULL,
+      encrypted_secret text NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS authenticator_accounts_user_id_idx ON authenticator_accounts(user_id);
+  `);
+  logger.info("Verified authenticator accounts table");
+}
+
 await ensureOrderColumns();
 await ensureContentColumns();
 await ensureAuthTables();
+await ensureAuthenticatorTable();
 
 app.listen(port, (err) => {
   if (err) {
