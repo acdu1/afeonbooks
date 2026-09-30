@@ -36,12 +36,4 @@ export const authTokensTable = pgTable("auth_tokens", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const authenticatorAccountsTable = pgTable("authenticator_accounts", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  encryptedSecret: text("encrypted_secret").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
-
 export type UserRow = typeof usersTable.$inferSelect;
