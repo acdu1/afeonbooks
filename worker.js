@@ -187,15 +187,9 @@ export default {
     if (path === "/directory" || path === "/directory/" || path.startsWith("/directory/file/") || path === "/directory-manifest.json") return directoryResponseFor(request, env);
 
     if (url.hostname === "authn.afeonbooks.com") {
-      if (path.startsWith("/api/")) {
-        const apiUrl = new URL(`https://api.afeonbooks.com${path}${url.search}`);
-        return fetch(new Request(apiUrl, request));
-      }
-
-      const assetResponse = await env.ASSETS.fetch(request);
-      if (assetResponse.status !== 404) return assetResponse;
-
-      return env.ASSETS.fetch(new Request(new URL("/authn.html", request.url), request));
+      const destination = new URL("https://afeonbooks.com/account");
+      destination.search = url.search;
+      return Response.redirect(destination.toString(), 302);
     }
 
     if (url.hostname === "click.afeonbooks.com") {
