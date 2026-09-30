@@ -238,7 +238,7 @@ export default function Checkout() {
               <p className="mt-1 text-sm text-black/55">Create an account or sign in to track your Pages and keep your orders in one place.</p>
             </div>
             <Button asChild variant="outline" className="w-fit shrink-0 rounded-none border-black/25 text-xs font-bold uppercase tracking-widest">
-              <a href="https://authn.afeonbooks.com">Sign in or create account</Link>
+              <a href="https://authn.afeonbooks.com">Sign in or create account</a>
             </Button>
           </div>
         )}
