@@ -82,7 +82,7 @@ export default function RedeemPages() {
             <div className="rounded-none border border-black/10 bg-white p-8 text-center shadow-sm">
               <p className="text-lg font-medium text-black/70">Log in to redeem your Pages on a product.</p>
               <Button asChild className="mt-6 rounded-none bg-black px-8 text-white hover:bg-[var(--theme-accent)]">
-                <Link href="/account">Sign in</Link>
+                <a href="https://authn.afeonbooks.com">Sign in</a>
               </Button>
             </div>
           ) : (
