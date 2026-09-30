@@ -199,7 +199,7 @@ export default function Checkout() {
           <h1 className="text-3xl font-bold mb-4">Orders are currently paused</h1>
           <p className="text-black/60 mb-8 max-w-sm">We're not accepting new orders right now. Please check back soon!</p>
           <Button asChild className="rounded-full bg-black text-white px-8">
-            <Link href="/shop">Back to Shop</Link>
+            <Link href="/shop">Back to Shop</a>
           </Button>
         </main>
       </div>
@@ -238,7 +238,7 @@ export default function Checkout() {
               <p className="mt-1 text-sm text-black/55">Create an account or sign in to track your Pages and keep your orders in one place.</p>
             </div>
             <Button asChild variant="outline" className="w-fit shrink-0 rounded-none border-black/25 text-xs font-bold uppercase tracking-widest">
-              <Link href="/account">Sign in or create account</Link>
+              <a href="https://authn.afeonbooks.com">Sign in or create account</Link>
             </Button>
           </div>
         )}
