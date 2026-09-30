@@ -187,12 +187,17 @@ export default {
     if (path === "/directory" || path === "/directory/" || path.startsWith("/directory/file/") || path === "/directory-manifest.json") return directoryResponseFor(request, env);
 
     if (url.hostname === "authn.afeonbooks.com") {
+      if (path.startsWith("/api/")) {
+        const apiUrl = new URL(`https://api.afeonbooks.com${path}${url.search}`);
+        return fetch(new Request(apiUrl, request));
+      }
+      if (path.split("/").pop()?.includes(".")) return env.ASSETS.fetch(request);
       const accountUrl = new URL(request.url);
       accountUrl.pathname = "/account";
       return env.ASSETS.fetch(new Request(accountUrl, request));
     }
 
-    if (url.hostname === "afeonbooks.com" && path === "/account") {
+    if (url.hostname === "afeonbooks.com" && (path === "/account" || path === "/account/")) {
       const destination = new URL("https://authn.afeonbooks.com");
       destination.search = url.search;
       return Response.redirect(destination.toString(), 302);
