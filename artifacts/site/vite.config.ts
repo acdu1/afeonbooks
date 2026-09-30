@@ -48,7 +48,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         storefront: path.resolve(import.meta.dirname, "index.html"),
-        authenticator: path.resolve(import.meta.dirname, "authn.html"),
       },
     },
   },
