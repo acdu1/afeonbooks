@@ -46,7 +46,7 @@ function Router() {
       {/* Keep existing singular links working while plural is canonical. */}
       <Route path="/order/:id" component={Order} />
       <Route path="/account" component={Account} />
-      <Route path="/book-6-progress" component={BlogProgress} />
+      <Route path="/blog" component={BlogProgress} />
       <Route path="/redeem-pages" component={RedeemPages} />
       <Route component={NotFound} />
     </Switch>
