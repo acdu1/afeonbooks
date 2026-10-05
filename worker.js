@@ -200,53 +200,22 @@ export default {
 
     if (path === "/directory" || path === "/directory/" || path.startsWith("/directory/file/") || path === "/directory-manifest.json") return directoryResponseFor(request, env);
 
-    if (url.hostname === "authn.afeonbooks.com") {
-      if (path === "/" || path === "") {
-  const accountUrl = new URL(request.url);
-  accountUrl.pathname = "/account";
-  return env.ASSETS.fetch(new Request(accountUrl, request));
-}
-      }
-      if (path.startsWith("/api/")) {
-        const apiUrl = new URL(`https://api.afeonbooks.com${path}${url.search}`);
-        return fetch(new Request(apiUrl, request));
-      }
-      if (path.split("/").pop()?.includes(".")) return env.ASSETS.fetch(request);
-      if (path === "/account" || path === "/account/") {
-        const accountUrl = new URL(request.url);
-        accountUrl.pathname = "/account";
-        return env.ASSETS.fetch(new Request(accountUrl, request));
-      }
-      return env.ASSETS.fetch(request);
-    }
-    
-    }
+if (url.hostname === "authn.afeonbooks.com") {
+  if (path === "/" || path === "") {
+    const accountRequest = new Request(
+      new URL("/account", request.url),
+      request
+    );
 
-    if (url.hostname === "click.afeonbooks.com") {
-      const match =
-        path.match(/^\/cloudflare\/(?:order|orders)\/([^/]+)\/?$/) ||
-        path.match(/^\/(?:order|orders)\/([^/]+)\/?$/);
-      if (match) {
-        const destination = new URL(`https://afeonbooks.com/order/${encodeURIComponent(match[1])}`);
-        destination.searchParams.set("utm-source", "mail.cloudflare");
-        return Response.redirect(destination.toString(), 302);
-      }
-      return new Response("Not Found", { status: 404 });
-    }
-
-    const isAdminPath = path === "/admin" || path.startsWith("/admin/");
-    const isApiPath = path.startsWith("/api/");
-    if (!isAdminPath && !isApiPath && path !== "/totec-maintenance.svg") {
-      const maintenanceStatus = await fetch(
-  "https://status.afeonbooks.com/api/v2/status.json"
-);
-
-if (maintenanceStatus.ok) {
-  const status = await maintenanceStatus.json();
-
-  if (status.status.indicator !== "none") {
-    return maintenanceResponse(request, env);
+    return env.ASSETS.fetch(accountRequest);
   }
+
+  if (path.startsWith("/api/")) {
+    const apiUrl = new URL(`https://api.afeonbooks.com${path}${url.search}`);
+    return fetch(new Request(apiUrl, request));
+  }
+
+  return env.ASSETS.fetch(request);
 }
 
     if (path.startsWith("/api/")) {
