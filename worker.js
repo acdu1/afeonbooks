@@ -240,7 +240,7 @@ export default {
       return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
     }
 
-    if (/^\/(?:sign-in|account-check)\/[a-f0-9]{32}$/.test(path)) {
+    if (path === "/account" || path === "/account/" || /^\/(?:sign-in|account-check)\/[a-f0-9]{32}$/.test(path)) {
       return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
     }
 
