@@ -3,20 +3,20 @@ import type { SchoolParameter } from "@workspace/api-client-react";
 
 export const SCHOOL_OPTIONS = {
   alvarado: { label: "Alvarado Intermediate", short: "Alvarado" },
-  shelyn: { label: "Shelyn Elementary", short: "Shelyn" },
 } as const;
 
 type School = SchoolParameter;
-type SchoolContextValue = { school: School | null; chooseSchool: (school: School) => void; changeSchool: () => void };
+type SchoolContextValue = { school: School; chooseSchool: (school: School) => void; changeSchool: () => void };
+const DEFAULT_SCHOOL: School = "alvarado";
 const SchoolContext = createContext<SchoolContextValue | undefined>(undefined);
 
 export function SchoolProvider({ children }: { children: React.ReactNode }) {
-  const [school, setSchool] = useState<School | null>(() => {
-    const stored = localStorage.getItem("afeon_school");
-    return stored === "shelyn" || stored === "alvarado" ? stored : null;
+  const [school, setSchool] = useState<School>(() => {
+    localStorage.setItem("afeon_school", DEFAULT_SCHOOL);
+    return DEFAULT_SCHOOL;
   });
-  const chooseSchool = (next: School) => { localStorage.setItem("afeon_school", next); setSchool(next); };
-  const changeSchool = () => { localStorage.removeItem("afeon_school"); setSchool(null); };
+  const chooseSchool = () => { localStorage.setItem("afeon_school", DEFAULT_SCHOOL); setSchool(DEFAULT_SCHOOL); };
+  const changeSchool = () => { localStorage.setItem("afeon_school", DEFAULT_SCHOOL); setSchool(DEFAULT_SCHOOL); };
   return <SchoolContext.Provider value={{ school, chooseSchool, changeSchool }}>{children}</SchoolContext.Provider>;
 }
 
