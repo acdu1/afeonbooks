@@ -58,9 +58,15 @@ export function SiteHeader({ simple = false }: SiteHeaderProps) {
               <Link href="/blog" className="text-[15px] font-medium tracking-wide hover:opacity-70 transition-opacity">
                 Blog
               </Link>
-              <a href="https://authn.afeonbooks.com" className="text-[15px] font-medium tracking-wide hover:opacity-70 transition-opacity">
-                {user ? "Account" : "Sign in"}
-              </a>
+              {user ? (
+  <Link href="/account" className="text-[15px] font-medium tracking-wide hover:opacity-70 transition-opacity">
+    Account
+  </Link>
+) : (
+  <a href="https://authn.afeonbooks.com" className="text-[15px] font-medium tracking-wide hover:opacity-70 transition-opacity">
+    Sign in
+  </a>
+)}
               <button
                 type="button"
                 onClick={openCart}
