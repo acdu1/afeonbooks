@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { ShoppingBag } from "lucide-react";
 import { useCart } from "@/lib/cart";
-import { useAuth } from "@/lib/auth";
+import { createAuthEntryUrl, useAuth } from "@/lib/auth";
 import xlogo from "@assets/logo_web.png";
 
 interface SiteHeaderProps {
@@ -55,9 +55,9 @@ export function SiteHeader({ simple = false }: SiteHeaderProps) {
               <Link href="/shop" className="text-[15px] font-medium tracking-wide hover:opacity-70 transition-opacity">
                 Shop
               </Link>
-              <Link href="/account" className="text-[15px] font-medium tracking-wide hover:opacity-70 transition-opacity">
+              <a href={createAuthEntryUrl(Boolean(user))} className="text-[15px] font-medium tracking-wide hover:opacity-70 transition-opacity">
                 {user ? "Account" : "Sign in"}
-              </Link>
+              </a>
               <button
                 type="button"
                 onClick={openCart}
@@ -73,9 +73,9 @@ export function SiteHeader({ simple = false }: SiteHeaderProps) {
               </button>
             </>
           ) : (
-            <Link href="/" className="text-[15px] font-medium tracking-wide hover:opacity-70 transition-opacity">
+            <a href="https://afeonbooks.com/" className="text-[15px] font-medium tracking-wide hover:opacity-70 transition-opacity">
               View Site
-            </Link>
+            </a>
           )}
         </nav>
       </div>

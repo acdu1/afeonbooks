@@ -7,7 +7,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart";
 import { useSchool } from "@/lib/school";
-import { authApiRequest, useAuth } from "@/lib/auth";
+import { authApiRequest, createAuthEntryUrl, useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 
 export default function RedeemPages() {
@@ -34,7 +34,7 @@ export default function RedeemPages() {
 
   const handleRedeem = (product: { id: number; name: string; priceCents: number; currency: string }) => {
     if (!user) {
-      setLocation("/account");
+      window.location.assign(createAuthEntryUrl(false));
       return;
     }
 
@@ -82,7 +82,7 @@ export default function RedeemPages() {
             <div className="rounded-none border border-black/10 bg-white p-8 text-center shadow-sm">
               <p className="text-lg font-medium text-black/70">Log in to redeem your Pages on a product.</p>
               <Button asChild className="mt-6 rounded-none bg-black px-8 text-white hover:bg-[var(--theme-accent)]">
-                <Link href="/account">Sign in</Link>
+                <a href={createAuthEntryUrl(false)}>Sign in</a>
               </Button>
             </div>
           ) : (

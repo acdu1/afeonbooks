@@ -32,6 +32,7 @@ if (apiBaseUrl) {
 
 function Router() {
   const HomeRoute = () => {
+    if (window.location.hostname === "authn.afeonbooks.com") return <Account />;
     const params = new URLSearchParams(window.location.search);
     return params.has("reset_token") || params.has("verify_token") ? <Account /> : <Home />;
   };
@@ -45,6 +46,8 @@ function Router() {
       <Route path="/orders/:id" component={Order} />
       {/* Keep existing singular links working while plural is canonical. */}
       <Route path="/order/:id" component={Order} />
+      <Route path="/sign-in/:token" component={Account} />
+      <Route path="/account-check/:token" component={Account} />
       <Route path="/account" component={Account} />
       <Route path="/book-6-progress" component={BlogProgress} />
       <Route path="/redeem-pages" component={RedeemPages} />

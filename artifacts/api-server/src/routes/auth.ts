@@ -17,7 +17,7 @@ import {
 } from "../lib/auth";
 import { sendEmail } from "../lib/email";
 
-const SITE_URL = process.env.PUBLIC_SITE_URL || "https://afeonbooks.com";
+const AUTH_URL = (process.env.PUBLIC_AUTH_URL || "https://authn.afeonbooks.com").replace(/\/+$/, "");
 const AUTH_FROM = process.env.ZOHO_AUTH_FROM_ADDRESS || "noreply@afeonbooks.com";
 
 function authEmailHtml(title: string, intro: string, link: string, label: string): string {
@@ -62,7 +62,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     emailVerifiedAt: null,
   }).returning();
   const token = await createAuthToken(user.id, "verify_email", 1000 * 60 * 60 * 24);
-  const link = `${SITE_URL}/?verify_token=${encodeURIComponent(token)}`;
+  const link = `${AUTH_URL}/?verify_token=${encodeURIComponent(token)}`;
   try {
     await sendAuthEmail(user.email, "Verify your AFEON Books email", authEmailHtml("Verify your email", "Please verify your email address to activate your AFEON Books account.", link, "Verify email"));
   } catch (error) {
@@ -106,7 +106,7 @@ router.post("/auth/forgot-password", async (req, res): Promise<void> => {
   const [user] = email ? await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1) : [];
   if (user) {
     const token = await createAuthToken(user.id, "reset_password", 1000 * 60 * 30);
-    const link = `${SITE_URL}/?reset_token=${encodeURIComponent(token)}`;
+    const link = `${AUTH_URL}/?reset_token=${encodeURIComponent(token)}`;
     try {
       await sendAuthEmail(user.email, "Reset your AFEON Books password", authEmailHtml("Reset your password", "Use the link below to choose a new password. This link expires in 30 minutes.", link, "Reset password"));
     } catch (error) {
@@ -142,7 +142,7 @@ router.post("/auth/resend-verification", async (req, res): Promise<void> => {
   const [user] = email ? await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1) : [];
   if (user && !user.emailVerifiedAt) {
     const token = await createAuthToken(user.id, "verify_email", 1000 * 60 * 60 * 24);
-    const link = `${SITE_URL}/?verify_token=${encodeURIComponent(token)}`;
+    const link = `${AUTH_URL}/?verify_token=${encodeURIComponent(token)}`;
     try {
       await sendAuthEmail(user.email, "Verify your AFEON Books email", authEmailHtml("Verify your email", "Please verify your email address to activate your AFEON Books account.", link, "Verify email"));
     } catch (error) {
@@ -215,7 +215,7 @@ router.post("/auth/admin/create-user", requireUser, requireRole("admin"), async 
     emailVerifiedAt: new Date(),
   }).returning();
   const token = await createAuthToken(user.id, "reset_password", 1000 * 60 * 60 * 24 * 7);
-  const link = `${SITE_URL}/?reset_token=${encodeURIComponent(token)}`;
+  const link = `${AUTH_URL}/?reset_token=${encodeURIComponent(token)}`;
   try {
     await sendAuthEmail(user.email, "An AFEON Books admin created your account", authEmailHtml("Your AFEON Books account is ready", "An AFEON Books admin has added an account for you. Set your password using the link below to access your order history.", link, "Set your password"));
   } catch (error) {

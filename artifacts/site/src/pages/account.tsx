@@ -92,7 +92,7 @@ function AccountTokenHandler() {
   useEffect(() => {
     if (!verifyToken) return;
     authApiRequest<{ user: User }>("/api/auth/verify-email", { method: "POST", body: JSON.stringify({ token: verifyToken }) })
-      .then(() => { window.location.replace("/account"); })
+      .then(() => { window.location.replace(window.location.hostname === "authn.afeonbooks.com" ? "https://afeonbooks.com/account" : "/account"); })
       .catch((err) => setError(err instanceof Error ? err.message : "Unable to verify email"));
   }, [verifyToken]);
 
@@ -108,7 +108,7 @@ function AccountTokenHandler() {
   };
 
   if (resetToken) {
-    return <form onSubmit={async (event) => { event.preventDefault(); setError(""); try { await authApiRequest<{ user: User }>("/api/auth/reset-password", { method: "POST", body: JSON.stringify({ token: resetToken, password: resetPassword }) }); window.location.replace("/"); } catch (err) { setError(err instanceof Error ? err.message : "Unable to reset password"); } }} className="mx-auto mt-8 w-full max-w-md space-y-4"><h2 className="text-2xl font-bold">Choose a new password</h2><input type="password" minLength={8} required value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} placeholder="New password" className="w-full border border-black/15 bg-white px-4 py-3" />{error && <p className="text-sm text-red-700">{error}</p>}<Button type="submit" className="w-full rounded-none bg-black py-6 text-xs font-bold uppercase tracking-widest text-white">Update password</Button></form>;
+    return <form onSubmit={async (event) => { event.preventDefault(); setError(""); try { await authApiRequest<{ user: User }>("/api/auth/reset-password", { method: "POST", body: JSON.stringify({ token: resetToken, password: resetPassword }) }); window.location.replace(window.location.hostname === "authn.afeonbooks.com" ? "https://afeonbooks.com/account" : "/"); } catch (err) { setError(err instanceof Error ? err.message : "Unable to reset password"); } }} className="mx-auto mt-8 w-full max-w-md space-y-4"><h2 className="text-2xl font-bold">Choose a new password</h2><input type="password" minLength={8} required value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} placeholder="New password" className="w-full border border-black/15 bg-white px-4 py-3" />{error && <p className="text-sm text-red-700">{error}</p>}<Button type="submit" className="w-full rounded-none bg-black py-6 text-xs font-bold uppercase tracking-widest text-white">Update password</Button></form>;
   }
   if (loading || (!verifyToken && !message && !error) || user) return null;
   return <div className="mx-auto mt-8 max-w-md text-sm">{message && <p className="text-emerald-700">{message}</p>}{error && <><p className="text-red-700">{error}</p><form onSubmit={resendVerification} className="mt-5 space-y-3"><input type="email" required value={verificationEmail} onChange={(event) => setVerificationEmail(event.target.value)} placeholder="Email address" className="w-full border border-black/15 bg-white px-4 py-3" /><Button type="submit" variant="outline" className="w-full rounded-none text-xs font-bold uppercase tracking-widest">Resend verification email</Button>{resendMessage && <p className="text-black/60">{resendMessage}</p>}</form></>}</div>;
@@ -252,5 +252,13 @@ export default function Account() {
   const { user, loading, signOut } = useAuth();
   const params = new URLSearchParams(window.location.search);
   const hasTokenFlow = params.has("reset_token") || params.has("verify_token");
+  const isAuthEntry = window.location.hostname === "authn.afeonbooks.com" && /^\/(?:sign-in|account-check)\/[a-f0-9]{32}$/.test(window.location.pathname);
+
+  useEffect(() => {
+    if (isAuthEntry && !loading && user) window.location.replace("https://afeonbooks.com/account");
+  }, [isAuthEntry, loading, user]);
+
+  if (isAuthEntry && (loading || user)) return <div className="min-h-screen bg-[#FAF7F2] px-6 py-16 text-center text-black/50">Checking your account...</div>;
+
   return <div className="min-h-screen bg-[#FAF7F2]"><SiteHeader simple /><main className="mx-auto min-h-[70vh] max-w-[900px] px-6 py-16"><div className="mb-12"><p className="text-xs font-bold uppercase tracking-[0.25em] text-black/40">AFEON Books</p><h1 className="mt-3 text-5xl font-bold tracking-tight">Your account</h1></div>{hasTokenFlow ? <AccountTokenHandler /> : loading ? <p className="text-black/50">Loading...</p> : user ? <><div className="flex flex-col justify-between gap-6 border-y border-black/10 py-8 sm:flex-row sm:items-center"><div><p className="text-2xl font-bold">{user.name}</p><p className="mt-1 text-black/55">{user.email}</p><p className="mt-3 text-xs font-bold uppercase tracking-widest text-black/45">{user.role}</p></div><Button onClick={signOut} variant="outline" className="w-fit rounded-none border-black/20"><LogOut className="mr-2 h-4 w-4" />Sign out</Button></div><LoyaltyPanel /><OrdersPanel /><RoleManager /></> : <><p className="mb-8 max-w-md text-black/60">Sign in to view your orders and manage your account. You can also check out as a guest.</p><AccountForm /></>}<Link href="/shop" className="mt-12 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest">Continue shopping <ArrowRight className="h-4 w-4" /></Link></main><SiteFooter /></div>;
 }

@@ -16,7 +16,7 @@ import { useCart } from "@/lib/cart";
 import { useUtm, utmPayload } from "@/lib/utm";
 import { toast } from "sonner";
 import { useSchool } from "@/lib/school";
-import { authApiRequest, useAuth } from "@/lib/auth";
+import { authApiRequest, createAuthEntryUrl, useAuth } from "@/lib/auth";
 
 const checkoutSchema = z
   .object({
@@ -238,7 +238,7 @@ export default function Checkout() {
               <p className="mt-1 text-sm text-black/55">Create an account or sign in to track your Pages and keep your orders in one place.</p>
             </div>
             <Button asChild variant="outline" className="w-fit shrink-0 rounded-none border-black/25 text-xs font-bold uppercase tracking-widest">
-              <Link href="/account">Sign in or create account</Link>
+              <a href={createAuthEntryUrl(false)}>Sign in or create account</a>
             </Button>
           </div>
         )}

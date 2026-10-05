@@ -240,6 +240,10 @@ export default {
       return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
     }
 
+    if (/^\/(?:sign-in|account-check)\/[a-f0-9]{32}$/.test(path)) {
+      return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
+    }
+
     const assetResponse = await env.ASSETS.fetch(request);
     if (assetResponse.status !== 404) return assetResponse;
     if (!path.split("/").pop()?.includes(".")) {
