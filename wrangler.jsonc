@@ -13,12 +13,12 @@
   },
   "routes": [
     {
-      "pattern": "afeonbooks.com/*",
-      "zone_name": "afeonbooks.com"
+      "pattern": "afeonbooks.com",
+      "custom_domain": true
     },
     {
-      "pattern": "authn.afeonbooks.com/*",
-      "zone_name": "afeonbooks.com"
+      "pattern": "authn.afeonbooks.com",
+      "custom_domain": true
     }
   ]
 }

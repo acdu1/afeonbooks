@@ -49,7 +49,7 @@ function Router() {
       <Route path="/sign-in/:token" component={Account} />
       <Route path="/account-check/:token" component={Account} />
       <Route path="/account" component={Account} />
-      <Route path="/book-6-progress" component={BlogProgress} />
+      <Route path="/blog" component={BlogProgress} />
       <Route path="/redeem-pages" component={RedeemPages} />
       <Route component={NotFound} />
     </Switch>

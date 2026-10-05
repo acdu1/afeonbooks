@@ -1,3 +1,17 @@
+async function isMaintenanceMode() {
+  try {
+    const response = await fetch(
+      "https://status.afeonbooks.com/api/v2/status.json"
+    );
+
+    const data = await response.json();
+
+    return data.status.indicator !== "none";
+  } catch {
+    return false;
+  }
+}
+
 function pdfEscape(value) {
   return String(value ?? "")
     .replace(/\\/g, "\\\\")
@@ -186,27 +200,18 @@ export default {
 
     if (path === "/directory" || path === "/directory/" || path.startsWith("/directory/file/") || path === "/directory-manifest.json") return directoryResponseFor(request, env);
 
-    if (url.hostname === "click.afeonbooks.com") {
-      const match =
-        path.match(/^\/cloudflare\/(?:order|orders)\/([^/]+)\/?$/) ||
-        path.match(/^\/(?:order|orders)\/([^/]+)\/?$/);
-      if (match) {
-        const destination = new URL(`https://afeonbooks.com/order/${encodeURIComponent(match[1])}`);
-        destination.searchParams.set("utm-source", "mail.cloudflare");
-        return Response.redirect(destination.toString(), 302);
-      }
-      return new Response("Not Found", { status: 404 });
-    }
+if (url.hostname === "authn.afeonbooks.com") {
+  if (path.startsWith("/api/")) {
+    const apiUrl = new URL(`https://api.afeonbooks.com${path}${url.search}`);
+    return fetch(new Request(apiUrl, request));
+  }
 
-    const isAdminPath = path === "/admin" || path.startsWith("/admin/");
-    const isApiPath = path.startsWith("/api/");
-    if (!isAdminPath && !isApiPath && path !== "/totec-maintenance.svg") {
-      const maintenanceStatus = await fetch("https://api.afeonbooks.com/api/maintenance/status", { headers: { Accept: "application/json" } });
-      if (maintenanceStatus.ok) {
-        const status = await maintenanceStatus.json();
-        if (status.enabled === true) return maintenanceResponse(request, env);
-      }
-    }
+  if (path === "/" || path === "/account" || path === "/account/" || /^\/(?:sign-in|account-check)\/[a-f0-9]{32}$/.test(path)) {
+    return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
+  }
+
+  return env.ASSETS.fetch(request);
+}
 
     if (path.startsWith("/api/")) {
       const apiUrl = new URL(`https://api.afeonbooks.com${path}${url.search}`);

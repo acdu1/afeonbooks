@@ -45,6 +45,11 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        storefront: path.resolve(import.meta.dirname, "index.html"),
+      },
+    },
   },
   server: {
     port,

@@ -4,7 +4,7 @@ import { ArrowRight, FileText, Gift, LogOut, ShieldCheck } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
-import { authApiRequest, useAuth, type User } from "@/lib/auth";
+import { authApiRequest, createAuthEntryUrl, useAuth, type User } from "@/lib/auth";
 import { formatPrice } from "@/lib/format";
 
 type MyOrder = {
@@ -252,13 +252,79 @@ export default function Account() {
   const { user, loading, signOut } = useAuth();
   const params = new URLSearchParams(window.location.search);
   const hasTokenFlow = params.has("reset_token") || params.has("verify_token");
-  const isAuthEntry = window.location.hostname === "authn.afeonbooks.com" && /^\/(?:sign-in|account-check)\/[a-f0-9]{32}$/.test(window.location.pathname);
+  const isAuthHost = window.location.hostname === "authn.afeonbooks.com";
+  const isAuthEntry = isAuthHost && /^\/(?:sign-in|account-check)\/[a-f0-9]{32}$/.test(window.location.pathname);
 
   useEffect(() => {
-    if (isAuthEntry && !loading && user) window.location.replace("https://afeonbooks.com/account");
-  }, [isAuthEntry, loading, user]);
+    if (isAuthHost && !loading && user && !hasTokenFlow) {
+      window.location.replace("https://afeonbooks.com/account");
+    } else if (!loading && !user && !hasTokenFlow && !isAuthEntry) {
+      window.location.replace(createAuthEntryUrl(false));
+    }
+  }, [isAuthEntry, isAuthHost, loading, user, hasTokenFlow]);
 
-  if (isAuthEntry && (loading || user)) return <div className="min-h-screen bg-[#FAF7F2] px-6 py-16 text-center text-black/50">Checking your account...</div>;
+  if ((isAuthHost && !hasTokenFlow && (loading || user)) || (!loading && !user && !hasTokenFlow && !isAuthEntry)) {
+    return null;
+  }
 
-  return <div className="min-h-screen bg-[#FAF7F2]"><SiteHeader simple /><main className="mx-auto min-h-[70vh] max-w-[900px] px-6 py-16"><div className="mb-12"><p className="text-xs font-bold uppercase tracking-[0.25em] text-black/40">AFEON Books</p><h1 className="mt-3 text-5xl font-bold tracking-tight">Your account</h1></div>{hasTokenFlow ? <AccountTokenHandler /> : loading ? <p className="text-black/50">Loading...</p> : user ? <><div className="flex flex-col justify-between gap-6 border-y border-black/10 py-8 sm:flex-row sm:items-center"><div><p className="text-2xl font-bold">{user.name}</p><p className="mt-1 text-black/55">{user.email}</p><p className="mt-3 text-xs font-bold uppercase tracking-widest text-black/45">{user.role}</p></div><Button onClick={signOut} variant="outline" className="w-fit rounded-none border-black/20"><LogOut className="mr-2 h-4 w-4" />Sign out</Button></div><LoyaltyPanel /><OrdersPanel /><RoleManager /></> : <><p className="mb-8 max-w-md text-black/60">Sign in to view your orders and manage your account. You can also check out as a guest.</p><AccountForm /></>}<Link href="/shop" className="mt-12 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest">Continue shopping <ArrowRight className="h-4 w-4" /></Link></main><SiteFooter /></div>;
+  return (
+    <div className="min-h-screen bg-[#FAF7F2]">
+      <SiteHeader simple />
+
+      <main className="mx-auto min-h-[70vh] max-w-[900px] px-6 py-16">
+        <div className="mb-12">
+          <p className="text-xs font-bold uppercase tracking-[0.25em] text-black/40">
+            AFEON Books
+          </p>
+
+          <h1 className="mt-3 text-5xl font-bold tracking-tight">
+            Your account
+          </h1>
+        </div>
+
+        {hasTokenFlow ? (
+          <AccountTokenHandler />
+        ) : loading ? (
+          <p className="text-black/50">Loading...</p>
+        ) : user ? (
+          <>
+            <div className="flex flex-col justify-between gap-6 border-y border-black/10 py-8 sm:flex-row sm:items-center">
+              <div>
+                <p className="text-2xl font-bold">{user.name}</p>
+                <p className="mt-1 text-black/55">{user.email}</p>
+                <p className="mt-3 text-xs font-bold uppercase tracking-widest text-black/45">
+                  {user.role}
+                </p>
+              </div>
+
+              <Button
+                onClick={signOut}
+                variant="outline"
+                className="w-fit rounded-none border-black/20"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign out
+              </Button>
+            </div>
+
+            <LoyaltyPanel />
+            <OrdersPanel />
+            <RoleManager />
+          </>
+        ) : (
+          <AccountForm />
+        )}
+
+        <Link
+          href="/shop"
+          className="mt-12 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest"
+        >
+          Continue shopping
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </main>
+
+      <SiteFooter />
+    </div>
+  );
 }
