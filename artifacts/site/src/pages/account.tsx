@@ -262,3 +262,65 @@ export default function Account() {
   if (!loading && !user && !hasTokenFlow) {
     return null;
   }
+
+  return (
+    <div className="min-h-screen bg-[#FAF7F2]">
+      <SiteHeader simple />
+
+      <main className="mx-auto min-h-[70vh] max-w-[900px] px-6 py-16">
+        <div className="mb-12">
+          <p className="text-xs font-bold uppercase tracking-[0.25em] text-black/40">
+            AFEON Books
+          </p>
+
+          <h1 className="mt-3 text-5xl font-bold tracking-tight">
+            Your account
+          </h1>
+        </div>
+
+        {hasTokenFlow ? (
+          <AccountTokenHandler />
+        ) : loading ? (
+          <p className="text-black/50">Loading...</p>
+        ) : user ? (
+          <>
+            <div className="flex flex-col justify-between gap-6 border-y border-black/10 py-8 sm:flex-row sm:items-center">
+              <div>
+                <p className="text-2xl font-bold">{user.name}</p>
+                <p className="mt-1 text-black/55">{user.email}</p>
+                <p className="mt-3 text-xs font-bold uppercase tracking-widest text-black/45">
+                  {user.role}
+                </p>
+              </div>
+
+              <Button
+                onClick={signOut}
+                variant="outline"
+                className="w-fit rounded-none border-black/20"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign out
+              </Button>
+            </div>
+
+            <LoyaltyPanel />
+            <OrdersPanel />
+            <RoleManager />
+          </>
+        ) : (
+          <AccountForm />
+        )}
+
+        <Link
+          href="/shop"
+          className="mt-12 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest"
+        >
+          Continue shopping
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </main>
+
+      <SiteFooter />
+    </div>
+  );
+}
