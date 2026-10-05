@@ -1,27 +1,28 @@
-import React, { createContext, useContext, useState } from "react";
-import type { SchoolParameter } from "@workspace/api-client-react";
+import React, { createContext, useContext } from "react";
 
-export const SCHOOL_OPTIONS = {
-  alvarado: { label: "Alvarado Intermediate", short: "Alvarado" },
-} as const;
+// AFEON Books is now a single storefront. This compatibility layer keeps
+// existing imports from breaking while removing all school selection logic.
+type School = null;
+type SchoolContextValue = {
+  school: School;
+  chooseSchool: () => void;
+  changeSchool: () => void;
+};
 
-type School = SchoolParameter;
-type SchoolContextValue = { school: School; chooseSchool: (school: School) => void; changeSchool: () => void };
-const DEFAULT_SCHOOL: School = "alvarado";
-const SchoolContext = createContext<SchoolContextValue | undefined>(undefined);
+const SchoolContext = createContext<SchoolContextValue>({
+  school: null,
+  chooseSchool: () => {},
+  changeSchool: () => {},
+});
 
 export function SchoolProvider({ children }: { children: React.ReactNode }) {
-  const [school, setSchool] = useState<School>(() => {
-    localStorage.setItem("afeon_school", DEFAULT_SCHOOL);
-    return DEFAULT_SCHOOL;
-  });
-  const chooseSchool = () => { localStorage.setItem("afeon_school", DEFAULT_SCHOOL); setSchool(DEFAULT_SCHOOL); };
-  const changeSchool = () => { localStorage.setItem("afeon_school", DEFAULT_SCHOOL); setSchool(DEFAULT_SCHOOL); };
-  return <SchoolContext.Provider value={{ school, chooseSchool, changeSchool }}>{children}</SchoolContext.Provider>;
+  return (
+    <SchoolContext.Provider value={{ school: null, chooseSchool: () => {}, changeSchool: () => {} }}>
+      {children}
+    </SchoolContext.Provider>
+  );
 }
 
 export function useSchool() {
-  const value = useContext(SchoolContext);
-  if (!value) throw new Error("useSchool must be used within SchoolProvider");
-  return value;
+  return useContext(SchoolContext);
 }
