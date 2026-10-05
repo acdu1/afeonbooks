@@ -202,9 +202,10 @@ export default {
 
     if (url.hostname === "authn.afeonbooks.com") {
       if (path === "/" || path === "") {
-        const destination = new URL("https://authn.afeonbooks.com/account");
-        destination.search = url.search;
-        return Response.redirect(destination.toString(), 302);
+  const accountUrl = new URL(request.url);
+  accountUrl.pathname = "/account";
+  return env.ASSETS.fetch(new Request(accountUrl, request));
+}
       }
       if (path.startsWith("/api/")) {
         const apiUrl = new URL(`https://api.afeonbooks.com${path}${url.search}`);
