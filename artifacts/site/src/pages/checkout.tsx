@@ -199,7 +199,7 @@ export default function Checkout() {
           <h1 className="text-3xl font-bold mb-4">Orders are currently paused</h1>
           <p className="text-black/60 mb-8 max-w-sm">We're not accepting new orders right now. Please check back soon!</p>
           <Button asChild className="rounded-full bg-black text-white px-8">
-            <Link href="/shop">Back to Shop</a>
+            <Link href="/shop">Back to Shop</Link>
           </Button>
         </main>
       </div>
