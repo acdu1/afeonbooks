@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, ExternalLink } from "lucide-react";
 
-const STATUS_PAGE_SUMMARY_URL = "https://afeonbooks.statuspage.io/api/v2/summary.json";
-const STATUS_PAGE_URL = "https://afeonbooks.statuspage.io/";
+const STATUS_PAGE_SUMMARY_URL = "https://status.afeonbooks.com/api/v2/summary.json";
+const STATUS_PAGE_URL = "https://status.afeonbooks.com/";
 const REFRESH_INTERVAL_MS = 60_000;
 
 interface StatusPageIncident {
