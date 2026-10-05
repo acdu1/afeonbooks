@@ -1,3 +1,17 @@
+async function isMaintenanceMode() {
+  try {
+    const response = await fetch(
+      "https://status.afeonbooks.com/api/v2/status.json"
+    );
+
+    const data = await response.json();
+
+    return data.status.indicator !== "none";
+  } catch {
+    return false;
+  }
+}
+
 function pdfEscape(value) {
   return String(value ?? "")
     .replace(/\\/g, "\\\\")
@@ -204,11 +218,7 @@ export default {
       }
       return env.ASSETS.fetch(request);
     }
-
-    if (url.hostname === "afeonbooks.com" && (path === "/account" || path === "/account/")) {
-      const destination = new URL("https://authn.afeonbooks.com");
-      destination.search = url.search;
-      return Response.redirect(destination.toString(), 302);
+    
     }
 
     if (url.hostname === "click.afeonbooks.com") {
@@ -226,12 +236,17 @@ export default {
     const isAdminPath = path === "/admin" || path.startsWith("/admin/");
     const isApiPath = path.startsWith("/api/");
     if (!isAdminPath && !isApiPath && path !== "/totec-maintenance.svg") {
-      const maintenanceStatus = await fetch("https://api.afeonbooks.com/api/maintenance/status", { headers: { Accept: "application/json" } });
-      if (maintenanceStatus.ok) {
-        const status = await maintenanceStatus.json();
-        if (status.enabled === true) return maintenanceResponse(request, env);
-      }
-    }
+      const maintenanceStatus = await fetch(
+  "https://status.afeonbooks.com/api/v2/status.json"
+);
+
+if (maintenanceStatus.ok) {
+  const status = await maintenanceStatus.json();
+
+  if (status.status.indicator !== "none") {
+    return maintenanceResponse(request, env);
+  }
+}
 
     if (path.startsWith("/api/")) {
       const apiUrl = new URL(`https://api.afeonbooks.com${path}${url.search}`);
