@@ -17,7 +17,7 @@ import {
 } from "../lib/auth";
 import { sendEmail } from "../lib/email";
 
-const AUTH_URL = (process.env.PUBLIC_AUTH_URL || "https://authn.afeonbooks.com").replace(/\/+$/, "");
+const AUTH_URL = (process.env.PUBLIC_AUTH_URL || "https://afeonbooks.com").replace(/\/+$/, "");
 const AUTH_FROM = process.env.ZOHO_AUTH_FROM_ADDRESS || "noreply@afeonbooks.com";
 
 function authEmailHtml(title: string, intro: string, link: string, label: string): string {

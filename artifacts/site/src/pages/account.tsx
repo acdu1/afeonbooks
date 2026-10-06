@@ -253,17 +253,17 @@ export default function Account() {
   const params = new URLSearchParams(window.location.search);
   const hasTokenFlow = params.has("reset_token") || params.has("verify_token");
   const isAuthHost = window.location.hostname === "authn.afeonbooks.com";
-  const isAuthEntry = isAuthHost && /^\/(?:sign-in|account-check)\/[a-f0-9]{32}$/.test(window.location.pathname);
+  const isAuthEntry = /^\/(?:sign-in|account-check)\/[a-f0-9]{32}$/.test(window.location.pathname);
 
   useEffect(() => {
-    if (isAuthHost && !loading && user && !hasTokenFlow) {
-      window.location.replace("https://afeonbooks.com/account");
+    if (isAuthHost) {
+      window.location.replace(`https://afeonbooks.com${window.location.pathname}${window.location.search}`);
     } else if (!loading && !user && !hasTokenFlow && !isAuthEntry) {
       window.location.replace(createAuthEntryUrl(false));
     }
   }, [isAuthEntry, isAuthHost, loading, user, hasTokenFlow]);
 
-  if ((isAuthHost && !hasTokenFlow && (loading || user)) || (!loading && !user && !hasTokenFlow && !isAuthEntry)) {
+  if (isAuthHost || (!loading && !user && !hasTokenFlow && !isAuthEntry)) {
     return null;
   }
 
