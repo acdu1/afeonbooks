@@ -253,7 +253,7 @@ export default function Account() {
   const params = new URLSearchParams(window.location.search);
   const hasTokenFlow = params.has("reset_token") || params.has("verify_token");
   const isAuthHost = window.location.hostname === "authn.afeonbooks.com";
-  const isAuthEntry = /^\/(?:sign-in|account-check)\/[a-f0-9]{32}$/.test(window.location.pathname);
+  const isAuthEntry = isAuthHost || /^\/(?:sign-in|account-check)\/[a-f0-9]{32}$/.test(window.location.pathname);
 
   useEffect(() => {
     if (!loading && !user && !hasTokenFlow && !isAuthEntry) {
