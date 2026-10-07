@@ -36,7 +36,14 @@ async function ensureContentColumns() {
       ADD COLUMN IF NOT EXISTS admin_pin text NOT NULL DEFAULT '2026',
       ADD COLUMN IF NOT EXISTS orders_enabled text NOT NULL DEFAULT 'true',
       ADD COLUMN IF NOT EXISTS maintenance_mode text NOT NULL DEFAULT 'false',
-      ADD COLUMN IF NOT EXISTS checkout_fields text NOT NULL DEFAULT '[]'
+      ADD COLUMN IF NOT EXISTS checkout_fields text NOT NULL DEFAULT '[]',
+      ADD COLUMN IF NOT EXISTS blog_title text NOT NULL DEFAULT 'Progress Update',
+      ADD COLUMN IF NOT EXISTS blog_subtitle text NOT NULL DEFAULT 'A look inside the latest adventure from the AFEON Books team.',
+      ADD COLUMN IF NOT EXISTS blog_date text NOT NULL DEFAULT 'September 15, 2026',
+      ADD COLUMN IF NOT EXISTS blog_hero_image_url text NOT NULL DEFAULT '',
+      ADD COLUMN IF NOT EXISTS blog_body text NOT NULL DEFAULT 'We are back at the writing table, building the next mystery one clue at a time.
+
+The next book is taking shape with bigger questions, stranger discoveries, and a brand-new trail for our detectives to follow. We cannot wait to share more soon.'
   `);
   logger.info("Verified site_content compatibility columns");
 }
