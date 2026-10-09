@@ -18,8 +18,6 @@ import RedeemPages from "@/pages/redeem-pages";
 const queryClient = new QueryClient();
 
 import React from 'react';
-import { SchoolProvider } from "@/lib/school";
-import { SchoolPicker } from "@/components/school-picker";
 import { StatusBanner } from "@/components/status-banner";
 import { AuthProvider } from "@/lib/auth";
 import { CookieBanner } from "@/components/cookie-banner";
@@ -114,8 +112,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <UtmProvider>
         <AuthProvider>
-        <SchoolProvider>
-          <CartProvider>
+        <CartProvider>
           <TooltipProvider>
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
               <StatusBanner />
@@ -124,9 +121,7 @@ function App() {
             <Toaster />
             <CookieBanner />
           </TooltipProvider>
-          </CartProvider>
-          <SchoolPicker />
-        </SchoolProvider>
+        </CartProvider>
         </AuthProvider>
       </UtmProvider>
     </QueryClientProvider>

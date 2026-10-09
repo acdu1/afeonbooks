@@ -1,6 +1,5 @@
 import { Link, useParams } from "wouter";
 import { useGetContent, useGetOrder } from "@workspace/api-client-react";
-import { useSchool } from "@/lib/school";
 import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -9,9 +8,8 @@ import { CheckCircle2, Printer } from "lucide-react";
 
 export default function Order() {
   const { id } = useParams();
-  const { school } = useSchool();
   const orderId = parseInt(id || "0", 10);
-  const { data: content } = useGetContent({ school: school ?? "alvarado" });
+  const { data: content } = useGetContent();
   const { data: order, isLoading, isError } = useGetOrder(orderId);
 
   if (isLoading) {

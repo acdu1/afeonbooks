@@ -1,11 +1,9 @@
 import { useGetContent } from "@workspace/api-client-react";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { useSchool } from "@/lib/school";
 
 export default function BlogProgress() {
-  const { school } = useSchool();
-  const { data: content, isLoading, isError } = useGetContent({ school: school ?? "alvarado" });
+  const { data: content, isLoading, isError } = useGetContent();
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-[#F4EFE7]">Loading...</div>;

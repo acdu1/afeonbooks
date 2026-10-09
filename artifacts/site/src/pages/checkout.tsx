@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,7 +15,6 @@ import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart";
 import { useUtm, utmPayload } from "@/lib/utm";
 import { toast } from "sonner";
-import { useSchool } from "@/lib/school";
 import { authApiRequest, createAuthEntryUrl, useAuth } from "@/lib/auth";
 
 const checkoutSchema = z
@@ -24,6 +23,7 @@ const checkoutSchema = z
     customerEmail: z.string().email("Invalid email address"),
     customerPhone: z.string().min(3, "Student ID is required"),
     useDefaultAddress: z.boolean(),
+    shippingAddressId: z.string().optional(),
     classroom: z.string().optional(),
     shippingAddress: z.string().optional(),
     city: z.string().optional(),
@@ -34,6 +34,13 @@ const checkoutSchema = z
   })
   .superRefine((values, ctx) => {
     if (values.useDefaultAddress) {
+      if (!values.shippingAddressId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["shippingAddressId"],
+          message: "Please choose a shipping address",
+        });
+      }
       if (!values.classroom || values.classroom.trim().length === 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -61,9 +68,8 @@ type CheckoutValues = z.infer<typeof checkoutSchema>;
 
 export default function Checkout() {
   const [, setLocation] = useLocation();
-  const { school } = useSchool();
   const { user, loading: authLoading } = useAuth();
-  const { data: content } = useGetContent({ school: school ?? "alvarado" });
+  const { data: content } = useGetContent();
   const { enrichedItems, itemCount, clear } = useCart();
   const { utm, clear: clearUtm } = useUtm();
   const createOrder = useCreateOrder();
@@ -72,18 +78,14 @@ export default function Checkout() {
   const [pointsToRedeem, setPointsToRedeem] = useState("");
   const [redeemedPoints, setRedeemedPoints] = useState(0);
 
-  const hasDefaultAddress = Boolean(
-    content?.defaultShippingAddress &&
-      content?.defaultShippingCity &&
-      content?.defaultShippingPostalCode &&
-      content?.defaultShippingCountry,
-  );
+  const shippingAddresses = content?.shippingAddresses ?? [];
+  const hasDefaultAddress = shippingAddresses.length > 0;
 
   const subtotalCents = enrichedItems.reduce((sum, item) => {
     const price = item.product?.priceCents || 0;
     return sum + price * item.quantity;
   }, 0);
-  const estimatedPoints = Math.floor(subtotalCents / 100) * 50;
+  const estimatedPoints = Math.floor(subtotalCents / 100) * (content?.loyaltyPagesPerDollar ?? 50);
   const loyaltyDiscountCents = (redeemedPoints / 1000) * 1000;
 
   useEffect(() => {
@@ -117,7 +119,8 @@ export default function Checkout() {
       customerName: "",
       customerEmail: "",
       customerPhone: "",
-      useDefaultAddress: hasDefaultAddress,
+      useDefaultAddress: false,
+      shippingAddressId: "",
       classroom: "",
       shippingAddress: "",
       city: "",
@@ -127,6 +130,16 @@ export default function Checkout() {
       customFields: {},
     },
   });
+
+  const addressSetup = useRef(false);
+  useEffect(() => {
+    if (!content || addressSetup.current) return;
+    addressSetup.current = true;
+    if (content.shippingAddresses.length > 0) {
+      form.setValue("shippingAddressId", content.shippingAddresses[0]!.id);
+      form.setValue("useDefaultAddress", true);
+    }
+  }, [content, form]);
 
   const useDefaultAddress = form.watch("useDefaultAddress");
 
@@ -150,11 +163,11 @@ export default function Checkout() {
     const utmFields = utmPayload(utm);
     const payload = values.useDefaultAddress
       ? {
-           school: school ?? "alvarado",
            customerName: values.customerName,
           customerEmail: values.customerEmail,
           customerPhone: values.customerPhone,
           useDefaultAddress: true,
+          shippingAddressId: values.shippingAddressId,
           classroom: values.classroom?.trim() ?? "",
           notes: values.notes,
            customFields: values.customFields,
@@ -162,7 +175,6 @@ export default function Checkout() {
           ...utmFields,
         }
       : {
-           school: school ?? "alvarado",
            customerName: values.customerName,
           customerEmail: values.customerEmail,
           customerPhone: values.customerPhone,
@@ -221,7 +233,7 @@ export default function Checkout() {
     );
   }
 
-  const defaultLabel = content?.defaultShippingLabel?.trim() || "Ship to default address";
+  const selectedShippingAddress = shippingAddresses.find((address) => address.id === form.watch("shippingAddressId"));
 
   return (
     <div 
@@ -331,18 +343,39 @@ export default function Checkout() {
                         {useDefaultAddress && <div className="w-2 h-2 bg-black rounded-full"></div>}
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-bold text-lg mb-1">{defaultLabel}</h3>
-                        {hasDefaultAddress ? (
+                        <h3 className="font-bold text-lg mb-1">{selectedShippingAddress?.label || "Choose a saved address"}</h3>
+                        {selectedShippingAddress ? (
                           <p className="text-black/60 font-medium leading-relaxed text-sm">
-                            {content?.defaultShippingAddress}, {content?.defaultShippingCity}, {content?.defaultShippingPostalCode}, {content?.defaultShippingCountry}
+                            {selectedShippingAddress.address}, {selectedShippingAddress.city}, {selectedShippingAddress.postalCode}, {selectedShippingAddress.country}
                           </p>
                         ) : (
                           <p className="text-black/50 font-medium leading-relaxed text-sm italic">
-                            No default address has been configured yet.
+                            No saved shipping addresses have been configured yet.
                           </p>
                         )}
                       </div>
                     </button>
+
+                    {useDefaultAddress && hasDefaultAddress && (
+                      <FormField control={form.control} name="shippingAddressId" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs uppercase tracking-widest text-black/50 font-bold">Saved address</FormLabel>
+                          <FormControl>
+                            <select
+                              {...field}
+                              className="h-12 w-full border border-black/20 bg-white px-3"
+                            >
+                              {shippingAddresses.map((address) => (
+                                <option key={address.id} value={address.id}>
+                                  {address.label} — {address.city}
+                                </option>
+                              ))}
+                            </select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                    )}
 
                     <button
                       type="button"

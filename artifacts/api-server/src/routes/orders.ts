@@ -69,12 +69,10 @@ function serializeOrder(o: OrderRow, items: OrderItemRow[]) {
   };
 }
 
-router.get("/orders", requireUser, requireRole("staff", "admin"), async (req, res) => {
-  const school = req.query.school === "shelyn" ? "shelyn" : "alvarado";
+router.get("/orders", requireUser, requireRole("staff", "admin"), async (_req, res) => {
   const orders = await db
     .select()
     .from(ordersTable)
-    .where(eq(ordersTable.school, school))
     .orderBy(desc(ordersTable.createdAt))
     .limit(200);
   if (orders.length === 0) {
@@ -185,7 +183,7 @@ router.get("/orders/:id", async (req, res): Promise<void> => {
 
 router.post("/orders", async (req, res): Promise<void> => {
   const body = CreateOrderBody.parse(req.body);
-  const school = body.school;
+  const school = "alvarado";
 
   let shippingAddress: string;
   let city: string;
@@ -202,16 +200,53 @@ router.post("/orders", async (req, res): Promise<void> => {
         .orderBy(asc(siteContentTable.id))
         .limit(1)
     )[0];
-    if (
-      !content ||
-      !content.defaultShippingAddress ||
-      !content.defaultShippingCity ||
-      !content.defaultShippingPostalCode ||
-      !content.defaultShippingCountry
-    ) {
+    if (!content) {
       res.status(400).json({
         error:
-          "Default shipping address is not configured. Please ask the admin to set it up.",
+          "Shipping address is not configured. Please ask the admin to set it up.",
+      });
+      return;
+    }
+    const addresses = JSON.parse(content.shippingAddresses || "[]") as {
+      id: string;
+      label: string;
+      address: string;
+      city: string;
+      postalCode: string;
+      country: string;
+    }[];
+    const configuredAddresses = addresses.length > 0
+      ? addresses
+      : content.defaultShippingAddress &&
+          content.defaultShippingCity &&
+          content.defaultShippingPostalCode &&
+          content.defaultShippingCountry
+        ? [{
+            id: "legacy-default",
+            label: content.defaultShippingLabel || "School Delivery",
+            address: content.defaultShippingAddress,
+            city: content.defaultShippingCity,
+            postalCode: content.defaultShippingPostalCode,
+            country: content.defaultShippingCountry,
+          }]
+        : [];
+    const selectedAddress = configuredAddresses.find((address) =>
+      address.id === (body.shippingAddressId ?? configuredAddresses[0]?.id),
+    );
+    if (!selectedAddress) {
+      res.status(400).json({
+        error: "The selected shipping address is no longer available. Please refresh checkout.",
+      });
+      return;
+    }
+    if (
+      !selectedAddress.address.trim() ||
+      !selectedAddress.city.trim() ||
+      !selectedAddress.postalCode.trim() ||
+      !selectedAddress.country.trim()
+    ) {
+      res.status(400).json({
+        error: "The selected shipping address is incomplete. Please ask the admin to update it.",
       });
       return;
     }
@@ -220,10 +255,10 @@ router.post("/orders", async (req, res): Promise<void> => {
       res.status(400).json({ error: "Classroom number is required." });
       return;
     }
-    shippingAddress = content.defaultShippingAddress;
-    city = content.defaultShippingCity;
-    postalCode = content.defaultShippingPostalCode;
-    country = content.defaultShippingCountry;
+    shippingAddress = selectedAddress.address;
+    city = selectedAddress.city;
+    postalCode = selectedAddress.postalCode;
+    country = selectedAddress.country;
     classroom = trimmedClassroom;
   } else {
     const sa = (body.shippingAddress ?? "").trim();
@@ -247,7 +282,7 @@ router.post("/orders", async (req, res): Promise<void> => {
   const products = await db
     .select()
     .from(productsTable)
-    .where(and(eq(productsTable.school, school), inArray(productsTable.id, productIds)));
+    .where(inArray(productsTable.id, productIds));
   const byId = new Map(products.map((p) => [p.id, p]));
 
   let subtotal = 0;
@@ -378,10 +413,18 @@ router.patch("/orders/:id", requireUser, requireRole("staff", "admin"), async (r
           .where(eq(loyaltyTransactionsTable.orderId, id))
           .limit(1);
         if (!existing[0]) {
+          const [content] = await tx
+            .select({ loyaltyPagesPerDollar: siteContentTable.loyaltyPagesPerDollar })
+            .from(siteContentTable)
+            .where(eq(siteContentTable.school, "alvarado"))
+            .orderBy(asc(siteContentTable.id))
+            .limit(1);
+          const configuredRate = Number(content?.loyaltyPagesPerDollar ?? 50);
+          const pagesPerDollar = Number.isSafeInteger(configuredRate) && configuredRate >= 0 ? configuredRate : 50;
           await tx.insert(loyaltyTransactionsTable).values({
             userId: user.id,
             orderId: id,
-            points: Math.floor(current[0].totalCents / 100) * 50,
+            points: Math.floor(current[0].totalCents / 100) * pagesPerDollar,
             description: `Points earned from order #${id}`,
           });
         }

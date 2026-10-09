@@ -7,6 +7,7 @@
  */
 import type { SiteContentCheckoutFieldsItem } from "./siteContentCheckoutFieldsItem";
 import type { SiteContentSchool } from "./siteContentSchool";
+import type { SiteContentShippingAddressesItem } from "./siteContentShippingAddressesItem";
 
 export interface SiteContent {
   id: number;
@@ -30,6 +31,8 @@ export interface SiteContent {
   defaultShippingCity: string;
   defaultShippingPostalCode: string;
   defaultShippingCountry: string;
+  shippingAddresses: SiteContentShippingAddressesItem[];
+  loyaltyPagesPerDollar: number;
   ordersEnabled: boolean;
   emailEnabled: boolean;
   emailFromName: string;

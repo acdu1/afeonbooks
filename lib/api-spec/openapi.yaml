@@ -272,6 +272,19 @@ components:
         defaultShippingCity: { type: string }
         defaultShippingPostalCode: { type: string }
         defaultShippingCountry: { type: string }
+        shippingAddresses:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, minLength: 1 }
+              label: { type: string, minLength: 1 }
+              address: { type: string, minLength: 1 }
+              city: { type: string, minLength: 1 }
+              postalCode: { type: string, minLength: 1 }
+              country: { type: string, minLength: 1 }
+            required: [id, label, address, city, postalCode, country]
+        loyaltyPagesPerDollar: { type: integer, minimum: 0, maximum: 1000000 }
         ordersEnabled: { type: boolean }
         emailEnabled: { type: boolean }
         emailFromName: { type: string }
@@ -289,7 +302,7 @@ components:
         blogHeroImageUrl: { type: string }
         blogBody: { type: string }
         updatedAt: { type: string }
-      required: [id, school, checkoutFields, brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, ordersEnabled, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor, blogTitle, blogSubtitle, blogDate, blogHeroImageUrl, blogBody, updatedAt]
+      required: [id, school, checkoutFields, brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, shippingAddresses, loyaltyPagesPerDollar, ordersEnabled, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor, blogTitle, blogSubtitle, blogDate, blogHeroImageUrl, blogBody, updatedAt]
     UpdateSiteContent:
       type: object
       properties:
@@ -320,6 +333,19 @@ components:
         defaultShippingCity: { type: string }
         defaultShippingPostalCode: { type: string }
         defaultShippingCountry: { type: string }
+        shippingAddresses:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, minLength: 1 }
+              label: { type: string, minLength: 1 }
+              address: { type: string, minLength: 1 }
+              city: { type: string, minLength: 1 }
+              postalCode: { type: string, minLength: 1 }
+              country: { type: string, minLength: 1 }
+            required: [id, label, address, city, postalCode, country]
+        loyaltyPagesPerDollar: { type: integer, minimum: 0, maximum: 1000000 }
         ordersEnabled: { type: boolean }
         emailEnabled: { type: boolean }
         emailFromName: { type: string }
@@ -336,7 +362,8 @@ components:
         blogDate: { type: string }
         blogHeroImageUrl: { type: string }
         blogBody: { type: string }
-      required: [brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, ordersEnabled, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor, blogTitle, blogSubtitle, blogDate, blogHeroImageUrl, blogBody]
+        loyaltyPagesPerDollar: { type: integer, minimum: 0, maximum: 1000000 }
+      required: [brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, loyaltyPagesPerDollar, ordersEnabled, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor, blogTitle, blogSubtitle, blogDate, blogHeroImageUrl, blogBody]
     Product:
       type: object
       properties:
@@ -349,8 +376,9 @@ components:
         imageUrl: { type: string }
         stock: { type: integer }
         active: { type: boolean }
+        showInShop: { type: boolean }
         createdAt: { type: string }
-      required: [id, school, name, description, priceCents, currency, imageUrl, stock, active, createdAt]
+      required: [id, school, name, description, priceCents, currency, imageUrl, stock, active, showInShop, createdAt]
     CreateProduct:
       type: object
       properties:
@@ -361,6 +389,7 @@ components:
         imageUrl: { type: string }
         stock: { type: integer, minimum: 0 }
         active: { type: boolean }
+        showInShop: { type: boolean }
       required: [name, description, priceCents, currency, imageUrl, stock, active]
     OrderItem:
       type: object
@@ -426,6 +455,7 @@ components:
         city: { type: string }
         postalCode: { type: string }
         country: { type: string }
+        shippingAddressId: { type: string }
         classroom: { type: string }
         notes: { type: string }
         customFields: { type: object, additionalProperties: { type: string } }
@@ -441,7 +471,7 @@ components:
           type: array
           minItems: 1
           items: { $ref: "#/components/schemas/CreateOrderItem" }
-      required: [school, customerName, customerEmail, customerPhone, useDefaultAddress, items]
+      required: [customerName, customerEmail, customerPhone, useDefaultAddress, items]
     UpdateOrderStatus:
       type: object
       properties:

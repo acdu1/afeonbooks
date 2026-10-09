@@ -6,18 +6,18 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart";
-import { useSchool } from "@/lib/school";
 import { authApiRequest, createAuthEntryUrl, useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 
 export default function RedeemPages() {
   const [, setLocation] = useLocation();
   const { user, loading: authLoading } = useAuth();
-  const { school } = useSchool();
-  const { data: content } = useGetContent({ school: school ?? "alvarado" });
-  const { data: products, isLoading } = useListProducts({ school: school ?? "alvarado" });
+  const { data: content } = useGetContent();
+  const { data: products, isLoading } = useListProducts();
   const { addItem } = useCart();
   const [balance, setBalance] = useState(0);
+  const loyaltyPagesPerDollar = content?.loyaltyPagesPerDollar ?? 50;
+  const redemptionEnabled = loyaltyPagesPerDollar > 0;
 
   useEffect(() => {
     if (!user) {
@@ -32,14 +32,22 @@ export default function RedeemPages() {
 
   const activeProducts = products?.filter((product) => product.active) ?? [];
 
+  const pagesRequiredFor = (priceCents: number) =>
+    Math.ceil(priceCents / 100) * loyaltyPagesPerDollar;
+
   const handleRedeem = (product: { id: number; name: string; priceCents: number; currency: string }) => {
     if (!user) {
       window.location.assign(createAuthEntryUrl(false));
       return;
     }
 
-    if (balance < product.priceCents) {
-      toast.error(`You need ${product.priceCents.toLocaleString()} Pages for ${product.name}.`);
+    const pagesRequired = pagesRequiredFor(product.priceCents);
+    if (!redemptionEnabled) {
+      toast.error("Page redemption is currently disabled.");
+      return;
+    }
+    if (balance < pagesRequired) {
+      toast.error(`You need ${pagesRequired.toLocaleString()} Pages for ${product.name}.`);
       return;
     }
 
@@ -77,6 +85,11 @@ export default function RedeemPages() {
               <p className="mt-1 text-2xl font-bold">{user ? balance.toLocaleString() : 0} Pages</p>
             </div>
           </div>
+          {!redemptionEnabled && (
+            <p className="mb-8 border border-black/10 bg-white p-4 text-sm text-black/60">
+              Page redemption is currently disabled.
+            </p>
+          )}
 
           {!user ? (
             <div className="rounded-none border border-black/10 bg-white p-8 text-center shadow-sm">
@@ -88,7 +101,8 @@ export default function RedeemPages() {
           ) : (
             <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
               {activeProducts.map((product) => {
-                const canRedeem = balance >= product.priceCents;
+                const pagesRequired = pagesRequiredFor(product.priceCents);
+                const canRedeem = redemptionEnabled && balance >= pagesRequired;
                 return (
                   <div key={product.id} className="flex flex-col border border-black/10 bg-white p-5 shadow-sm">
                     <img
@@ -100,7 +114,7 @@ export default function RedeemPages() {
                       <h2 className="text-xl font-bold">{product.name}</h2>
                       <p className="mt-2 text-sm text-black/60">{formatPrice(product.priceCents, product.currency)}</p>
                       <p className="mt-2 text-xs font-bold uppercase tracking-[0.2em] text-black/45">
-                        {product.priceCents.toLocaleString()} Pages needed
+                        {pagesRequired.toLocaleString()} Pages needed
                       </p>
 
                       <div className="mt-auto pt-5">
@@ -109,7 +123,7 @@ export default function RedeemPages() {
                           className="w-full rounded-none bg-black text-white hover:bg-[var(--theme-accent)] disabled:cursor-not-allowed disabled:opacity-50"
                           disabled={!canRedeem}
                         >
-                          {canRedeem ? "Redeem with Pages" : "Need more Pages"}
+                          {!redemptionEnabled ? "Redemption unavailable" : canRedeem ? "Redeem with Pages" : "Need more Pages"}
                         </Button>
                       </div>
                     </div>

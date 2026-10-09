@@ -50,6 +50,7 @@ const STATUS_STYLES: Record<string, string> = {
 
 // --- Content Editor Schema ---
 const contentSchema = z.object({
+  loyaltyPagesPerDollar: z.coerce.number().int().min(0).max(1000000),
   brandName: z.string().min(1),
   navHomeLabel: z.string().min(1),
   heroTitle: z.string().min(1),
@@ -95,6 +96,7 @@ const productSchema = z.object({
   imageUrl: z.string().url("Must be a valid URL"),
   stock: z.coerce.number().int().min(0, "Stock cannot be negative"),
   active: z.boolean(),
+  showInShop: z.boolean(),
 });
 
 export default function Editor() {
@@ -246,6 +248,7 @@ export default function Editor() {
   const contentForm = useForm<z.infer<typeof contentSchema>>({
     resolver: zodResolver(contentSchema),
     defaultValues: {
+      loyaltyPagesPerDollar: 50,
       brandName: "", navHomeLabel: "", heroTitle: "", heroSubtitle: "",
       ctaLabel: "", ctaUrl: "", coverImageUrl: "", aboutHeading: "",
       aboutBody: "", authorsLine: "", illustratorLine: "", footerNote: "", accentColor: "#000",
@@ -296,7 +299,7 @@ export default function Editor() {
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: "", description: "", priceDollars: 10.00, currency: "USD",
-      imageUrl: "", stock: 100, active: true
+      imageUrl: "", stock: 100, active: true, showInShop: true
     }
   });
 
@@ -308,7 +311,8 @@ export default function Editor() {
       currency: values.currency,
       imageUrl: values.imageUrl,
       stock: values.stock,
-      active: values.active
+      active: values.active,
+      showInShop: values.showInShop,
     };
 
     if (editingProductId) {
@@ -342,7 +346,8 @@ export default function Editor() {
       currency: product.currency,
       imageUrl: product.imageUrl,
       stock: product.stock,
-      active: product.active
+      active: product.active,
+      showInShop: product.showInShop,
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -576,6 +581,18 @@ export default function Editor() {
                   </div>
                 </div>
 
+                <div className="bg-white p-8 border border-black/5 shadow-sm space-y-4">
+                  <h2 className="text-xl font-bold border-b border-black/10 pb-4">Loyalty Pages</h2>
+                  <p className="text-sm text-black/50">Pages earned for each whole dollar spent on a delivered order. Set to 0 to pause earning.</p>
+                  <FormField control={contentForm.control} name="loyaltyPagesPerDollar" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pages earned per dollar</FormLabel>
+                      <FormControl><Input type="number" min="0" max="1000000" step="1" {...field} className="max-w-xs rounded-none" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+
                 <div className="bg-white p-8 border border-black/5 shadow-sm space-y-6">
                   <h2 className="text-xl font-bold border-b border-black/10 pb-4">Hero Section</h2>
                   <FormField control={contentForm.control} name="heroTitle" render={({ field }) => (
@@ -718,7 +735,13 @@ export default function Editor() {
                     <FormField control={productForm.control} name="active" render={({ field }) => (
                       <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-4">
                         <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} className="rounded-none data-[state=checked]:bg-black data-[state=checked]:text-white" /></FormControl>
-                        <div className="space-y-1 leading-none"><FormLabel>Active in Store</FormLabel></div>
+                        <div className="space-y-1 leading-none"><FormLabel>Available for orders and redemption</FormLabel></div>
+                      </FormItem>
+                    )} />
+                    <FormField control={productForm.control} name="showInShop" render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-2">
+                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} className="rounded-none data-[state=checked]:bg-black data-[state=checked]:text-white" /></FormControl>
+                        <div className="space-y-1 leading-none"><FormLabel>Show in regular shop</FormLabel></div>
                       </FormItem>
                     )} />
                     
@@ -743,7 +766,8 @@ export default function Editor() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-1">
                           <h3 className="font-bold text-lg truncate">{p.name}</h3>
-                          {!p.active && <span className="bg-red-100 text-red-700 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">Hidden</span>}
+                          {!p.active && <span className="bg-red-100 text-red-700 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">Unavailable</span>}
+                          {!p.showInShop && <span className="bg-gray-100 text-gray-600 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">Hidden from shop</span>}
                         </div>
                         <p className="text-black/50 text-sm mb-2">{formatPrice(p.priceCents, p.currency)} • {p.stock} in stock</p>
                         <p className="text-black/40 text-xs truncate max-w-md">{p.description}</p>

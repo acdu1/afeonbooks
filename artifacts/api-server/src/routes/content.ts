@@ -27,6 +27,8 @@ const DEFAULT_CONTENT = {
   defaultShippingCity: "",
   defaultShippingPostalCode: "",
   defaultShippingCountry: "",
+  shippingAddresses: "[]",
+  loyaltyPagesPerDollar: "50",
   checkoutFields: "[]",
   blogTitle: "Progress Update",
   blogSubtitle: "A look inside the latest adventure from the AFEON Books team.",
@@ -35,12 +37,21 @@ const DEFAULT_CONTENT = {
   blogBody: "We are back at the writing table, building the next mystery one clue at a time.\n\nBook 6 is taking shape with bigger questions, stranger discoveries, and a brand-new trail for our detectives to follow. We cannot wait to share more soon.",
 };
 
-const SCHOOL_NAMES = { alvarado: "Alvarado Intermediate", shelyn: "Shelyn Elementary" } as const;
-function schoolOf(value: unknown) {
-  return value === "shelyn" ? "shelyn" : "alvarado";
-}
-
 export function serializeContent(row: SiteContentRow) {
+  const shippingAddresses = JSON.parse(row.shippingAddresses || "[]") as {
+    id: string;
+    label: string;
+    address: string;
+    city: string;
+    postalCode: string;
+    country: string;
+  }[];
+  const legacyAddressConfigured = Boolean(
+    row.defaultShippingAddress &&
+      row.defaultShippingCity &&
+      row.defaultShippingPostalCode &&
+      row.defaultShippingCountry,
+  );
   return {
     id: row.id,
     school: row.school,
@@ -62,6 +73,19 @@ export function serializeContent(row: SiteContentRow) {
     defaultShippingCity: row.defaultShippingCity,
     defaultShippingPostalCode: row.defaultShippingPostalCode,
     defaultShippingCountry: row.defaultShippingCountry,
+    shippingAddresses: shippingAddresses.length > 0
+      ? shippingAddresses
+      : legacyAddressConfigured
+        ? [{
+            id: "legacy-default",
+            label: row.defaultShippingLabel || "School Delivery",
+            address: row.defaultShippingAddress,
+            city: row.defaultShippingCity,
+            postalCode: row.defaultShippingPostalCode,
+            country: row.defaultShippingCountry,
+          }]
+        : [],
+    loyaltyPagesPerDollar: Number(row.loyaltyPagesPerDollar),
     ordersEnabled: row.ordersEnabled === "true",
     emailEnabled: row.emailEnabled === "true",
     emailFromName: row.emailFromName,
@@ -83,30 +107,30 @@ export function serializeContent(row: SiteContentRow) {
   };
 }
 
-export async function getOrCreateContent(school = "alvarado"): Promise<SiteContentRow> {
+export async function getOrCreateContent(): Promise<SiteContentRow> {
   const existing = await db
     .select()
     .from(siteContentTable)
-    .where(eq(siteContentTable.school, school))
+    .where(eq(siteContentTable.school, "alvarado"))
     .orderBy(asc(siteContentTable.id))
     .limit(1);
   if (existing[0]) return existing[0];
   const inserted = await db
     .insert(siteContentTable)
-    .values({ ...DEFAULT_CONTENT, school, brandName: `${SCHOOL_NAMES[school as keyof typeof SCHOOL_NAMES] ?? "AFEON Books"} Books` })
+    .values({ ...DEFAULT_CONTENT, school: "alvarado" })
     .returning();
   return inserted[0]!;
 }
 
-router.get("/content", async (req, res) => {
-  const row = await getOrCreateContent(schoolOf(req.query.school));
+router.get("/content", async (_req, res) => {
+  const row = await getOrCreateContent();
   res.json(GetContentResponse.parse(serializeContent(row)));
 });
 
 router.put("/content", requireUser, requireRole("admin"), async (req, res) => {
   const body = UpdateContentBody.parse(req.body);
-  const current = await getOrCreateContent(schoolOf(req.query.school));
-  const { ordersEnabled, emailEnabled, checkoutFields, ...rest } = body;
+  const current = await getOrCreateContent();
+  const { ordersEnabled, emailEnabled, checkoutFields, loyaltyPagesPerDollar, ...rest } = body;
   const updated = await db
     .update(siteContentTable)
     .set({
@@ -114,6 +138,17 @@ router.put("/content", requireUser, requireRole("admin"), async (req, res) => {
       ordersEnabled: ordersEnabled ? "true" : "false",
       emailEnabled: emailEnabled ? "true" : "false",
       checkoutFields: JSON.stringify(checkoutFields ?? []),
+      shippingAddresses: JSON.stringify(body.shippingAddresses ?? []),
+      loyaltyPagesPerDollar: String(loyaltyPagesPerDollar ?? 50),
+      ...(body.shippingAddresses !== undefined
+        ? {
+            defaultShippingLabel: "",
+            defaultShippingAddress: "",
+            defaultShippingCity: "",
+            defaultShippingPostalCode: "",
+            defaultShippingCountry: "",
+          }
+        : {}),
       updatedAt: new Date(),
     })
     .where(eq(siteContentTable.id, current.id))

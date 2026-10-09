@@ -17,5 +17,6 @@ export interface Product {
   imageUrl: string;
   stock: number;
   active: boolean;
+  showInShop: boolean;
   createdAt: string;
 }

@@ -43,6 +43,17 @@ export const GetContentResponse = zod.object({
   defaultShippingCity: zod.string(),
   defaultShippingPostalCode: zod.string(),
   defaultShippingCountry: zod.string(),
+  shippingAddresses: zod.array(
+    zod.object({
+      id: zod.string().min(1),
+      label: zod.string().min(1),
+      address: zod.string().min(1),
+      city: zod.string().min(1),
+      postalCode: zod.string().min(1),
+      country: zod.string().min(1),
+    }),
+  ),
+  loyaltyPagesPerDollar: zod.number().int().min(0).max(1000000),
   ordersEnabled: zod.boolean(),
   emailEnabled: zod.boolean(),
   emailFromName: zod.string(),
@@ -94,6 +105,19 @@ export const UpdateContentBody = zod.object({
   defaultShippingCity: zod.string(),
   defaultShippingPostalCode: zod.string(),
   defaultShippingCountry: zod.string(),
+  shippingAddresses: zod
+    .array(
+      zod.object({
+        id: zod.string().min(1),
+        label: zod.string().min(1),
+        address: zod.string().min(1),
+        city: zod.string().min(1),
+        postalCode: zod.string().min(1),
+        country: zod.string().min(1),
+      }),
+    )
+    .optional(),
+  loyaltyPagesPerDollar: zod.number().int().min(0).max(1000000),
   ordersEnabled: zod.boolean(),
   emailEnabled: zod.boolean(),
   emailFromName: zod.string(),
@@ -122,6 +146,17 @@ export const UpdateContentResponse = zod.object({
       required: zod.boolean(),
     }),
   ),
+  shippingAddresses: zod.array(
+    zod.object({
+      id: zod.string().min(1),
+      label: zod.string().min(1),
+      address: zod.string().min(1),
+      city: zod.string().min(1),
+      postalCode: zod.string().min(1),
+      country: zod.string().min(1),
+    }),
+  ),
+  loyaltyPagesPerDollar: zod.number().int().min(0).max(1000000),
   brandName: zod.string(),
   navHomeLabel: zod.string(),
   heroTitle: zod.string(),
@@ -173,6 +208,7 @@ export const ListProductsResponseItem = zod.object({
   imageUrl: zod.string(),
   stock: zod.number(),
   active: zod.boolean(),
+  showInShop: zod.boolean(),
   createdAt: zod.string(),
 });
 export const ListProductsResponse = zod.array(ListProductsResponseItem);
@@ -199,6 +235,7 @@ export const CreateProductBody = zod.object({
   imageUrl: zod.string(),
   stock: zod.number().min(createProductBodyStockMin),
   active: zod.boolean(),
+  showInShop: zod.boolean().default(true),
 });
 
 export const GetProductParams = zod.object({
@@ -215,6 +252,7 @@ export const GetProductResponse = zod.object({
   imageUrl: zod.string(),
   stock: zod.number(),
   active: zod.boolean(),
+  showInShop: zod.boolean().optional(),
   createdAt: zod.string(),
 });
 
@@ -240,6 +278,7 @@ export const UpdateProductBody = zod.object({
   imageUrl: zod.string(),
   stock: zod.number().min(updateProductBodyStockMin),
   active: zod.boolean(),
+  showInShop: zod.boolean(),
 });
 
 export const UpdateProductResponse = zod.object({
@@ -252,6 +291,7 @@ export const UpdateProductResponse = zod.object({
   imageUrl: zod.string(),
   stock: zod.number(),
   active: zod.boolean(),
+  showInShop: zod.boolean(),
   createdAt: zod.string(),
 });
 
@@ -314,12 +354,13 @@ export const createOrderBodyCustomerEmailMin = 3;
 export const createOrderBodyCustomerPhoneMin = 3;
 
 export const CreateOrderBody = zod.object({
-  school: zod.enum(["alvarado", "shelyn"]),
+  school: zod.enum(["alvarado", "shelyn"]).optional(),
   customerName: zod.string().min(1),
   customerEmail: zod.string().min(createOrderBodyCustomerEmailMin),
   customerPhone: zod.string().min(createOrderBodyCustomerPhoneMin),
   useDefaultAddress: zod.boolean(),
   shippingAddress: zod.string().optional(),
+  shippingAddressId: zod.string().optional(),
   city: zod.string().optional(),
   postalCode: zod.string().optional(),
   country: zod.string().optional(),

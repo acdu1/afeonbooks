@@ -8,14 +8,12 @@ import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
 import { Minus, Plus } from "lucide-react";
-import { useSchool } from "@/lib/school";
 
 export default function Product() {
   const { id } = useParams();
-  const { school } = useSchool();
   const productId = parseInt(id || "0", 10);
   
-  const { data: content } = useGetContent({ school: school ?? "alvarado" });
+  const { data: content } = useGetContent();
   const { data: product, isLoading, isError } = useGetProduct(productId);
   const { addItem } = useCart();
   
@@ -31,7 +29,7 @@ export default function Product() {
     );
   }
 
-  if (isError || !product || !product.active) {
+  if (isError || !product || !product.active || !product.showInShop) {
     return (
       <div className="min-h-screen w-full flex flex-col bg-[#FAF7F2]">
         <SiteHeader />

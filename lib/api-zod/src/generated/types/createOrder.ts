@@ -11,7 +11,7 @@ import type { CreateOrderOrderType } from "./createOrderOrderType";
 import type { CreateOrderSchool } from "./createOrderSchool";
 
 export interface CreateOrder {
-  school: CreateOrderSchool;
+  school?: CreateOrderSchool;
   /** @minLength 1 */
   customerName: string;
   /** @minLength 3 */
@@ -20,6 +20,7 @@ export interface CreateOrder {
   customerPhone: string;
   useDefaultAddress: boolean;
   shippingAddress?: string;
+  shippingAddressId?: string;
   city?: string;
   postalCode?: string;
   country?: string;

@@ -1,9 +1,10 @@
 import { Router, type IRouter } from "express";
-import { asc, eq } from "drizzle-orm";
-import { db, orderItemsTable, ordersTable, siteContentTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
+import { db, orderItemsTable, ordersTable } from "@workspace/db";
 import { renderEmailHtml, sendEmail, applyVars, buildVars } from "../lib/email";
 import { logger } from "../lib/logger";
 import { requireRole, requireUser } from "../lib/auth";
+import { getOrCreateContent } from "./content";
 
 const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL || "https://afeonbooks.com").trim().replace(/\/+$/, "");
 const router: IRouter = Router();
@@ -36,18 +37,7 @@ router.post("/orders/:id/resend-email", requireUser, requireRole("staff", "admin
     }
 
     const items = await db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, id));
-    const content = (
-      await db
-        .select()
-        .from(siteContentTable)
-        .where(eq(siteContentTable.school, order.school))
-        .orderBy(asc(siteContentTable.id))
-        .limit(1)
-    )[0];
-    if (!content) {
-      res.status(500).json({ ok: false, message: "Site email settings were not found for this order's school." });
-      return;
-    }
+    const content = await getOrCreateContent();
     if (content.emailEnabled !== "true") {
       res.status(409).json({ ok: false, message: "Emails are disabled in Email Settings." });
       return;

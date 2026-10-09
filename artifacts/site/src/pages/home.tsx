@@ -6,12 +6,10 @@ import { SiteFooter } from "@/components/site-footer";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
-import { useSchool, SCHOOL_OPTIONS } from "@/lib/school";
 
 export default function Home() {
-  const { school } = useSchool();
-  const { data: content, isLoading: contentLoading, isError: contentError } = useGetContent({ school: school ?? "alvarado" });
-  const { data: products, isLoading: productsLoading, isError: productsError } = useListProducts({ school: school ?? "alvarado" });
+  const { data: content, isLoading: contentLoading, isError: contentError } = useGetContent();
+  const { data: products, isLoading: productsLoading, isError: productsError } = useListProducts();
   const { addItem } = useCart();
 
   if (contentLoading || productsLoading) {
@@ -36,7 +34,7 @@ export default function Home() {
     );
   }
 
-  const activeProducts = products?.filter((p) => p.active) || [];
+  const activeProducts = products?.filter((p) => p.active && p.showInShop) || [];
 
   const handleAddToCart = (productId: number) => {
     addItem(productId);

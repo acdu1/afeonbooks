@@ -31,10 +31,6 @@ import {
   getGetOrdersSummaryQueryKey,
 } from "@workspace/api-client-react";
 import type { UpdateOrderStatusStatus } from "@workspace/api-client-react";
-const SCHOOL_OPTIONS = {
-  alvarado: { label: "Alvarado Intermediate" },
-  shelyn: { label: "Shelyn Elementary" },
-} as const;
 
 const ORDER_STATUSES: UpdateOrderStatusStatus[] = [
   "pending",
@@ -54,6 +50,15 @@ const STATUS_STYLES: Record<string, string> = {
 
 const contentSchema = z.object({
   checkoutFields: z.array(z.object({ id: z.string(), label: z.string().min(1), required: z.boolean() })).default([]),
+  shippingAddresses: z.array(z.object({
+    id: z.string().min(1),
+    label: z.string().min(1, "Address label is required"),
+    address: z.string().min(1, "Street address is required"),
+    city: z.string().min(1, "City is required"),
+    postalCode: z.string().min(1, "Postal code is required"),
+    country: z.string().min(1, "Country is required"),
+  })).default([]),
+  loyaltyPagesPerDollar: z.coerce.number().int().min(0, "Pages per dollar must be zero or greater").max(1000000),
   brandName: z.string().min(1),
   navHomeLabel: z.string().min(1),
   heroTitle: z.string().min(1),
@@ -98,11 +103,10 @@ const productSchema = z.object({
   imageUrl: z.string().url("Must be a valid URL"),
   stock: z.coerce.number().int().min(0, "Stock cannot be negative"),
   active: z.boolean(),
+  showInShop: z.boolean(),
 });
 
 export default function Editor() {
-  const [school, setSchool] = useState<"alvarado" | "shelyn">(() => localStorage.getItem("adminSchool") === "shelyn" ? "shelyn" : "alvarado");
-
   const [devTesting, setDevTesting] = useState(false);
   const [devTestExpiresAt, setDevTestExpiresAt] = useState<Date | null>(null);
   const [devTestCountdown, setDevTestCountdown] = useState("");
@@ -206,9 +210,9 @@ export default function Editor() {
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [testEmailTo, setTestEmailTo] = useState<string>("");
 
-  const { data: content, isLoading: contentLoading } = useGetContent({ school });
-  const { data: products } = useListProducts({ school });
-  const { data: orders } = useListOrders({ school });
+  const { data: content, isLoading: contentLoading } = useGetContent();
+  const { data: products } = useListProducts();
+  const { data: orders } = useListOrders();
 
   const updateContent = useUpdateContent();
   const createProduct = useCreateProduct();
@@ -331,6 +335,8 @@ export default function Editor() {
       defaultShippingCity: "",
       defaultShippingPostalCode: "",
       defaultShippingCountry: "",
+      shippingAddresses: [],
+      loyaltyPagesPerDollar: 50,
       ordersEnabled: true,
       emailEnabled: false,
       emailFromName: "AFEON Books",
@@ -352,7 +358,6 @@ export default function Editor() {
   });
 
   const initialized = useRef(false);
-  useEffect(() => { initialized.current = false; localStorage.setItem("adminSchool", school); }, [school]);
   useEffect(() => {
     if (content && !initialized.current) {
       contentForm.reset(content);
@@ -361,10 +366,10 @@ export default function Editor() {
   }, [content, contentForm]);
 
   const onContentSubmit = (values: z.infer<typeof contentSchema>) => {
-    updateContent.mutate({ data: values, params: { school } }, {
+    updateContent.mutate({ data: values }, {
       onSuccess: (data) => {
         toast.success("Site content saved!");
-        queryClient.setQueryData(getGetContentQueryKey({ school }), data);
+        queryClient.setQueryData(getGetContentQueryKey(), data);
       },
       onError: (error) => toast.error(error instanceof Error ? error.message : "Failed to save site content.")
     });
@@ -374,7 +379,7 @@ export default function Editor() {
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: "", description: "", priceDollars: 10.00, currency: "USD",
-      imageUrl: "", stock: 100, active: true
+      imageUrl: "", stock: 100, active: true, showInShop: true
     }
   });
 
@@ -386,24 +391,25 @@ export default function Editor() {
       currency: values.currency,
       imageUrl: values.imageUrl,
       stock: values.stock,
-      active: values.active
+      active: values.active,
+      showInShop: values.showInShop,
     };
 
     if (editingProductId) {
       updateProduct.mutate({ id: editingProductId, data: payload }, {
         onSuccess: () => {
           toast.success("Product updated!");
-          queryClient.invalidateQueries({ queryKey: getListProductsQueryKey({ school }) });
+          queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
           setEditingProductId(null);
           productForm.reset();
         },
         onError: () => toast.error("Failed to update product.")
       });
     } else {
-      createProduct.mutate({ data: payload, params: { school } }, {
+      createProduct.mutate({ data: payload }, {
         onSuccess: () => {
           toast.success("Product added!");
-          queryClient.invalidateQueries({ queryKey: getListProductsQueryKey({ school }) });
+          queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
           productForm.reset();
         },
         onError: () => toast.error("Failed to add product.")
@@ -420,7 +426,8 @@ export default function Editor() {
       currency: product.currency,
       imageUrl: product.imageUrl,
       stock: product.stock,
-      active: product.active
+      active: product.active,
+      showInShop: product.showInShop,
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -430,7 +437,7 @@ export default function Editor() {
       deleteProduct.mutate({ id }, {
         onSuccess: () => {
           toast.success("Product deleted.");
-          queryClient.invalidateQueries({ queryKey: getListProductsQueryKey({ school }) });
+          queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
         },
         onError: () => toast.error("Failed to delete product.")
       });
@@ -522,20 +529,6 @@ export default function Editor() {
             <h1 className="font-bold text-xl tracking-tight">Admin Dashboard</h1>
           </div>
           <div className="flex gap-4 items-center">
-            <select
-              value={school}
-              onChange={(event) => {
-                const next = event.target.value as "alvarado" | "shelyn";
-                setSchool(next);
-                setEditingProductId(null);
-                productForm.reset();
-              }}
-              className="h-10 border border-black/20 bg-[#FAF7F2] px-3 text-sm font-bold"
-              aria-label="School"
-            >
-              <option value="alvarado">{SCHOOL_OPTIONS.alvarado.label}</option>
-              <option value="shelyn">{SCHOOL_OPTIONS.shelyn.label}</option>
-            </select>
             <a
               href="/"
               className="inline-flex items-center justify-center min-h-9 px-4 py-2 rounded-md text-sm font-medium border border-black/20 hover:bg-black/5 transition-colors"
@@ -578,7 +571,7 @@ export default function Editor() {
                 const newValue = !current.ordersEnabled;
                 contentForm.setValue("ordersEnabled", newValue);
                 updateContent.mutate(
-                  { data: { ...current, ordersEnabled: newValue }, params: { school } },
+                  { data: { ...current, ordersEnabled: newValue } },
                   {
                     onSuccess: () => toast.success(newValue ? "Now accepting orders" : "Orders paused — store is closed"),
                     onError: () => {
@@ -655,6 +648,27 @@ export default function Editor() {
                   </div>
                 </div>
 
+                <div className="bg-white p-8 border border-black/5 shadow-sm space-y-4">
+                  <h2 className="text-xl font-bold border-b border-black/10 pb-4">Loyalty Pages</h2>
+                  <p className="text-sm text-black/50">Set how many Pages customers earn for each whole dollar spent on a delivered order. Set to 0 to pause earning.</p>
+                  <FormField control={contentForm.control} name="loyaltyPagesPerDollar" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pages earned per dollar</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="1000000"
+                          step="1"
+                          {...field}
+                          className="max-w-xs rounded-none"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+
                 <div className="bg-white p-8 border border-black/5 shadow-sm space-y-6">
                   <h2 className="text-xl font-bold border-b border-black/10 pb-4">Hero Section</h2>
                   <FormField control={contentForm.control} name="heroTitle" render={({ field }) => (
@@ -674,25 +688,92 @@ export default function Editor() {
                 </div>
 
                 <div className="bg-white p-8 border border-black/5 shadow-sm space-y-6">
-                  <h2 className="text-xl font-bold border-b border-black/10 pb-4">Default Shipping Address</h2>
-                  <p className="text-sm text-black/50 -mt-2">Used when customers choose "Ship to default address" at checkout. They will only enter their classroom number.</p>
-                  <FormField control={contentForm.control} name="defaultShippingLabel" render={({ field }) => (
-                    <FormItem><FormLabel>Display Label</FormLabel><FormControl><Input {...field} placeholder="e.g. School Delivery" className="rounded-none" /></FormControl></FormItem>
-                  )} />
-                  <FormField control={contentForm.control} name="defaultShippingAddress" render={({ field }) => (
-                    <FormItem><FormLabel>Street Address</FormLabel><FormControl><Input {...field} placeholder="e.g. 123 Lincoln Avenue" className="rounded-none" /></FormControl></FormItem>
-                  )} />
-                  <div className="grid grid-cols-2 gap-6">
-                    <FormField control={contentForm.control} name="defaultShippingCity" render={({ field }) => (
-                      <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} className="rounded-none" /></FormControl></FormItem>
-                    )} />
-                    <FormField control={contentForm.control} name="defaultShippingPostalCode" render={({ field }) => (
-                      <FormItem><FormLabel>Postal Code</FormLabel><FormControl><Input {...field} className="rounded-none" /></FormControl></FormItem>
-                    )} />
-                  </div>
-                  <FormField control={contentForm.control} name="defaultShippingCountry" render={({ field }) => (
-                    <FormItem><FormLabel>Country</FormLabel><FormControl><Input {...field} className="rounded-none" /></FormControl></FormItem>
-                  )} />
+                  <h2 className="text-xl font-bold border-b border-black/10 pb-4">Checkout Shipping Addresses</h2>
+                  <p className="text-sm text-black/50 -mt-2">Customers can choose any address listed here or enter a custom address at checkout.</p>
+                  {(contentForm.watch("shippingAddresses") ?? []).map((address, index) => (
+                    <div key={address.id} className="space-y-4 border border-black/10 p-5">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-bold">Address {index + 1}</h3>
+                        <Button type="button" variant="outline" className="rounded-none" onClick={() => {
+                          const next = [...contentForm.getValues("shippingAddresses")];
+                          next.splice(index, 1);
+                          contentForm.setValue("shippingAddresses", next, { shouldDirty: true, shouldValidate: true });
+                        }}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <Input
+                        aria-label={`Address ${index + 1} label`}
+                        placeholder="Display label (e.g. School delivery)"
+                        value={address.label}
+                        onChange={(event) => {
+                          const next = [...contentForm.getValues("shippingAddresses")];
+                          next[index] = { ...next[index], label: event.target.value };
+                          contentForm.setValue("shippingAddresses", next, { shouldDirty: true, shouldValidate: true });
+                        }}
+                        className="rounded-none"
+                      />
+                      <Input
+                        aria-label={`Address ${index + 1} street`}
+                        placeholder="Street address"
+                        value={address.address}
+                        onChange={(event) => {
+                          const next = [...contentForm.getValues("shippingAddresses")];
+                          next[index] = { ...next[index], address: event.target.value };
+                          contentForm.setValue("shippingAddresses", next, { shouldDirty: true, shouldValidate: true });
+                        }}
+                        className="rounded-none"
+                      />
+                      <div className="grid grid-cols-2 gap-4">
+                        <Input
+                          aria-label={`Address ${index + 1} city`}
+                          placeholder="City"
+                          value={address.city}
+                          onChange={(event) => {
+                            const next = [...contentForm.getValues("shippingAddresses")];
+                            next[index] = { ...next[index], city: event.target.value };
+                            contentForm.setValue("shippingAddresses", next, { shouldDirty: true, shouldValidate: true });
+                          }}
+                          className="rounded-none"
+                        />
+                        <Input
+                          aria-label={`Address ${index + 1} postal code`}
+                          placeholder="Postal code"
+                          value={address.postalCode}
+                          onChange={(event) => {
+                            const next = [...contentForm.getValues("shippingAddresses")];
+                            next[index] = { ...next[index], postalCode: event.target.value };
+                            contentForm.setValue("shippingAddresses", next, { shouldDirty: true, shouldValidate: true });
+                          }}
+                          className="rounded-none"
+                        />
+                      </div>
+                      <Input
+                        aria-label={`Address ${index + 1} country`}
+                        placeholder="Country"
+                        value={address.country}
+                        onChange={(event) => {
+                          const next = [...contentForm.getValues("shippingAddresses")];
+                          next[index] = { ...next[index], country: event.target.value };
+                          contentForm.setValue("shippingAddresses", next, { shouldDirty: true, shouldValidate: true });
+                        }}
+                        className="rounded-none"
+                      />
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" className="rounded-none" onClick={() => {
+                    const next = [...contentForm.getValues("shippingAddresses"), {
+                      id: crypto.randomUUID(),
+                      label: "",
+                      address: "",
+                      city: "",
+                      postalCode: "",
+                      country: "",
+                    }];
+                    contentForm.setValue("shippingAddresses", next, { shouldDirty: true, shouldValidate: true });
+                  }}>
+                    Add shipping address
+                  </Button>
                 </div>
 
                 <div className="bg-white p-8 border border-black/5 shadow-sm space-y-6">
@@ -740,7 +821,7 @@ export default function Editor() {
                 <div className="bg-white p-8 border border-black/5 shadow-sm space-y-5">
                   <div>
                     <h2 className="text-xl font-bold">Checkout Fill-in Boxes</h2>
-                    <p className="text-sm text-black/50 mt-1">These fields appear only for {SCHOOL_OPTIONS[school].label} shoppers.</p>
+                    <p className="text-sm text-black/50 mt-1">These fields appear for all shoppers at checkout.</p>
                   </div>
                   {(contentForm.watch("checkoutFields") ?? []).map((field, index) => (
                     <div key={field.id} className="flex gap-3 items-end">
@@ -851,7 +932,13 @@ export default function Editor() {
                   <FormField control={productForm.control} name="active" render={({ field }) => (
                     <FormItem className="flex items-center gap-3">
                       <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                      <FormLabel className="mt-0 cursor-pointer">Active (visible in shop)</FormLabel>
+                      <FormLabel className="mt-0 cursor-pointer">Available (can be ordered and redeemed)</FormLabel>
+                    </FormItem>
+                  )} />
+                  <FormField control={productForm.control} name="showInShop" render={({ field }) => (
+                    <FormItem className="flex items-center gap-3">
+                      <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                      <FormLabel className="mt-0 cursor-pointer">Show in regular shop</FormLabel>
                     </FormItem>
                   )} />
                   <div className="flex gap-3">
@@ -877,9 +964,14 @@ export default function Editor() {
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-sm truncate">{p.name}</p>
                       <p className="text-xs text-black/50 mt-1">{formatPrice(p.priceCents, p.currency)} · {p.stock} in stock</p>
-                      <span className={`inline-block mt-2 text-xs font-semibold px-2 py-0.5 rounded-sm ${p.active ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
-                        {p.active ? "Active" : "Hidden"}
-                      </span>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-sm ${p.active ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                          {p.active ? "Available" : "Unavailable"}
+                        </span>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-sm ${p.showInShop ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"}`}>
+                          {p.showInShop ? "In regular shop" : "Hidden from shop"}
+                        </span>
+                      </div>
                     </div>
                     <div className="flex flex-col gap-2">
                       <button onClick={() => handleEditProduct(p)} className="p-1.5 hover:bg-black/5 rounded transition-colors"><Edit2 className="w-4 h-4" /></button>

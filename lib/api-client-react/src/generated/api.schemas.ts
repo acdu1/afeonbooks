@@ -23,6 +23,15 @@ export type SiteContentCheckoutFieldsItem = {
   required: boolean;
 };
 
+export type SiteContentShippingAddressesItem = {
+  id: string;
+  label: string;
+  address: string;
+  city: string;
+  postalCode: string;
+  country: string;
+};
+
 export interface SiteContent {
   id: number;
   school: SiteContentSchool;
@@ -45,6 +54,8 @@ export interface SiteContent {
   defaultShippingCity: string;
   defaultShippingPostalCode: string;
   defaultShippingCountry: string;
+  shippingAddresses: SiteContentShippingAddressesItem[];
+  loyaltyPagesPerDollar: number;
   ordersEnabled: boolean;
   emailEnabled: boolean;
   emailFromName: string;
@@ -70,8 +81,19 @@ export type UpdateSiteContentCheckoutFieldsItem = {
   required: boolean;
 };
 
+export type UpdateSiteContentShippingAddressesItem = {
+  id: string;
+  label: string;
+  address: string;
+  city: string;
+  postalCode: string;
+  country: string;
+};
+
 export interface UpdateSiteContent {
   checkoutFields?: UpdateSiteContentCheckoutFieldsItem[];
+  shippingAddresses?: UpdateSiteContentShippingAddressesItem[];
+  loyaltyPagesPerDollar: number;
   brandName: string;
   navHomeLabel: string;
   heroTitle: string;
@@ -125,6 +147,7 @@ export interface Product {
   imageUrl: string;
   stock: number;
   active: boolean;
+  showInShop: boolean;
   createdAt: string;
 }
 
@@ -143,6 +166,7 @@ export interface CreateProduct {
   /** @minimum 0 */
   stock: number;
   active: boolean;
+  showInShop?: boolean;
 }
 
 export interface OrderItem {
@@ -237,7 +261,7 @@ export const CreateOrderOrderType = {
 } as const;
 
 export interface CreateOrder {
-  school: CreateOrderSchool;
+  school?: CreateOrderSchool;
   /** @minLength 1 */
   customerName: string;
   /** @minLength 3 */
@@ -246,6 +270,7 @@ export interface CreateOrder {
   customerPhone: string;
   useDefaultAddress: boolean;
   shippingAddress?: string;
+  shippingAddressId?: string;
   city?: string;
   postalCode?: string;
   country?: string;

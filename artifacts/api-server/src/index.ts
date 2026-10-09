@@ -37,6 +37,8 @@ async function ensureContentColumns() {
       ADD COLUMN IF NOT EXISTS orders_enabled text NOT NULL DEFAULT 'true',
       ADD COLUMN IF NOT EXISTS maintenance_mode text NOT NULL DEFAULT 'false',
       ADD COLUMN IF NOT EXISTS checkout_fields text NOT NULL DEFAULT '[]',
+      ADD COLUMN IF NOT EXISTS shipping_addresses text NOT NULL DEFAULT '',
+      ADD COLUMN IF NOT EXISTS loyalty_pages_per_dollar text NOT NULL DEFAULT '50',
       ADD COLUMN IF NOT EXISTS blog_title text NOT NULL DEFAULT 'Progress Update',
       ADD COLUMN IF NOT EXISTS blog_subtitle text NOT NULL DEFAULT 'A look inside the latest adventure from the AFEON Books team.',
       ADD COLUMN IF NOT EXISTS blog_date text NOT NULL DEFAULT 'September 15, 2026',
@@ -45,7 +47,48 @@ async function ensureContentColumns() {
 
 The next book is taking shape with bigger questions, stranger discoveries, and a brand-new trail for our detectives to follow. We cannot wait to share more soon.'
   `);
+  await pool.query(`
+    UPDATE site_content AS target
+    SET shipping_addresses = COALESCE((
+      SELECT json_agg(json_build_object(
+        'id', 'legacy-' || legacy.school,
+        'label', COALESCE(NULLIF(legacy.default_shipping_label, ''), 'School Delivery'),
+        'address', legacy.default_shipping_address,
+        'city', legacy.default_shipping_city,
+        'postalCode', legacy.default_shipping_postal_code,
+        'country', legacy.default_shipping_country
+      ) ORDER BY legacy.id)::text
+      FROM (
+        SELECT DISTINCT ON (school)
+          id, school, default_shipping_label, default_shipping_address,
+          default_shipping_city, default_shipping_postal_code, default_shipping_country
+        FROM site_content
+        WHERE school IN ('alvarado', 'shelyn')
+          AND default_shipping_address <> ''
+          AND default_shipping_city <> ''
+          AND default_shipping_postal_code <> ''
+          AND default_shipping_country <> ''
+        ORDER BY school, id
+      ) AS legacy
+    ), '[]')
+    WHERE target.id = (
+      SELECT id FROM site_content WHERE school = 'alvarado' ORDER BY id LIMIT 1
+    )
+      AND target.shipping_addresses = ''
+  `);
+  await pool.query(`
+    UPDATE site_content SET shipping_addresses = '[]'
+    WHERE shipping_addresses = ''
+  `);
   logger.info("Verified site_content compatibility columns");
+}
+
+async function ensureProductColumns() {
+  await pool.query(`
+    ALTER TABLE products
+      ADD COLUMN IF NOT EXISTS show_in_shop boolean NOT NULL DEFAULT true
+  `);
+  logger.info("Verified products.show_in_shop column");
 }
 
 async function ensureAuthTables() {
@@ -92,6 +135,7 @@ async function ensureAuthTables() {
 
 await ensureOrderColumns();
 await ensureContentColumns();
+await ensureProductColumns();
 await ensureAuthTables();
 
 app.listen(port, (err) => {

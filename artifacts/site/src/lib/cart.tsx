@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useListProducts, type Product } from "@workspace/api-client-react";
 import { MiniCart } from "@/components/mini-cart";
-import { useSchool } from "@/lib/school";
 
 export interface CartItem {
   productId: number;
@@ -39,10 +38,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   });
   const [isOpen, setIsOpen] = useState(false);
   const [lastAddedId, setLastAddedId] = useState<number | null>(null);
-  const { school } = useSchool();
   const isFirstRender = useRef(true);
 
-  const { data: products } = useListProducts({ school: school ?? "alvarado" });
+  const { data: products } = useListProducts();
 
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(items));

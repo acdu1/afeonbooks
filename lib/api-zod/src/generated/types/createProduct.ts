@@ -21,4 +21,5 @@ export interface CreateProduct {
   /** @minimum 0 */
   stock: number;
   active: boolean;
+  showInShop?: boolean;
 }
