@@ -233,7 +233,7 @@ function LoyaltyPanel() {
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-black/45">Pages</p>
             <h2 className="mt-2 text-2xl font-bold">{(loyalty?.balance ?? 0).toLocaleString()} Pages</h2>
-            <p className="mt-2 text-sm text-black/60">Earn 1 Page for every dollar on completed orders.</p>
+            <p className="mt-2 text-sm text-black/60">Earn 10 Pages for every dollar on completed orders.</p>
           </div>
         </div>
         {(loyalty?.transactions.length ?? 0) > 0 && (
