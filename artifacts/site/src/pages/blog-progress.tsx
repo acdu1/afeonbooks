@@ -23,7 +23,11 @@ export default function BlogProgress() {
     );
   }
 
-  const paragraphs = content.blogBody.split(/\n\s*\n/).filter(Boolean);
+  const paragraphs = typeof content.blogBody === "string"
+    ? content.blogBody.split(/\n\s*\n/).filter(Boolean)
+    : [];
+  const title = content.blogTitle || "Progress Update";
+  const subtitle = content.blogSubtitle || "A look inside the latest adventure from the AFEON Books team.";
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F4EFE7] text-[#1E2621]" style={{ "--theme-accent": content.accentColor } as React.CSSProperties}>
@@ -32,9 +36,11 @@ export default function BlogProgress() {
         <section className="max-w-6xl mx-auto px-6 pt-16 pb-20 md:pt-28 md:pb-28">
           <div className="max-w-3xl">
             <p className="text-xs font-bold uppercase tracking-[0.28em] text-[#657267]">From the writing desk</p>
-            <h1 className="mt-6 font-serif text-5xl leading-[0.98] md:text-8xl">{content.blogTitle}</h1>
-            <p className="mt-8 max-w-xl text-xl leading-relaxed text-[#526056]">{content.blogSubtitle}</p>
-            <p className="mt-8 text-sm font-bold uppercase tracking-[0.18em] text-[#657267]">{content.blogDate}</p>
+            <h1 className="mt-6 font-serif text-5xl leading-[0.98] md:text-8xl">{title}</h1>
+            <p className="mt-8 max-w-xl text-xl leading-relaxed text-[#526056]">{subtitle}</p>
+            {content.blogDate && (
+              <p className="mt-8 text-sm font-bold uppercase tracking-[0.18em] text-[#657267]">{content.blogDate}</p>
+            )}
           </div>
           {content.blogHeroImageUrl && (
             <img src={content.blogHeroImageUrl} alt="" className="mt-16 aspect-[16/8] w-full object-cover" />

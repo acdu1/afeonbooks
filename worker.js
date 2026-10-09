@@ -254,7 +254,7 @@ if (url.hostname === "authn.afeonbooks.com") {
     if (!path.split("/").pop()?.includes(".")) {
       const notFoundPage = await env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
       return new Response(notFoundPage.body, {
-        status: 404,
+        status: 200,
         headers: notFoundPage.headers,
       });
     }

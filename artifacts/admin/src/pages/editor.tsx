@@ -366,7 +366,7 @@ export default function Editor() {
         toast.success("Site content saved!");
         queryClient.setQueryData(getGetContentQueryKey({ school }), data);
       },
-      onError: () => toast.error("Failed to save site content.")
+      onError: (error) => toast.error(error instanceof Error ? error.message : "Failed to save site content.")
     });
   };
 
@@ -599,7 +599,17 @@ export default function Editor() {
             </Button>
             {(activeTab === "content" || activeTab === "email") && (
               <Button
-                onClick={contentForm.handleSubmit(onContentSubmit)}
+                onClick={() => contentForm.handleSubmit(
+                  onContentSubmit,
+                  (errors) => {
+                    const invalidFields = Object.keys(errors);
+                    toast.error(
+                      invalidFields.length
+                        ? `Please fix these fields before saving: ${invalidFields.join(", ")}`
+                        : "Please check the content form and try again.",
+                    );
+                  },
+                )()}
                 disabled={updateContent.isPending}
                 className="rounded-none bg-black text-white hover:bg-black/80 uppercase tracking-widest text-xs font-bold"
               >
