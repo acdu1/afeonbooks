@@ -283,7 +283,8 @@ components:
               city: { type: string, minLength: 1 }
               postalCode: { type: string, minLength: 1 }
               country: { type: string, minLength: 1 }
-            required: [id, label, address, city, postalCode, country]
+              shippingFeeCents: { type: integer, minimum: 0 }
+            required: [id, label, address, city, postalCode, country, shippingFeeCents]
         loyaltyPagesPerDollar: { type: integer, minimum: 0, maximum: 1000000 }
         ordersEnabled: { type: boolean }
         emailEnabled: { type: boolean }
@@ -344,6 +345,7 @@ components:
               city: { type: string, minLength: 1 }
               postalCode: { type: string, minLength: 1 }
               country: { type: string, minLength: 1 }
+              shippingFeeCents: { type: integer, minimum: 0 }
             required: [id, label, address, city, postalCode, country]
         loyaltyPagesPerDollar: { type: integer, minimum: 0, maximum: 1000000 }
         ordersEnabled: { type: boolean }

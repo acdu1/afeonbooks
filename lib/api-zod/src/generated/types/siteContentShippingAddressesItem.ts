@@ -12,4 +12,5 @@ export type SiteContentShippingAddressesItem = {
   city: string;
   postalCode: string;
   country: string;
+  shippingFeeCents: number;
 };

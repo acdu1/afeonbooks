@@ -57,6 +57,7 @@ const contentSchema = z.object({
     city: z.string().min(1, "City is required"),
     postalCode: z.string().min(1, "Postal code is required"),
     country: z.string().min(1, "Country is required"),
+    shippingFeeCents: z.coerce.number().int().min(0, "Fee cannot be negative"),
   })).default([]),
   loyaltyPagesPerDollar: z.coerce.number().int().min(0, "Pages per dollar must be zero or greater").max(1000000),
   brandName: z.string().min(1),
@@ -759,6 +760,29 @@ export default function Editor() {
                         }}
                         className="rounded-none"
                       />
+                      <div>
+                        <label htmlFor={`shipping-fee-${address.id}`} className="mb-2 block text-sm font-medium">
+                          Shipping fee ($)
+                        </label>
+                        <Input
+                          id={`shipping-fee-${address.id}`}
+                          aria-label={`Address ${index + 1} shipping fee in dollars`}
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={(address.shippingFeeCents / 100).toFixed(2)}
+                          onChange={(event) => {
+                            const fee = Number(event.target.value);
+                            const next = [...contentForm.getValues("shippingAddresses")];
+                            next[index] = {
+                              ...next[index],
+                              shippingFeeCents: Number.isFinite(fee) ? Math.round(fee * 100) : 0,
+                            };
+                            contentForm.setValue("shippingAddresses", next, { shouldDirty: true, shouldValidate: true });
+                          }}
+                          className="rounded-none"
+                        />
+                      </div>
                     </div>
                   ))}
                   <Button type="button" variant="outline" className="rounded-none" onClick={() => {
@@ -769,6 +793,7 @@ export default function Editor() {
                       city: "",
                       postalCode: "",
                       country: "",
+                      shippingFeeCents: 0,
                     }];
                     contentForm.setValue("shippingAddresses", next, { shouldDirty: true, shouldValidate: true });
                   }}>

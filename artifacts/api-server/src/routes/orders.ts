@@ -26,6 +26,7 @@ import { sendOrderConfirmation, sendOrderStatusUpdateEmail } from "../lib/email"
 import { normalizeEmail, requireRole, requireUser } from "../lib/auth";
 
 const router: IRouter = Router();
+const CUSTOM_ADDRESS_SHIPPING_FEE_CENTS = 500;
 
 function serializeOrder(o: OrderRow, items: OrderItemRow[]) {
   return {
@@ -190,6 +191,7 @@ router.post("/orders", async (req, res): Promise<void> => {
   let postalCode: string;
   let country: string;
   let classroom: string | null = null;
+  let shipping = CUSTOM_ADDRESS_SHIPPING_FEE_CENTS;
 
   if (body.useDefaultAddress) {
     const content = (
@@ -214,6 +216,7 @@ router.post("/orders", async (req, res): Promise<void> => {
       city: string;
       postalCode: string;
       country: string;
+      shippingFeeCents?: number;
     }[];
     const configuredAddresses = addresses.length > 0
       ? addresses
@@ -228,6 +231,7 @@ router.post("/orders", async (req, res): Promise<void> => {
             city: content.defaultShippingCity,
             postalCode: content.defaultShippingPostalCode,
             country: content.defaultShippingCountry,
+            shippingFeeCents: 0,
           }]
         : [];
     const selectedAddress = configuredAddresses.find((address) =>
@@ -260,6 +264,7 @@ router.post("/orders", async (req, res): Promise<void> => {
     postalCode = selectedAddress.postalCode;
     country = selectedAddress.country;
     classroom = trimmedClassroom;
+    shipping = selectedAddress.shippingFeeCents ?? 0;
   } else {
     const sa = (body.shippingAddress ?? "").trim();
     const ci = (body.city ?? "").trim();
@@ -310,7 +315,6 @@ router.post("/orders", async (req, res): Promise<void> => {
     });
   }
   const currency = products[0]?.currency ?? "USD";
-  const shipping = 0;
   const total = subtotal + shipping;
 
   const created = await db.transaction(async (tx) => {

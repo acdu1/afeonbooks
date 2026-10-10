@@ -51,6 +51,7 @@ export const GetContentResponse = zod.object({
       city: zod.string().min(1),
       postalCode: zod.string().min(1),
       country: zod.string().min(1),
+      shippingFeeCents: zod.number().int().min(0),
     }),
   ),
   loyaltyPagesPerDollar: zod.number().int().min(0).max(1000000),
@@ -114,6 +115,7 @@ export const UpdateContentBody = zod.object({
         city: zod.string().min(1),
         postalCode: zod.string().min(1),
         country: zod.string().min(1),
+        shippingFeeCents: zod.number().int().min(0).optional(),
       }),
     )
     .optional(),

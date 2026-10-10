@@ -30,6 +30,7 @@ export type SiteContentShippingAddressesItem = {
   city: string;
   postalCode: string;
   country: string;
+  shippingFeeCents: number;
 };
 
 export interface SiteContent {
@@ -88,6 +89,7 @@ export type UpdateSiteContentShippingAddressesItem = {
   city: string;
   postalCode: string;
   country: string;
+  shippingFeeCents?: number;
 };
 
 export interface UpdateSiteContent {

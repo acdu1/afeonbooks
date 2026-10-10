@@ -17,6 +17,8 @@ import { useUtm, utmPayload } from "@/lib/utm";
 import { toast } from "sonner";
 import { authApiRequest, createAuthEntryUrl, useAuth } from "@/lib/auth";
 
+const CUSTOM_ADDRESS_SHIPPING_FEE_CENTS = 500;
+
 const checkoutSchema = z
   .object({
     customerName: z.string().min(1, "Name is required"),
@@ -131,6 +133,13 @@ export default function Checkout() {
     },
   });
 
+  const useDefaultAddress = form.watch("useDefaultAddress");
+  const selectedShippingAddress = shippingAddresses.find((address) => address.id === form.watch("shippingAddressId"));
+  const shippingCents = useDefaultAddress
+    ? selectedShippingAddress?.shippingFeeCents ?? 0
+    : CUSTOM_ADDRESS_SHIPPING_FEE_CENTS;
+  const totalCents = Math.max(0, subtotalCents - loyaltyDiscountCents) + shippingCents;
+
   const addressSetup = useRef(false);
   useEffect(() => {
     if (!content || addressSetup.current) return;
@@ -140,8 +149,6 @@ export default function Checkout() {
       form.setValue("useDefaultAddress", true);
     }
   }, [content, form]);
-
-  const useDefaultAddress = form.watch("useDefaultAddress");
 
   const onSubmit = (values: CheckoutValues) => {
     if (itemCount === 0) {
@@ -232,8 +239,6 @@ export default function Checkout() {
       </div>
     );
   }
-
-  const selectedShippingAddress = shippingAddresses.find((address) => address.id === form.watch("shippingAddressId"));
 
   return (
     <div 
@@ -329,52 +334,53 @@ export default function Checkout() {
                   <h2 className="text-xl font-bold border-b border-black/10 pb-4">Shipping Address</h2>
 
                   <div className="space-y-4">
-                    <button
-                      type="button"
-                      onClick={() => hasDefaultAddress && form.setValue("useDefaultAddress", true, { shouldValidate: true })}
-                      disabled={!hasDefaultAddress}
-                      className={`w-full text-left p-6 flex items-start gap-4 transition-colors ${
-                        useDefaultAddress
-                          ? "border-2 border-black bg-[#FAF7F2]/50"
-                          : "border border-black/15 hover:border-black/40 bg-white"
-                      } ${!hasDefaultAddress ? "opacity-50 cursor-not-allowed" : ""}`}
-                    >
-                      <div className={`mt-1 w-5 h-5 rounded-full border-4 flex items-center justify-center shrink-0 ${useDefaultAddress ? "border-black" : "border-black/30"}`}>
-                        {useDefaultAddress && <div className="w-2 h-2 bg-black rounded-full"></div>}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-bold text-lg mb-1">{selectedShippingAddress?.label || "Choose a saved address"}</h3>
-                        {selectedShippingAddress ? (
-                          <p className="text-black/60 font-medium leading-relaxed text-sm">
-                            {selectedShippingAddress.address}, {selectedShippingAddress.city}, {selectedShippingAddress.postalCode}, {selectedShippingAddress.country}
-                          </p>
-                        ) : (
-                          <p className="text-black/50 font-medium leading-relaxed text-sm italic">
-                            No saved shipping addresses have been configured yet.
-                          </p>
-                        )}
-                      </div>
-                    </button>
-
-                    {useDefaultAddress && hasDefaultAddress && (
+                    {hasDefaultAddress ? (
                       <FormField control={form.control} name="shippingAddressId" render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs uppercase tracking-widest text-black/50 font-bold">Saved address</FormLabel>
+                          <FormLabel className="text-xs uppercase tracking-widest text-black/50 font-bold">Saved addresses</FormLabel>
                           <FormControl>
-                            <select
-                              {...field}
-                              className="h-12 w-full border border-black/20 bg-white px-3"
-                            >
-                              {shippingAddresses.map((address) => (
-                                <option key={address.id} value={address.id}>
-                                  {address.label} — {address.city}
-                                </option>
-                              ))}
-                            </select>
+                            <div className="space-y-4">
+                              {shippingAddresses.map((address) => {
+                                const isSelected = useDefaultAddress && field.value === address.id;
+                                return (
+                                  <button
+                                    key={address.id}
+                                    type="button"
+                                    onClick={() => {
+                                      field.onChange(address.id);
+                                      form.setValue("useDefaultAddress", true, { shouldValidate: true });
+                                    }}
+                                    aria-pressed={isSelected}
+                                    className={`w-full text-left p-6 flex items-start gap-4 transition-colors ${
+                                      isSelected
+                                        ? "border-2 border-black bg-[#FAF7F2]/50"
+                                        : "border border-black/15 hover:border-black/40 bg-white"
+                                    }`}
+                                  >
+                                    <div className={`mt-1 w-5 h-5 rounded-full border-4 flex items-center justify-center shrink-0 ${isSelected ? "border-black" : "border-black/30"}`}>
+                                      {isSelected && <div className="w-2 h-2 bg-black rounded-full"></div>}
+                                    </div>
+                                    <div className="flex-1">
+                                      <h3 className="font-bold text-lg mb-1">{address.label}</h3>
+                                      <p className="text-black/60 font-medium leading-relaxed text-sm">
+                                        {address.address}, {address.city}, {address.postalCode}, {address.country}
+                                      </p>
+                                      <p className="text-black/50 font-medium leading-relaxed text-sm mt-1">
+                                        {formatPrice(address.shippingFeeCents)} shipping
+                                      </p>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )} />
+                    ) : (
+                      <p className="border border-black/15 p-6 text-sm italic text-black/50">
+                        No saved shipping addresses have been configured yet.
+                      </p>
                     )}
 
                     <button
@@ -392,7 +398,7 @@ export default function Checkout() {
                       <div className="flex-1">
                         <h3 className="font-bold text-lg mb-1">Custom address</h3>
                         <p className="text-black/60 font-medium leading-relaxed text-sm">
-                          Ship to a different address you enter yourself.
+                          Ship to a different address you enter yourself. Includes a {formatPrice(CUSTOM_ADDRESS_SHIPPING_FEE_CENTS)} processing and delivery fee.
                         </p>
                       </div>
                     </button>
@@ -552,8 +558,8 @@ export default function Checkout() {
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-black/60">Shipping</span>
-                <span>Free</span>
+                <span className="text-black/60">{useDefaultAddress ? "Shipping" : "Processing & delivery"}</span>
+                <span>{shippingCents > 0 ? formatPrice(shippingCents) : "Free"}</span>
               </div>
               <div className="flex justify-between text-[#9A5B13]">
                 <span>Pages earned</span>
@@ -566,7 +572,7 @@ export default function Checkout() {
                 <span className="block text-xs uppercase tracking-widest text-black/50 font-bold mb-1">Total to pay</span>
                 <span className="text-sm font-medium text-black/40">Cash on delivery</span>
               </div>
-              <span className="text-3xl font-bold">{formatPrice(Math.max(0, subtotalCents - loyaltyDiscountCents))}</span>
+              <span className="text-3xl font-bold">{formatPrice(totalCents)}</span>
             </div>
           </div>
 

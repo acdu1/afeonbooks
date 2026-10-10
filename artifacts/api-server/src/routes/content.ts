@@ -38,14 +38,19 @@ const DEFAULT_CONTENT = {
 };
 
 export function serializeContent(row: SiteContentRow) {
-  const shippingAddresses = JSON.parse(row.shippingAddresses || "[]") as {
+  const savedShippingAddresses = JSON.parse(row.shippingAddresses || "[]") as {
     id: string;
     label: string;
     address: string;
     city: string;
     postalCode: string;
     country: string;
+    shippingFeeCents?: number;
   }[];
+  const shippingAddresses = savedShippingAddresses.map((address) => ({
+    ...address,
+    shippingFeeCents: address.shippingFeeCents ?? 0,
+  }));
   const legacyAddressConfigured = Boolean(
     row.defaultShippingAddress &&
       row.defaultShippingCity &&
@@ -83,6 +88,7 @@ export function serializeContent(row: SiteContentRow) {
             city: row.defaultShippingCity,
             postalCode: row.defaultShippingPostalCode,
             country: row.defaultShippingCountry,
+            shippingFeeCents: 0,
           }]
         : [],
     loyaltyPagesPerDollar: Number(row.loyaltyPagesPerDollar),
@@ -138,7 +144,10 @@ router.put("/content", requireUser, requireRole("admin"), async (req, res) => {
       ordersEnabled: ordersEnabled ? "true" : "false",
       emailEnabled: emailEnabled ? "true" : "false",
       checkoutFields: JSON.stringify(checkoutFields ?? []),
-      shippingAddresses: JSON.stringify(body.shippingAddresses ?? []),
+      shippingAddresses: JSON.stringify((body.shippingAddresses ?? []).map((address) => ({
+        ...address,
+        shippingFeeCents: address.shippingFeeCents ?? 0,
+      }))),
       loyaltyPagesPerDollar: String(loyaltyPagesPerDollar ?? 50),
       ...(body.shippingAddresses !== undefined
         ? {
