@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatPrice } from "@/lib/format";
 import { renderEmailPreview } from "@/lib/email-preview";
+import Marketing from "@/pages/marketing";
 import { Edit2, Trash2, Send, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import xlogo from "@assets/logo_web.png";
@@ -207,7 +208,7 @@ export default function Editor() {
     finally { setDevTestLoading(false); }
   };
 
-  const [activeTab, setActiveTab] = useState<"content" | "products" | "orders" | "email">("content");
+  const [activeTab, setActiveTab] = useState<"content" | "products" | "orders" | "email" | "marketing">("content");
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [testEmailTo, setTestEmailTo] = useState<string>("");
 
@@ -616,13 +617,13 @@ export default function Editor() {
 
       <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="flex gap-8 mb-12 border-b border-black/10">
-          {(["content", "products", "email", "orders"] as const).map((tab) => (
+          {(["content", "products", "email", "orders", "marketing"] as const).map((tab) => (
             <button
               key={tab}
               className={`pb-4 font-bold text-sm tracking-widest uppercase border-b-2 transition-colors ${activeTab === tab ? "border-black text-black" : "border-transparent text-black/40 hover:text-black/80"}`}
               onClick={() => setActiveTab(tab)}
             >
-              {tab === "content" ? "Site Content" : tab === "orders" ? "Recent Orders" : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === "content" ? "Site Content" : tab === "orders" ? "Recent Orders" : tab === "marketing" ? "Banners & Promos" : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>
@@ -1009,6 +1010,8 @@ export default function Editor() {
             </div>
           </div>
         )}
+
+        {activeTab === "marketing" && <Marketing />}
 
         {activeTab === "email" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">

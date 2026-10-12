@@ -26,6 +26,7 @@ export interface CreateOrder {
   country?: string;
   classroom?: string;
   notes?: string;
+  promoCode?: string;
   customFields?: CreateOrderCustomFields;
   orderType?: CreateOrderOrderType;
   utmSource?: string;

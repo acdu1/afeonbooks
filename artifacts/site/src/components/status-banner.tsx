@@ -14,8 +14,18 @@ interface StatusPageSummary {
   incidents: StatusPageIncident[];
 }
 
+interface StoreBanner {
+  title: string;
+  message: string;
+  linkUrl: string;
+  linkLabel: string;
+  backgroundColor: string;
+  textColor: string;
+}
+
 export function StatusBanner() {
   const [incident, setIncident] = useState<StatusPageIncident | null>(null);
+  const [banner, setBanner] = useState<StoreBanner | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -43,26 +53,59 @@ export function StatusBanner() {
     };
   }, []);
 
-  if (!incident) return null;
+  useEffect(() => {
+    let cancelled = false;
+    const loadBanner = async () => {
+      try {
+        const response = await fetch("/api/banners/active", { cache: "no-store" });
+        if (!response.ok) return;
+        const active = await response.json() as StoreBanner | null;
+        if (!cancelled) setBanner(active);
+      } catch {
+        if (!cancelled) setBanner(null);
+      }
+    };
+    void loadBanner();
+    const intervalId = window.setInterval(loadBanner, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  if (!incident && !banner) return null;
 
   return (
-    <div className="bg-[#9d2f20] px-5 py-3 text-white" role="alert">
-      <div className="mx-auto flex max-w-[1400px] items-center justify-center gap-3 text-center text-sm font-medium sm:text-[15px]">
-        <AlertTriangle className="hidden h-4 w-4 shrink-0 sm:block" aria-hidden="true" />
-        <span>
-          Service incident: {incident.name}
-          <span className="ml-1.5 text-white/75">({incident.status})</span>
-        </span>
-        <a
-          href={STATUS_PAGE_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex shrink-0 items-center gap-1 font-bold underline underline-offset-2 hover:text-white/80"
-        >
-          Details
-          <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-        </a>
-      </div>
-    </div>
+    <>
+      {banner && (
+        <div className="px-5 py-3" style={{ backgroundColor: banner.backgroundColor, color: banner.textColor }} role="status">
+          <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-sm font-medium sm:text-[15px]">
+            <strong>{banner.title}</strong>
+            <span>{banner.message}</span>
+            {banner.linkUrl && banner.linkLabel && <a href={banner.linkUrl} className="shrink-0 font-bold underline underline-offset-2">{banner.linkLabel}<ExternalLink className="ml-1 inline h-3.5 w-3.5" aria-hidden="true" /></a>}
+          </div>
+        </div>
+      )}
+      {incident && (
+        <div className="bg-[#9d2f20] px-5 py-3 text-white" role="alert">
+          <div className="mx-auto flex max-w-[1400px] items-center justify-center gap-3 text-center text-sm font-medium sm:text-[15px]">
+            <AlertTriangle className="hidden h-4 w-4 shrink-0 sm:block" aria-hidden="true" />
+            <span>
+              Service incident: {incident.name}
+              <span className="ml-1.5 text-white/75">({incident.status})</span>
+            </span>
+            <a
+              href={STATUS_PAGE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center gap-1 font-bold underline underline-offset-2 hover:text-white/80"
+            >
+              Details
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+            </a>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

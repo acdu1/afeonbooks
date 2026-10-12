@@ -7,6 +7,7 @@ import {
   siteContentTable,
   usersTable,
   loyaltyTransactionsTable,
+  promoCodesTable,
   type OrderRow,
   type OrderItemRow,
 } from "@workspace/db";
@@ -315,9 +316,30 @@ router.post("/orders", async (req, res): Promise<void> => {
     });
   }
   const currency = products[0]?.currency ?? "USD";
-  const total = subtotal + shipping;
+  const promoCode = body.promoCode?.trim().toUpperCase();
 
   const created = await db.transaction(async (tx) => {
+    let discountCents = 0;
+    if (promoCode) {
+      const [promo] = await tx
+        .select()
+        .from(promoCodesTable)
+        .where(eq(promoCodesTable.code, promoCode))
+        .for("update")
+        .limit(1);
+      const now = new Date();
+      if (
+        !promo ||
+        !promo.active ||
+        (promo.expiresAt !== null && promo.expiresAt <= now) ||
+        (promo.maxUses !== null && promo.useCount >= promo.maxUses)
+      ) return null;
+      discountCents = promo.discountType === "percent"
+        ? Math.floor(subtotal * promo.discountValue / 100)
+        : Math.min(subtotal, promo.discountValue);
+      await tx.update(promoCodesTable).set({ useCount: promo.useCount + 1 }).where(eq(promoCodesTable.id, promo.id));
+    }
+    const total = Math.max(0, subtotal - discountCents) + shipping;
     const inserted = await tx
       .insert(ordersTable)
       .values({
@@ -363,6 +385,11 @@ router.post("/orders", async (req, res): Promise<void> => {
     }
     return { order, items };
   });
+
+  if (!created) {
+    res.status(400).json({ error: "This promo code is invalid or no longer available." });
+    return;
+  }
 
   const content = (
     await db

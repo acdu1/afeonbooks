@@ -79,6 +79,10 @@ export default function Checkout() {
   const [loyaltyBalance, setLoyaltyBalance] = useState(0);
   const [pointsToRedeem, setPointsToRedeem] = useState("");
   const [redeemedPoints, setRedeemedPoints] = useState(0);
+  const [promoInput, setPromoInput] = useState("");
+  const [appliedPromoCode, setAppliedPromoCode] = useState("");
+  const [promoDiscountCents, setPromoDiscountCents] = useState(0);
+  const [promoBusy, setPromoBusy] = useState(false);
 
   const shippingAddresses = content?.shippingAddresses ?? [];
   const hasDefaultAddress = shippingAddresses.length > 0;
@@ -138,7 +142,32 @@ export default function Checkout() {
   const shippingCents = useDefaultAddress
     ? selectedShippingAddress?.shippingFeeCents ?? 0
     : CUSTOM_ADDRESS_SHIPPING_FEE_CENTS;
-  const totalCents = Math.max(0, subtotalCents - loyaltyDiscountCents) + shippingCents;
+  const totalCents = Math.max(0, subtotalCents - loyaltyDiscountCents - promoDiscountCents) + shippingCents;
+
+  const applyPromoCode = async () => {
+    const code = promoInput.trim().toUpperCase();
+    if (!code) return;
+    setPromoBusy(true);
+    try {
+      const response = await fetch("/api/promo-codes/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, subtotalCents }),
+      });
+      const data = await response.json() as { valid?: boolean; code?: string; discountCents?: number; error?: string };
+      if (!response.ok || !data.valid) throw new Error(data.error ?? "This promo code is unavailable.");
+      setAppliedPromoCode(data.code ?? code);
+      setPromoDiscountCents(data.discountCents ?? 0);
+      setPromoInput(data.code ?? code);
+      toast.success("Promo code applied");
+    } catch (error) {
+      setAppliedPromoCode("");
+      setPromoDiscountCents(0);
+      toast.error(error instanceof Error ? error.message : "Unable to apply promo code");
+    } finally {
+      setPromoBusy(false);
+    }
+  };
 
   const addressSetup = useRef(false);
   useEffect(() => {
@@ -177,6 +206,7 @@ export default function Checkout() {
           shippingAddressId: values.shippingAddressId,
           classroom: values.classroom?.trim() ?? "",
           notes: values.notes,
+          promoCode: appliedPromoCode || undefined,
            customFields: values.customFields,
           items,
           ...utmFields,
@@ -191,6 +221,7 @@ export default function Checkout() {
           postalCode: values.postalCode?.trim() ?? "",
           country: values.country?.trim() ?? "",
           notes: values.notes,
+          promoCode: appliedPromoCode || undefined,
            customFields: values.customFields,
           items,
           ...utmFields,
@@ -547,6 +578,26 @@ export default function Checkout() {
                   <p className="text-xs text-black/50 mt-2">1,000 Pages = $10 off your next purchase.</p>
                 </div>
               )}
+              <div className="border-b border-black/10 pb-6 mb-2">
+                <h3 className="font-bold text-base">Promo code</h3>
+                <div className="flex gap-2 mt-4">
+                  <Input
+                    value={promoInput}
+                    onChange={(event) => {
+                      setPromoInput(event.target.value.toUpperCase());
+                      if (appliedPromoCode) { setAppliedPromoCode(""); setPromoDiscountCents(0); }
+                    }}
+                    placeholder="Enter code"
+                    aria-label="Promo code"
+                    className="h-10 rounded-none font-mono uppercase"
+                  />
+                  {appliedPromoCode ? (
+                    <Button type="button" variant="outline" onClick={() => { setAppliedPromoCode(""); setPromoDiscountCents(0); setPromoInput(""); }} className="h-10 rounded-none border-black/25 text-xs font-bold uppercase">Remove</Button>
+                  ) : (
+                    <Button type="button" onClick={() => void applyPromoCode()} disabled={promoBusy || !promoInput.trim()} className="h-10 rounded-none bg-black text-xs font-bold uppercase text-white">{promoBusy ? "Checking" : "Apply"}</Button>
+                  )}
+                </div>
+              </div>
               <div className="flex justify-between">
                 <span className="text-black/60">Subtotal</span>
                 <span>{formatPrice(subtotalCents)}</span>
@@ -555,6 +606,12 @@ export default function Checkout() {
                 <div className="flex justify-between">
                   <span className="text-black/60">Rewards discount</span>
                   <span>-{formatPrice(loyaltyDiscountCents)}</span>
+                </div>
+              )}
+              {appliedPromoCode && (
+                <div className="flex justify-between text-emerald-800">
+                  <span>Promo discount ({appliedPromoCode})</span>
+                  <span>-{formatPrice(promoDiscountCents)}</span>
                 </div>
               )}
               <div className="flex justify-between">

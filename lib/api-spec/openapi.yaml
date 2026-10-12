@@ -460,6 +460,7 @@ components:
         shippingAddressId: { type: string }
         classroom: { type: string }
         notes: { type: string }
+        promoCode: { type: string, maxLength: 40 }
         customFields: { type: object, additionalProperties: { type: string } }
         orderType: { type: string, enum: [sale, preorder] }
         utmSource: { type: string }
