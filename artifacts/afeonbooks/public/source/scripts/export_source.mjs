@@ -56,9 +56,67 @@ async function copyDirectory(src, dest) {
   );
 }
 
+async function buildIndexHtml(rootTarget) {
+  const entries = [];
+
+  async function walkDir(dir) {
+    const names = await fs.readdir(dir, { withFileTypes: true });
+    for (const entry of names) {
+      const srcPath = path.join(dir, entry.name);
+      if (shouldExclude(srcPath)) continue;
+      const relPath = normalizeRel(srcPath);
+      if (entry.isDirectory()) {
+        await walkDir(srcPath);
+      } else if (entry.isFile()) {
+        entries.push(relPath);
+      }
+    }
+  }
+
+  await walkDir(rootTarget);
+  entries.sort();
+
+  const rows = entries
+    .map((entry) => {
+      const url = `/source/${encodeURI(entry).replace(/%2F/g, "/")}`;
+      return `<li><a href="${url}" target="_blank" rel="noopener noreferrer">${entry}</a></li>`;
+    })
+    .join("\n        ");
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AFEON Books Source</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 32px; background: #f7f7f7; color: #111; }
+    h1 { margin-bottom: 0.5rem; font-size: 2rem; }
+    p { margin-top: 0; color: #555; }
+    ul { list-style: none; padding: 0; margin: 1.5rem 0 0; }
+    li { margin: 0.35rem 0; }
+    a { color: #1f2937; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .meta { margin-top: 1rem; color: #6b7280; font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+  <h1>AFEON Books Source</h1>
+  <p>Browse the exported repository contents below. Click a file to view it.</p>
+  <div class="meta">Files exported from the repository root.</div>
+  <ul>
+        ${rows}
+  </ul>
+</body>
+</html>`;
+
+  await fs.writeFile(path.join(rootTarget, "index.html"), html, "utf8");
+}
+
 async function main() {
   await fs.rm(target, { recursive: true, force: true });
   await copyDirectory(repoRoot, target);
+  await buildIndexHtml(target);
   console.log(`Exported source to ${target}`);
 }
 

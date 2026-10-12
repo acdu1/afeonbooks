@@ -2,6 +2,7 @@ import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
 
 export const ordersTable = pgTable("orders", {
   id: serial("id").primaryKey(),
+  school: text("school").notNull().default("alvarado"),
   customerName: text("customer_name").notNull(),
   customerEmail: text("customer_email").notNull(),
   customerPhone: text("customer_phone").notNull(),
@@ -12,8 +13,12 @@ export const ordersTable = pgTable("orders", {
   classroom: text("classroom"),
   useDefaultAddress: text("use_default_address").notNull().default("false"),
   notes: text("notes"),
+  customFields: text("custom_fields").notNull().default("{}"),
   paymentMethod: text("payment_method").notNull().default("cash_on_delivery"),
+  orderType: text("order_type").notNull().default("sale"),
+  paymentStatus: text("payment_status").notNull().default("due"),
   status: text("status").notNull().default("pending"),
+  estimatedDeliveryDate: text("estimated_delivery_date"),
   subtotalCents: integer("subtotal_cents").notNull(),
   shippingCents: integer("shipping_cents").notNull().default(0),
   totalCents: integer("total_cents").notNull(),

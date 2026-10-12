@@ -431,7 +431,7 @@ router.patch("/orders/:id", requireUser, requireRole("staff", "admin"), async (r
       .where(eq(ordersTable.id, id))
       .returning();
 
-    if ((body.status === "delivered" || body.status === "completed") && current[0].status !== body.status) {
+    if (body.status === "delivered" && current[0].status !== body.status) {
       const [user] = await tx
         .select({ id: usersTable.id })
         .from(usersTable)

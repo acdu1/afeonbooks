@@ -5,9 +5,13 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CreateOrderCustomFields } from "./createOrderCustomFields";
 import type { CreateOrderItem } from "./createOrderItem";
+import type { CreateOrderOrderType } from "./createOrderOrderType";
+import type { CreateOrderSchool } from "./createOrderSchool";
 
 export interface CreateOrder {
+  school?: CreateOrderSchool;
   /** @minLength 1 */
   customerName: string;
   /** @minLength 3 */
@@ -16,11 +20,14 @@ export interface CreateOrder {
   customerPhone: string;
   useDefaultAddress: boolean;
   shippingAddress?: string;
+  shippingAddressId?: string;
   city?: string;
   postalCode?: string;
   country?: string;
   classroom?: string;
   notes?: string;
+  customFields?: CreateOrderCustomFields;
+  orderType?: CreateOrderOrderType;
   utmSource?: string;
   utmMedium?: string;
   utmCampaign?: string;

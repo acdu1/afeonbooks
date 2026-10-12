@@ -5,10 +5,15 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { OrderCustomFields } from "./orderCustomFields";
 import type { OrderItem } from "./orderItem";
+import type { OrderOrderType } from "./orderOrderType";
+import type { OrderPaymentStatus } from "./orderPaymentStatus";
+import type { OrderSchool } from "./orderSchool";
 
 export interface Order {
   id: number;
+  school: OrderSchool;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -19,7 +24,10 @@ export interface Order {
   classroom?: string;
   useDefaultAddress: boolean;
   notes?: string;
+  customFields?: OrderCustomFields;
   paymentMethod: string;
+  orderType: OrderOrderType;
+  paymentStatus: OrderPaymentStatus;
   status: string;
   subtotalCents: number;
   shippingCents: number;
