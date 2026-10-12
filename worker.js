@@ -138,7 +138,7 @@ async function orderPdfResponse(request, orderId) {
   });
 }
 
-async function maintenanceResponse() {
+function maintenanceResponse() {
   return new Response(
     `<!doctype html>
 <html lang="en">
@@ -149,28 +149,33 @@ async function maintenanceResponse() {
   <title>Service Under Maintenance | AFEON Books</title>
   <style>
     * { box-sizing: border-box; }
-    body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 24px; background: #101827; color: #fff; font: 16px/1.5 system-ui, sans-serif; text-align: center; }
+    body { min-height: 100vh; margin: 0; background: #101827; color: #fff; font: 16px/1.5 system-ui, sans-serif; text-align: center; }
+    .status-banner { display: block; padding: 12px 20px; background: #9d2f20; color: #fff; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
     main { max-width: 34rem; }
+    .content { min-height: calc(100vh - 48px); display: grid; place-items: center; padding: 24px; }
     img { width: min(12rem, 60vw); height: auto; }
     h1 { margin: 1.5rem 0 0.5rem; font-size: clamp(1.75rem, 7vw, 2.5rem); }
     p { margin: 0; color: #cbd5e1; }
   </style>
 </head>
 <body>
-  <main>
-    <img src="/totec-maintenance.svg" alt="">
-    <h1>Service Under Maintenance</h1>
-    <p>AFEON Books is temporarily unavailable while we work on the service. This page will check again shortly.</p>
-  </main>
+  <a class="status-banner" href="https://status.afeonbooks.com/" target="_blank" rel="noopener noreferrer">Service Under Maintenance — view status updates</a>
+  <div class="content">
+    <main>
+      <img src="/totec-maintenance.svg" alt="Maintenance in progress">
+      <h1>Service Under Maintenance</h1>
+      <p>AFEON Books is temporarily unavailable while we work on the service. This page will check again shortly.</p>
+    </main>
+  </div>
 </body>
 </html>`,
     {
-    status: 503,
-    headers: {
-      "Content-Type": "text/html; charset=utf-8",
-      "Retry-After": "60",
-      "Cache-Control": "no-store",
-    },
+      status: 503,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Retry-After": "60",
+        "Cache-Control": "no-store",
+      },
     }
   );
 }

@@ -11,11 +11,15 @@ interface StatusPageIncident {
 }
 
 interface StatusPageSummary {
-  incidents: StatusPageIncident[];
+  incidents?: StatusPageIncident[];
+  status?: {
+    indicator?: string;
+    description?: string;
+  };
 }
 
 export function StatusBanner() {
-  const [incident, setIncident] = useState<StatusPageIncident | null>(null);
+  const [summary, setSummary] = useState<StatusPageSummary | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -27,10 +31,9 @@ export function StatusBanner() {
         });
         if (!response.ok) return;
 
-        const summary = (await response.json()) as StatusPageSummary;
-        setIncident(summary.incidents?.[0] ?? null);
+        setSummary((await response.json()) as StatusPageSummary);
       } catch {
-        if (!controller.signal.aborted) setIncident(null);
+        if (!controller.signal.aborted) setSummary(null);
       }
     };
 
@@ -43,15 +46,23 @@ export function StatusBanner() {
     };
   }, []);
 
-  if (!incident) return null;
+  const incident = summary?.incidents?.[0];
+  const status = summary?.status;
+  if (!incident && (!status || status.indicator === "none")) return null;
 
   return (
     <div className="bg-[#9d2f20] px-5 py-3 text-white" role="alert">
       <div className="mx-auto flex max-w-[1400px] items-center justify-center gap-3 text-center text-sm font-medium sm:text-[15px]">
         <AlertTriangle className="hidden h-4 w-4 shrink-0 sm:block" aria-hidden="true" />
         <span>
-          Service incident: {incident.name}
-          <span className="ml-1.5 text-white/75">({incident.status})</span>
+          {incident ? (
+            <>
+              Service incident: {incident.name}
+              <span className="ml-1.5 text-white/75">({incident.status})</span>
+            </>
+          ) : (
+            <>Service status: {status?.description ?? "Service disruption"}</>
+          )}
         </span>
         <a
           href={STATUS_PAGE_URL}
