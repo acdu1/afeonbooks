@@ -30,6 +30,24 @@ type LoyaltyData = {
   transactions: Array<{ id: number; points: number; description: string; createdAt: string }>;
 };
 
+function getSourceReturnUrl(value: string | null): string | null {
+  if (!value) return null;
+
+  try {
+    const target = new URL(value);
+    if (
+      target.origin !== "https://source.afeonbooks.com" ||
+      target.username ||
+      target.password
+    ) {
+      return null;
+    }
+    return target.toString();
+  } catch {
+    return null;
+  }
+}
+
 function AccountForm() {
   const { signIn, signUp } = useAuth();
   const [registering, setRegistering] = useState(false);
