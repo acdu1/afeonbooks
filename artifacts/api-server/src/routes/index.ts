@@ -10,6 +10,7 @@ import devTestingRouter from "./dev-testing";
 import renderLogsRouter from "./render-logs";
 import authRouter from "./auth";
 import devEventsRouter from "./dev-events";
+import marketingRouter from "./marketing";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(devTestingRouter);
 router.use(renderLogsRouter);
 router.use(authRouter);
 router.use(devEventsRouter);
+router.use(marketingRouter);
 
 export default router;
