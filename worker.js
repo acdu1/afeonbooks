@@ -207,13 +207,13 @@ async function getAdminUserFromSession(request) {
 
 function sourceDashboardHtml() {
   const panels = [
-    { name: "GitHub", url: "https://github.com" },
-    { name: "GitHub Codespaces", url: "https://github.com/codespaces" },
-    { name: "Cloudflare Dashboard", url: "https://dash.cloudflare.com" },
-    { name: "Supabase", url: "https://supabase.com/dashboard" },
-    { name: "Render", url: "https://dashboard.render.com" },
+    { name: "GitHub", url: "https://github.com/acdu1/afeonbooks" },
+    { name: "GitHub Codespaces", url: "https://ubiquitous-guacamole-x545p5p7996439pxj.github.dev/" },
+    { name: "Cloudflare Dashboard", url: "https://dash.cloudflare.com/a130548b1748b2365a5c0e027fe3ebd8/home" },
+    { name: "Supabase", url: "https://supabase.com/dashboard/project/msxfhfdeqxqvjuypcspm" },
+    { name: "Render", url: "https://dashboard.render.com/web/srv-da57c6jbc2fs738388lg" },
     { name: "StatusPage", url: "https://status.afeonbooks.com/" },
-    { name: "Reedsy Book Editor", url: "https://reedsy.com/" },
+    { name: "Reedsy Book Editor", url: "https://editor.reedsy.com/" },
   ];
 
   const iframeMarkup = panels
