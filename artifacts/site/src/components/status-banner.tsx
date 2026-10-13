@@ -18,6 +18,15 @@ interface StatusPageSummary {
   };
 }
 
+interface StoreBanner {
+  title: string;
+  message: string;
+  linkUrl: string;
+  linkLabel: string;
+  backgroundColor: string;
+  textColor: string;
+}
+
 export function StatusBanner() {
   const [summary, setSummary] = useState<StatusPageSummary | null>(null);
 

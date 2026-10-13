@@ -2,6 +2,7 @@ import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 
 export const siteContentTable = pgTable("site_content", {
   id: serial("id").primaryKey(),
+  school: text("school").notNull().default("alvarado"),
   brandName: text("brand_name").notNull(),
   navHomeLabel: text("nav_home_label").notNull(),
   heroTitle: text("hero_title").notNull(),
@@ -20,8 +21,11 @@ export const siteContentTable = pgTable("site_content", {
   defaultShippingCity: text("default_shipping_city").notNull().default(""),
   defaultShippingPostalCode: text("default_shipping_postal_code").notNull().default(""),
   defaultShippingCountry: text("default_shipping_country").notNull().default(""),
+  shippingAddresses: text("shipping_addresses").notNull().default("[]"),
+  loyaltyPagesPerDollar: text("loyalty_pages_per_dollar").notNull().default("50"),
   adminPin: text("admin_pin").notNull().default("2026"),
   ordersEnabled: text("orders_enabled").notNull().default("true"),
+  maintenanceMode: text("maintenance_mode").notNull().default("false"),
   emailEnabled: text("email_enabled").notNull().default("false"),
   emailFromName: text("email_from_name").notNull().default("AFEON Books"),
   emailFromAddress: text("email_from_address").notNull().default("onboarding@resend.dev"),
@@ -32,6 +36,12 @@ export const siteContentTable = pgTable("site_content", {
   emailButtonLabel: text("email_button_label").notNull().default("View your order"),
   emailFooter: text("email_footer").notNull().default("Questions about your order? Just reply to this email."),
   emailAccentColor: text("email_accent_color").notNull().default("#E2553B"),
+  checkoutFields: text("checkout_fields").notNull().default("[]"),
+  blogTitle: text("blog_title").notNull().default("Progress Update"),
+  blogSubtitle: text("blog_subtitle").notNull().default("A look inside the latest adventure from the AFEON Books team."),
+  blogDate: text("blog_date").notNull().default("September 15, 2026"),
+  blogHeroImageUrl: text("blog_hero_image_url").notNull().default(""),
+  blogBody: text("blog_body").notNull().default("We are back at the writing table, building the next mystery one clue at a time.\n\nThe next book is taking shape with bigger questions, stranger discoveries, and a brand-new trail for our detectives to follow. We cannot wait to share more soon."),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

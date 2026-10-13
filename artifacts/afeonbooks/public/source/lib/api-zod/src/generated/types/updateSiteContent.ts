@@ -5,8 +5,13 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { UpdateSiteContentCheckoutFieldsItem } from "./updateSiteContentCheckoutFieldsItem";
+import type { UpdateSiteContentShippingAddressesItem } from "./updateSiteContentShippingAddressesItem";
 
 export interface UpdateSiteContent {
+  checkoutFields?: UpdateSiteContentCheckoutFieldsItem[];
+  shippingAddresses?: UpdateSiteContentShippingAddressesItem[];
+  loyaltyPagesPerDollar: number;
   brandName: string;
   navHomeLabel: string;
   heroTitle: string;

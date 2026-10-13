@@ -368,6 +368,7 @@ export const CreateOrderBody = zod.object({
   country: zod.string().optional(),
   classroom: zod.string().optional(),
   notes: zod.string().optional(),
+  promoCode: zod.string().max(40).optional(),
   customFields: zod.record(zod.string(), zod.string()).optional(),
   orderType: zod.enum(["sale", "preorder"]).optional(),
   utmSource: zod.string().optional(),

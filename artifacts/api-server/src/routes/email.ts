@@ -175,6 +175,7 @@ router.post("/email/test", requireUser, requireRole("admin"), async (req, res): 
     landingPage: null,
     paymentMethod: "cash_on_delivery",
     status: "pending",
+    estimatedDeliveryDate: null,
     subtotalCents: 1499,
     shippingCents: 0,
     totalCents: 1499,

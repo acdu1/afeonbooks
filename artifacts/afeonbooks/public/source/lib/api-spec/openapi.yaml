@@ -27,6 +27,8 @@ paths:
     get:
       operationId: getContent
       tags: [content]
+      parameters:
+        - $ref: "#/components/parameters/School"
       responses:
         "200":
           description: OK
@@ -36,6 +38,8 @@ paths:
     put:
       operationId: updateContent
       tags: [content]
+      parameters:
+        - $ref: "#/components/parameters/School"
       requestBody:
         required: true
         content:
@@ -51,6 +55,8 @@ paths:
     get:
       operationId: listProducts
       tags: [products]
+      parameters:
+        - $ref: "#/components/parameters/School"
       responses:
         "200":
           description: OK
@@ -62,6 +68,8 @@ paths:
     post:
       operationId: createProduct
       tags: [products]
+      parameters:
+        - $ref: "#/components/parameters/School"
       requestBody:
         required: true
         content:
@@ -122,6 +130,8 @@ paths:
     get:
       operationId: listOrders
       tags: [orders]
+      parameters:
+        - $ref: "#/components/parameters/School"
       responses:
         "200":
           description: OK
@@ -133,6 +143,8 @@ paths:
     post:
       operationId: createOrder
       tags: [orders]
+      parameters:
+        - $ref: "#/components/parameters/School"
       requestBody:
         required: true
         content:
@@ -215,6 +227,14 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/OrdersSummary" }
 components:
+  parameters:
+    School:
+      name: school
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [alvarado, shelyn]
   schemas:
     HealthStatus:
       type: object
@@ -224,6 +244,16 @@ components:
       type: object
       properties:
         id: { type: integer }
+        school: { type: string, enum: [alvarado, shelyn] }
+        checkoutFields:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              label: { type: string }
+              required: { type: boolean }
+            required: [id, label, required]
         brandName: { type: string }
         navHomeLabel: { type: string }
         heroTitle: { type: string }
@@ -242,6 +272,20 @@ components:
         defaultShippingCity: { type: string }
         defaultShippingPostalCode: { type: string }
         defaultShippingCountry: { type: string }
+        shippingAddresses:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, minLength: 1 }
+              label: { type: string, minLength: 1 }
+              address: { type: string, minLength: 1 }
+              city: { type: string, minLength: 1 }
+              postalCode: { type: string, minLength: 1 }
+              country: { type: string, minLength: 1 }
+              shippingFeeCents: { type: integer, minimum: 0 }
+            required: [id, label, address, city, postalCode, country, shippingFeeCents]
+        loyaltyPagesPerDollar: { type: integer, minimum: 0, maximum: 1000000 }
         ordersEnabled: { type: boolean }
         emailEnabled: { type: boolean }
         emailFromName: { type: string }
@@ -253,11 +297,25 @@ components:
         emailButtonLabel: { type: string }
         emailFooter: { type: string }
         emailAccentColor: { type: string }
+        blogTitle: { type: string }
+        blogSubtitle: { type: string }
+        blogDate: { type: string }
+        blogHeroImageUrl: { type: string }
+        blogBody: { type: string }
         updatedAt: { type: string }
-      required: [id, brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, ordersEnabled, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor, updatedAt]
+      required: [id, school, checkoutFields, brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, shippingAddresses, loyaltyPagesPerDollar, ordersEnabled, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor, blogTitle, blogSubtitle, blogDate, blogHeroImageUrl, blogBody, updatedAt]
     UpdateSiteContent:
       type: object
       properties:
+        checkoutFields:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              label: { type: string }
+              required: { type: boolean }
+            required: [id, label, required]
         brandName: { type: string }
         navHomeLabel: { type: string }
         heroTitle: { type: string }
@@ -276,6 +334,20 @@ components:
         defaultShippingCity: { type: string }
         defaultShippingPostalCode: { type: string }
         defaultShippingCountry: { type: string }
+        shippingAddresses:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, minLength: 1 }
+              label: { type: string, minLength: 1 }
+              address: { type: string, minLength: 1 }
+              city: { type: string, minLength: 1 }
+              postalCode: { type: string, minLength: 1 }
+              country: { type: string, minLength: 1 }
+              shippingFeeCents: { type: integer, minimum: 0 }
+            required: [id, label, address, city, postalCode, country]
+        loyaltyPagesPerDollar: { type: integer, minimum: 0, maximum: 1000000 }
         ordersEnabled: { type: boolean }
         emailEnabled: { type: boolean }
         emailFromName: { type: string }
@@ -287,11 +359,18 @@ components:
         emailButtonLabel: { type: string }
         emailFooter: { type: string }
         emailAccentColor: { type: string }
-      required: [brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, ordersEnabled, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor]
+        blogTitle: { type: string }
+        blogSubtitle: { type: string }
+        blogDate: { type: string }
+        blogHeroImageUrl: { type: string }
+        blogBody: { type: string }
+        loyaltyPagesPerDollar: { type: integer, minimum: 0, maximum: 1000000 }
+      required: [brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, loyaltyPagesPerDollar, ordersEnabled, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor, blogTitle, blogSubtitle, blogDate, blogHeroImageUrl, blogBody]
     Product:
       type: object
       properties:
         id: { type: integer }
+        school: { type: string, enum: [alvarado, shelyn] }
         name: { type: string }
         description: { type: string }
         priceCents: { type: integer }
@@ -299,8 +378,9 @@ components:
         imageUrl: { type: string }
         stock: { type: integer }
         active: { type: boolean }
+        showInShop: { type: boolean }
         createdAt: { type: string }
-      required: [id, name, description, priceCents, currency, imageUrl, stock, active, createdAt]
+      required: [id, school, name, description, priceCents, currency, imageUrl, stock, active, showInShop, createdAt]
     CreateProduct:
       type: object
       properties:
@@ -311,6 +391,7 @@ components:
         imageUrl: { type: string }
         stock: { type: integer, minimum: 0 }
         active: { type: boolean }
+        showInShop: { type: boolean }
       required: [name, description, priceCents, currency, imageUrl, stock, active]
     OrderItem:
       type: object
@@ -325,6 +406,7 @@ components:
       type: object
       properties:
         id: { type: integer }
+        school: { type: string, enum: [alvarado, shelyn] }
         customerName: { type: string }
         customerEmail: { type: string }
         customerPhone: { type: string }
@@ -335,8 +417,12 @@ components:
         classroom: { type: string }
         useDefaultAddress: { type: boolean }
         notes: { type: string }
+        customFields: { type: object, additionalProperties: { type: string } }
         paymentMethod: { type: string }
+        orderType: { type: string, enum: [sale, preorder] }
+        paymentStatus: { type: string, enum: [due, due_later, paid] }
         status: { type: string }
+        estimatedDeliveryDate: { type: string, format: date }
         subtotalCents: { type: integer }
         shippingCents: { type: integer }
         totalCents: { type: integer }
@@ -352,7 +438,7 @@ components:
         items:
           type: array
           items: { $ref: "#/components/schemas/OrderItem" }
-      required: [id, customerName, customerEmail, customerPhone, shippingAddress, city, postalCode, country, useDefaultAddress, paymentMethod, status, subtotalCents, shippingCents, totalCents, currency, createdAt, items]
+      required: [id, school, customerName, customerEmail, customerPhone, shippingAddress, city, postalCode, country, useDefaultAddress, paymentMethod, orderType, paymentStatus, status, subtotalCents, shippingCents, totalCents, currency, createdAt, items]
     CreateOrderItem:
       type: object
       properties:
@@ -362,6 +448,7 @@ components:
     CreateOrder:
       type: object
       properties:
+        school: { type: string, enum: [alvarado, shelyn] }
         customerName: { type: string, minLength: 1 }
         customerEmail: { type: string, minLength: 3 }
         customerPhone: { type: string, minLength: 3 }
@@ -370,8 +457,11 @@ components:
         city: { type: string }
         postalCode: { type: string }
         country: { type: string }
+        shippingAddressId: { type: string }
         classroom: { type: string }
         notes: { type: string }
+        customFields: { type: object, additionalProperties: { type: string } }
+        orderType: { type: string, enum: [sale, preorder] }
         utmSource: { type: string }
         utmMedium: { type: string }
         utmCampaign: { type: string }
@@ -390,6 +480,9 @@ components:
         status:
           type: string
           enum: [pending, confirmed, shipped, delivered, cancelled]
+        estimatedDeliveryDate:
+          type: string
+          format: date
       required: [status]
     SendTestEmail:
       type: object

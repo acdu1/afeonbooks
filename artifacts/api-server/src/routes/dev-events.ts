@@ -1,14 +1,14 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request } from "express";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
-function clientIp(req: Parameters<IRouter["post"]>[0]) {
+function clientIp(req: Request) {
   const forwarded = req.headers["x-forwarded-for"];
   return typeof forwarded === "string" ? forwarded.split(",")[0]?.trim() || "unknown" : req.socket.remoteAddress || "unknown";
 }
 
-router.post("/dev-events", (req, res): void => {
+router.post("/dev-events", (req: Request, res): void => {
   if (process.env.DEV_AUDIT_LOGS !== "true") {
     res.status(404).json({ error: "Dev audit logging is disabled" });
     return;

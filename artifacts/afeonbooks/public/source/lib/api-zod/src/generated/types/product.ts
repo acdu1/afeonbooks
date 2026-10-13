@@ -5,9 +5,11 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ProductSchool } from "./productSchool";
 
 export interface Product {
   id: number;
+  school: ProductSchool;
   name: string;
   description: string;
   priceCents: number;
@@ -15,5 +17,6 @@ export interface Product {
   imageUrl: string;
   stock: number;
   active: boolean;
+  showInShop: boolean;
   createdAt: string;
 }

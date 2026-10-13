@@ -5,9 +5,14 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { SiteContentCheckoutFieldsItem } from "./siteContentCheckoutFieldsItem";
+import type { SiteContentSchool } from "./siteContentSchool";
+import type { SiteContentShippingAddressesItem } from "./siteContentShippingAddressesItem";
 
 export interface SiteContent {
   id: number;
+  school: SiteContentSchool;
+  checkoutFields: SiteContentCheckoutFieldsItem[];
   brandName: string;
   navHomeLabel: string;
   heroTitle: string;
@@ -26,6 +31,8 @@ export interface SiteContent {
   defaultShippingCity: string;
   defaultShippingPostalCode: string;
   defaultShippingCountry: string;
+  shippingAddresses: SiteContentShippingAddressesItem[];
+  loyaltyPagesPerDollar: number;
   ordersEnabled: boolean;
   emailEnabled: boolean;
   emailFromName: string;
@@ -37,5 +44,10 @@ export interface SiteContent {
   emailButtonLabel: string;
   emailFooter: string;
   emailAccentColor: string;
+  blogTitle: string;
+  blogSubtitle: string;
+  blogDate: string;
+  blogHeroImageUrl: string;
+  blogBody: string;
   updatedAt: string;
 }

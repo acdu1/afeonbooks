@@ -218,6 +218,7 @@ export interface Order {
   classroom?: string;
   useDefaultAddress: boolean;
   notes?: string;
+  promoCode?: string;
   customFields?: OrderCustomFields;
   paymentMethod: string;
   orderType: OrderOrderType;
@@ -278,6 +279,7 @@ export interface CreateOrder {
   country?: string;
   classroom?: string;
   notes?: string;
+  promoCode?: string;
   customFields?: CreateOrderCustomFields;
   orderType?: CreateOrderOrderType;
   utmSource?: string;
