@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const SUPPORTED_SUPABASE_PORTS = [5432, 6543];
-const STATUS_PAGE_URL = "https://afeonbooks.statuspage.io/";
+const STATUS_PAGE_URL = "https://status.afeonbooks.com/";
 
 type RenderLog = {
   id?: string;

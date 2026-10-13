@@ -1,7 +1,7 @@
 async function isMaintenanceMode() {
   try {
     const response = await fetch(
-      "https://afeonbooks.statuspage.io/api/v2/status.json",
+      "https://status.afeonbooks.com/api/v2/status.json",
       { signal: AbortSignal.timeout(5000) }
     );
     if (!response.ok) return false;
