@@ -394,23 +394,24 @@ export default {
 if (url.hostname === "source.afeonbooks.com") {
   if (request.method !== "GET") return new Response("Method Not Allowed", { status: 405 });
 
+  const isSourceDashboardRoute = path === "/source" || path === "/source/" || path === "/infra" || path === "/infra/";
+  if (!isSourceDashboardRoute) {
+    return env.ASSETS.fetch(request);
+  }
+
   const user = await getAdminUserFromSession(request);
   if (!user || user.role !== "admin") {
     const authUrl = new URL("https://authn.afeonbooks.com/");
-    authUrl.searchParams.set("return_to", request.url);
+    authUrl.searchParams.set("return_to", new URL("https://source.afeonbooks.com/source").toString());
     return Response.redirect(authUrl.toString(), 302);
   }
 
-  if (path === "/") {
-    return new Response(sourceDashboardHtml(), {
-      headers: {
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "no-store",
-      },
-    });
-  }
-
-  return new Response("Not Found", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  return new Response(sourceDashboardHtml(), {
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  });
 }
 
 if (url.hostname === "authn.afeonbooks.com") {
