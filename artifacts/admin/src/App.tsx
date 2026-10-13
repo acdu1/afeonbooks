@@ -382,10 +382,20 @@ function Router() {
       <Route path="/pos" component={Pos} />
       <Route path="/zoho-mail" component={ZohoMail} />
       <Route path="/zoho-mail/" component={ZohoMail} />
+      <Route path="/source-edit" component={AdminHome} />
+      <Route path="/source-edit/" component={AdminHome} />
       <Route path="/" component={AdminHome} />
       <Route component={NotFound} />
     </Switch>
   );
+}
+
+function StatusEditRedirect() {
+  useEffect(() => {
+    window.location.replace("https://manage.statuspage.io/pages/rrymp485zp6s/incidents");
+  }, []);
+
+  return null;
 }
 
 function AdminAccessGate({ children }: { children: React.ReactNode }) {
@@ -447,6 +457,7 @@ function App() {
   const adminBase = "/admin";
   const isPosPath = window.location.pathname === `${adminBase}/pos` || window.location.pathname === `${adminBase}/pos/`;
   const isZohoMailPath = window.location.pathname === `${adminBase}/zoho-mail` || window.location.pathname === `${adminBase}/zoho-mail/`;
+  const isStatusEditPath = window.location.pathname === `${adminBase}/status-edit` || window.location.pathname === `${adminBase}/status-edit/`;
   const [adminView, setAdminView] = useState(() => window.location.hash);
 
   useEffect(() => {
@@ -477,18 +488,22 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AdminAccessGate>
-          {isPosPath ? (
-            <Pos />
-          ) : isZohoMailPath || adminView === "#zoho-mail" ? (
-            <ZohoMail />
-          ) : (
-            <WouterRouter base={adminBase}>
-              <Router />
-            </WouterRouter>
-          )}
-          {!isPosPath && !isZohoMailPath && <OrderEmailOverlay />}
-        </AdminAccessGate>
+        {isStatusEditPath ? (
+          <StatusEditRedirect />
+        ) : (
+          <AdminAccessGate>
+            {isPosPath ? (
+              <Pos />
+            ) : isZohoMailPath || adminView === "#zoho-mail" ? (
+              <ZohoMail />
+            ) : (
+              <WouterRouter base={adminBase}>
+                <Router />
+              </WouterRouter>
+            )}
+            {!isPosPath && !isZohoMailPath && <OrderEmailOverlay />}
+          </AdminAccessGate>
+        )}
         <Toaster position="top-center" richColors />
         <DebugOverlay />
       </TooltipProvider>
