@@ -49,7 +49,7 @@ function promoInput(body: Record<string, unknown>) {
   if (
     !/^[A-Z0-9][A-Z0-9_-]{1,39}$/.test(code) ||
     !["percent", "fixed"].includes(String(body.discountType)) ||
-    !Number.isInteger(body.discountValue) || Number(body.discountValue) < 1 ||
+    !Number.isInteger(body.discountValue) || Number(body.discountValue) < 0 ||
     (body.discountType === "percent" && Number(body.discountValue) > 100) ||
     typeof body.active !== "boolean" || expiresAt === undefined ||
     (maxUses !== null && (!Number.isInteger(maxUses) || maxUses < 1))
