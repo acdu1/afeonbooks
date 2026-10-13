@@ -188,21 +188,36 @@ async function getAdminUserFromSession(request) {
   const cookie = request.headers.get("Cookie");
   if (!cookie) return null;
 
-  try {
-    const response = await fetch("https://api.afeonbooks.com/api/auth/me", {
-      headers: {
-        Accept: "application/json",
-        Cookie: cookie,
-      },
-      redirect: "manual",
-    });
+  const response = await fetch("https://api.afeonbooks.com/api/auth/me", {
+    headers: {
+      Accept: "application/json",
+      Cookie: cookie,
+    },
+    redirect: "manual",
+  });
 
-    if (!response.ok) return null;
-    const payload = await response.json().catch(() => ({}));
-    return payload?.user ?? null;
-  } catch {
-    return null;
+  if (!response.ok) {
+    throw new Error(`Admin session check failed with status ${response.status}`);
   }
+
+  const payload = await response.json();
+  if (!payload || !Object.hasOwn(payload, "user")) {
+    throw new Error("Admin session check returned an invalid response");
+  }
+  return payload.user ?? null;
+}
+
+function sourceAuthError(status, message) {
+  return new Response(
+    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Unable to verify access</title><style>body{font:16px/1.5 system-ui,sans-serif;max-width:38rem;margin:12vh auto;padding:24px;color:#171717;background:#f5f3ee}main{background:#fff;padding:32px;border:1px solid #ddd}a{color:#111827;font-weight:600}</style></head><body><main><h1>Unable to verify admin access</h1><p>${message}</p><p><a href="https://authn.afeonbooks.com/account">Open your AFEON account</a></p></main></body></html>`,
+    {
+      status,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    },
+  );
 }
 
 function sourceDashboardHtml() {
@@ -432,10 +447,26 @@ if (url.hostname === "source.afeonbooks.com") {
     return env.ASSETS.fetch(request);
   }
 
-  const user = await getAdminUserFromSession(request);
+  let user;
+  try {
+    user = await getAdminUserFromSession(request);
+  } catch (error) {
+    console.error(JSON.stringify({
+      message: "Source dashboard admin session check failed",
+      error: error instanceof Error ? error.message : String(error),
+    }));
+    return sourceAuthError(503, "The session check failed. Please try again shortly.");
+  }
+
   if (!user || user.role !== "admin") {
+    if (url.searchParams.get("authn_return") === "1") {
+      return sourceAuthError(401, "The sign-in returned without an administrator session. Sign in with an admin account, then try the dashboard again.");
+    }
+
     const authUrl = new URL("https://authn.afeonbooks.com/");
-    authUrl.searchParams.set("return_to", request.url);
+    const returnTo = new URL(request.url);
+    returnTo.searchParams.set("authn_return", "1");
+    authUrl.searchParams.set("return_to", returnTo.toString());
     return Response.redirect(authUrl.toString(), 302);
   }
 
