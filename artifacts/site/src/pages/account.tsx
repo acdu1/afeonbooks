@@ -30,6 +30,24 @@ type LoyaltyData = {
   transactions: Array<{ id: number; points: number; description: string; createdAt: string }>;
 };
 
+function getSourceReturnUrl(value: string | null): string | null {
+  if (!value) return null;
+
+  try {
+    const target = new URL(value);
+    if (
+      target.origin !== "https://source.afeonbooks.com" ||
+      target.username ||
+      target.password
+    ) {
+      return null;
+    }
+    return target.toString();
+  } catch {
+    return null;
+  }
+}
+
 function AccountForm() {
   const { signIn, signUp } = useAuth();
   const [registering, setRegistering] = useState(false);
@@ -252,6 +270,8 @@ export default function Account() {
   const { user, loading, signOut } = useAuth();
   const params = new URLSearchParams(window.location.search);
   const hasTokenFlow = params.has("reset_token") || params.has("verify_token");
+  const returnToParam = params.get("return_to");
+  const returnTo = getSourceReturnUrl(returnToParam);
   const isAuthHost = window.location.hostname === "authn.afeonbooks.com";
   const isAuthEntry = isAuthHost || /^\/(?:sign-in|account-check)\/[a-f0-9]{32}$/.test(window.location.pathname);
 
@@ -260,6 +280,12 @@ export default function Account() {
       window.location.replace(createAuthEntryUrl(false));
     }
   }, [isAuthEntry, isAuthHost, loading, user, hasTokenFlow]);
+
+  useEffect(() => {
+    if (isAuthHost && returnTo && !loading && user?.role === "admin") {
+      window.location.replace(returnTo);
+    }
+  }, [isAuthHost, loading, returnTo, user]);
 
   if (!loading && !user && !hasTokenFlow && !isAuthEntry) {
     return null;
@@ -284,6 +310,15 @@ export default function Account() {
           <AccountTokenHandler />
         ) : loading ? (
           <p className="text-black/50">Loading...</p>
+        ) : isAuthHost && returnToParam && !returnTo ? (
+          <p className="mx-auto mt-8 max-w-md text-sm text-red-700">This sign-in destination is not allowed.</p>
+        ) : isAuthHost && returnTo && user && user.role !== "admin" ? (
+          <div className="mx-auto mt-8 max-w-md text-center text-sm">
+            <p className="text-red-700">This page requires an administrator account.</p>
+            <Link href="/account" className="mt-3 inline-block underline underline-offset-4">
+              Sign out or switch accounts
+            </Link>
+          </div>
         ) : user ? (
           <>
             <div className="flex flex-col justify-between gap-6 border-y border-black/10 py-8 sm:flex-row sm:items-center">
