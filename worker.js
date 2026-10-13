@@ -207,30 +207,36 @@ async function getAdminUserFromSession(request) {
 
 function sourceDashboardHtml() {
   const panels = [
-    { name: "GitHub", url: "https://github.com/acdu1/afeonbooks" },
-    { name: "GitHub Codespaces", url: "https://ubiquitous-guacamole-x545p5p7996439pxj.github.dev/" },
-    { name: "Cloudflare Dashboard", url: "https://dash.cloudflare.com/a130548b1748b2365a5c0e027fe3ebd8/home" },
-    { name: "Supabase", url: "https://supabase.com/dashboard/project/msxfhfdeqxqvjuypcspm" },
-    { name: "Render", url: "https://dashboard.render.com/web/srv-da57c6jbc2fs738388lg" },
-    { name: "StatusPage", url: "https://status.afeonbooks.com/" },
-    { name: "Reedsy Book Editor", url: "https://editor.reedsy.com/" },
+    { name: "GitHub", url: "https://github.com/acdu1/afeonbooks", embed: false },
+    { name: "GitHub Codespaces", url: "https://ubiquitous-guacamole-x545p5p7996439pxj.github.dev/", embed: false },
+    { name: "Cloudflare Dashboard", url: "https://dash.cloudflare.com/a130548b1748b2365a5c0e027fe3ebd8/home", embed: false },
+    { name: "Supabase", url: "https://supabase.com/dashboard/project/msxfhfdeqxqvjuypcspm", embed: false },
+    { name: "Render", url: "https://dashboard.render.com/web/srv-da57c6jbc2fs738388lg", embed: false },
+    { name: "StatusPage", url: "https://status.afeonbooks.com/", embed: false },
+    { name: "Reedsy Book Editor", url: "https://editor.reedsy.com/", embed: true },
   ];
 
   const iframeMarkup = panels
     .map(
-      ({ name, url }) => `
+      ({ name, url, embed }) => `
         <section class="panel">
           <div class="panel-header">
             <h2>${name}</h2>
             <a href="${url}" target="_blank" rel="noopener noreferrer">Open in new tab</a>
           </div>
-          <iframe
-            src="${url}"
-            title="${name}"
-            loading="lazy"
-            referrerpolicy="no-referrer"
-            sandbox="allow-forms allow-popups allow-scripts allow-same-origin"
-          ></iframe>
+          ${embed
+            ? `<iframe
+                src="${url}"
+                title="${name}"
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                sandbox="allow-forms allow-popups allow-scripts allow-same-origin"
+              ></iframe>`
+            : `<div class="embed-unavailable">
+                <p>This service does not allow its dashboard to be embedded here. Open it in a new tab to sign in and use it.</p>
+                <a class="open-service" href="${url}" target="_blank" rel="noopener noreferrer">Open ${name}</a>
+              </div>`
+          }
         </section>
       `,
     )
@@ -314,6 +320,33 @@ function sourceDashboardHtml() {
         font-weight: 600;
         font-size: 0.8rem;
       }
+      .embed-unavailable {
+        min-height: 180px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 16px;
+        padding: 24px;
+      }
+      .embed-unavailable p {
+        max-width: 34rem;
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .open-service {
+        display: inline-flex;
+        align-items: center;
+        min-height: 42px;
+        padding: 0 16px;
+        background: var(--accent);
+        color: #fff;
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+      .open-service:hover { opacity: 0.86; }
       iframe {
         display: block;
         width: 100%;
