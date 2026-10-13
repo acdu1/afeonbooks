@@ -74,6 +74,8 @@ pnpm --filter @workspace/db run push
 
 `db run push` is intended for development databases. Review schema changes before applying them to production.
 
+For the marketing tables, apply [`lib/db/migrations/0001_marketing.sql`](./lib/db/migrations/0001_marketing.sql) to the production API database before using the marketing admin page. The API returns a server error if `banners` or `promo_codes` has not been created.
+
 ## Production API
 
 The canonical API origin is:
