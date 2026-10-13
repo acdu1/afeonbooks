@@ -184,6 +184,165 @@ function directoryKeyMatches(url, env) {
   return typeof env.DIRECTORY_KEY === "string" && env.DIRECTORY_KEY.length > 0 && url.searchParams.get("key") === env.DIRECTORY_KEY;
 }
 
+async function getAdminUserFromSession(request) {
+  const cookie = request.headers.get("Cookie");
+  if (!cookie) return null;
+
+  try {
+    const response = await fetch("https://api.afeonbooks.com/api/auth/me", {
+      headers: {
+        Accept: "application/json",
+        Cookie: cookie,
+      },
+      redirect: "manual",
+    });
+
+    if (!response.ok) return null;
+    const payload = await response.json().catch(() => ({}));
+    return payload?.user ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function sourceDashboardHtml() {
+  const panels = [
+    { name: "GitHub", url: "https://github.com" },
+    { name: "GitHub Codespaces", url: "https://github.com/codespaces" },
+    { name: "Cloudflare Dashboard", url: "https://dash.cloudflare.com" },
+    { name: "Supabase", url: "https://supabase.com/dashboard" },
+    { name: "Render", url: "https://dashboard.render.com" },
+    { name: "StatusPage", url: "https://status.afeonbooks.com/" },
+    { name: "Reedsy Book Editor", url: "https://reedsy.com/" },
+  ];
+
+  const iframeMarkup = panels
+    .map(
+      ({ name, url }) => `
+        <section class="panel">
+          <div class="panel-header">
+            <h2>${name}</h2>
+            <a href="${url}" target="_blank" rel="noopener noreferrer">Open in new tab</a>
+          </div>
+          <iframe
+            src="${url}"
+            title="${name}"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+            sandbox="allow-forms allow-popups allow-scripts allow-same-origin"
+          ></iframe>
+        </section>
+      `,
+    )
+    .join("");
+
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AFEON Books Infrastructure</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f3ee;
+        --panel: #fff;
+        --text: #171717;
+        --muted: #5b5b5b;
+        --border: rgba(23, 23, 23, 0.12);
+        --accent: #111827;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      .page {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 32px 20px 48px;
+      }
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .eyebrow {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      h1 {
+        margin: 6px 0 0;
+        font-size: clamp(2rem, 3vw, 2.8rem);
+        line-height: 1.1;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+        gap: 24px;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+      }
+      .panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--border);
+        padding: 12px 16px;
+      }
+      .panel-header h2 {
+        margin: 0;
+        font-size: 0.95rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .panel-header a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.8rem;
+      }
+      iframe {
+        display: block;
+        width: 100%;
+        height: 520px;
+        border: 0;
+        background: #fff;
+      }
+      @media (max-width: 700px) {
+        .page { padding-top: 20px; }
+        iframe { height: 400px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="topbar">
+        <div>
+          <div class="eyebrow">AFEON Books</div>
+          <h1>Infrastructure dashboard</h1>
+        </div>
+      </div>
+      <div class="grid">
+        ${iframeMarkup}
+      </div>
+    </div>
+  </body>
+</html>`;
+}
+
 function directoryResponse(status = 404, body = "Not Found") {
   return new Response(body, { status, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
 }
@@ -231,6 +390,28 @@ export default {
     const path = url.pathname;
 
     if (path === "/directory" || path === "/directory/" || path.startsWith("/directory/file/") || path === "/directory-manifest.json") return directoryResponseFor(request, env);
+
+if (url.hostname === "source.afeonbooks.com") {
+  if (request.method !== "GET") return new Response("Method Not Allowed", { status: 405 });
+
+  const user = await getAdminUserFromSession(request);
+  if (!user || user.role !== "admin") {
+    const authUrl = new URL("https://authn.afeonbooks.com/");
+    authUrl.searchParams.set("return_to", request.url);
+    return Response.redirect(authUrl.toString(), 302);
+  }
+
+  if (path === "/") {
+    return new Response(sourceDashboardHtml(), {
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    });
+  }
+
+  return new Response("Not Found", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+}
 
 if (url.hostname === "authn.afeonbooks.com") {
   if (path.startsWith("/api/")) {
