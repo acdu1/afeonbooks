@@ -397,7 +397,7 @@ export default function Checkout() {
                                         {address.address}, {address.city}, {address.postalCode}, {address.country}
                                       </p>
                                       <p className="text-black/50 font-medium leading-relaxed text-sm mt-1">
-                                        {formatPrice(address.shippingFeeCents)} shipping
+                                        {formatPrice(address.shippingFeeCents)} convenience fee
                                       </p>
                                     </div>
                                   </button>
@@ -615,7 +615,7 @@ export default function Checkout() {
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-black/60">{useDefaultAddress ? "Shipping" : "Processing & delivery"}</span>
+                <span className="text-black/60">{useDefaultAddress ? "Convenience Fee" : "Processing & delivery"}</span>
                 <span>{shippingCents > 0 ? formatPrice(shippingCents) : "Free"}</span>
               </div>
               <div className="flex justify-between text-[#9A5B13]">
