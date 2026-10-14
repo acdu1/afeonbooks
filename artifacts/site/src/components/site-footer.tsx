@@ -11,7 +11,7 @@ export function SiteFooter() {
       </p>
 
       {/* Creative Commons Licensing Notice */}
-      <div className="flex items-center justify-center flex-wrap gap-x-1 mt-4 text-xs font-normal text-black/40">
+      <div className="flex items-center justify-center flex-wrap gap-x-2 mt-4 text-xs font-normal text-black/40">
         <a 
           href="https://afeonbooks.com" 
           target="_blank" 
@@ -39,34 +39,24 @@ export function SiteFooter() {
           CC BY-NC-ND 4.0
         </a>
         
-        {/* Licensing Badges */}
-        <div className="inline-flex items-center gap-0.5 ml-1 opacity-60">
+        {/* Fixed Licensing Badge Vector */}
+        <a 
+          href="https://creativecommons.org"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block align-middle ml-1 opacity-80 hover:opacity-100 transition-opacity"
+        >
           <img 
-            src="https://creativecommons.org" 
-            alt="CC Badge" 
-            className="w-4 h-4" 
+            src="https://licensebuttons.net" 
+            alt="Creative Commons License BY-NC-ND" 
+            className="h-[15px] w-[80px]"
           />
-          <img 
-            src="https://creativecommons.org" 
-            alt="Attribution Badge" 
-            className="w-4 h-4" 
-          />
-          <img 
-            src="https://creativecommons.org" 
-            alt="Non-Commercial Badge" 
-            className="w-4 h-4" 
-          />
-          <img 
-            src="https://creativecommons.org" 
-            alt="No-Derivatives Badge" 
-            className="w-4 h-4" 
-          />
-        </div>
+        </a>
       </div>
 
       {/* System Status Link */}
       <a
-        href="https://status.afeonbooks.com/"
+        href="https://afeonbooks.com"
         target="_blank"
         rel="noopener noreferrer"
         className="inline-block mt-4 text-xs font-bold uppercase tracking-widest text-black/35 hover:text-amber-800 transition-colors"
