@@ -273,7 +273,11 @@ export default function Account() {
   const returnToParam = params.get("return_to");
   const returnTo = getSourceReturnUrl(returnToParam);
   const isAuthHost = window.location.hostname === "authn.afeonbooks.com";
-  const isAuthEntry = isAuthHost || /^\/(?:sign-in|account-check)\/[a-f0-9]{32}$/.test(window.location.pathname);
+  const isAuthEntry =
+    isAuthHost ||
+    window.location.pathname === "/account" ||
+    window.location.pathname === "/account/" ||
+    /^\/(?:sign-in|account-check)\/[a-f0-9]{32}$/.test(window.location.pathname);
 
   useEffect(() => {
     if (!loading && !user && !hasTokenFlow && !isAuthEntry) {

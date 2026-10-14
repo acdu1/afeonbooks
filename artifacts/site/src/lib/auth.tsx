@@ -21,7 +21,7 @@ const apiBaseUrl = import.meta.env.DEV ? (import.meta.env.VITE_API_URL ?? "") : 
 
 export function createAuthEntryUrl(isAuthenticated: boolean): string {
   if (!import.meta.env.DEV) {
-    return "https://authn.afeonbooks.com/account";
+    return "/account";
   }
 
   const token = Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, "0")).join("");
