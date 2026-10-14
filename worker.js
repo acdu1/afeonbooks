@@ -485,7 +485,7 @@ if (url.hostname === "authn.afeonbooks.com") {
   }
 
   if (path === "/" || path === "/account" || path === "/account/" || /^\/(?:sign-in|account-check)\/[a-f0-9]{32}$/.test(path)) {
-    return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
+    return env.ASSETS.fetch(new Request(new URL("/", request.url), request));
   }
 
   return env.ASSETS.fetch(request);
@@ -515,8 +515,9 @@ if (url.hostname === "authn.afeonbooks.com") {
     const orderPdfMatch = path.match(/^\/order\/([^/]+)\/pdf\/?$/);
     if (orderPdfMatch) return orderPdfResponse(request, orderPdfMatch[1]);
 
-    const fetchAdminIndex = () => env.ASSETS.fetch(new Request(new URL("/admin/index.html", request.url), request));
-    const fetchAdminPos = () => env.ASSETS.fetch(new Request(new URL("/admin/pos.html", request.url), request));
+    const fetchSiteIndex = () => env.ASSETS.fetch(new Request(new URL("/", request.url), request));
+    const fetchAdminIndex = () => env.ASSETS.fetch(new Request(new URL("/admin/", request.url), request));
+    const fetchAdminPos = () => env.ASSETS.fetch(new Request(new URL("/admin/pos", request.url), request));
 
     if (path === "/admin/admin" || path === "/admin/admin/") return Response.redirect(new URL("/admin/", request.url), 301);
     if (path.startsWith("/admin/admin/")) return Response.redirect(new URL(path.replace(/^\/admin\/admin/, "/admin"), request.url), 301);
@@ -524,21 +525,21 @@ if (url.hostname === "authn.afeonbooks.com") {
     if (path === "/admin/zoho-mail" || path === "/admin/zoho-mail/") return fetchAdminIndex();
     if (path === "/admin" || path === "/admin/" || (path.startsWith("/admin/") && !path.split("/").pop()?.includes("."))) return fetchAdminIndex();
 
-    const fetchPickupIndex = () => env.ASSETS.fetch(new Request(new URL("/pickup/index.html", request.url), request));
+    const fetchPickupIndex = () => env.ASSETS.fetch(new Request(new URL("/pickup/", request.url), request));
     if (path === "/pickup" || path === "/pickup/" || (path.startsWith("/pickup/") && !path.split("/").pop()?.includes("."))) return fetchPickupIndex();
 
     if (/^\/order\/[^/]+\/?$/.test(path)) {
-      return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
+      return fetchSiteIndex();
     }
 
     if (path === "/account" || path === "/account/" || /^\/(?:sign-in|account-check)\/[a-f0-9]{32}$/.test(path)) {
-      return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
+      return fetchSiteIndex();
     }
 
     const assetResponse = await env.ASSETS.fetch(request);
     if (assetResponse.status !== 404) return assetResponse;
     if (!path.split("/").pop()?.includes(".")) {
-      const notFoundPage = await env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
+      const notFoundPage = await fetchSiteIndex();
       return new Response(notFoundPage.body, {
         status: 200,
         headers: notFoundPage.headers,
