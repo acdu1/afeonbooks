@@ -87,7 +87,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     res.status(403).json({ error: "Please verify your email before signing in" });
     return;
   }
-  await createSession(user.id, res);
+  await createSession(user.id, req, res);
   res.json({ user: publicUser(user) });
 });
 
@@ -133,7 +133,7 @@ router.post("/auth/reset-password", async (req, res): Promise<void> => {
     res.status(400).json({ error: "This reset link is invalid or expired" });
     return;
   }
-  await createSession(user.id, res);
+  await createSession(user.id, req, res);
   res.json({ user: publicUser(user) });
 });
 
@@ -164,7 +164,7 @@ router.post("/auth/verify-email", async (req, res): Promise<void> => {
     res.status(400).json({ error: "This verification link is invalid or expired" });
     return;
   }
-  await createSession(user.id, res);
+  await createSession(user.id, req, res);
   res.json({ user: publicUser(user) });
 });
 

@@ -8,7 +8,12 @@ const scrypt = promisify(scryptCallback);
 const SESSION_COOKIE = "afeonbooks_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
 const IS_PRODUCTION = process.env.NODE_ENV === "production" || process.env.RENDER === "true";
-const SESSION_COOKIE_DOMAIN = IS_PRODUCTION ? ".afeonbooks.com" : undefined;
+const SESSION_COOKIE_DOMAIN = ".afeonbooks.com";
+const PRODUCTION_ORIGINS = new Set([
+  "https://afeonbooks.com",
+  "https://authn.afeonbooks.com",
+  "https://source.afeonbooks.com",
+]);
 
 declare global {
   namespace Express {
@@ -24,6 +29,13 @@ function normalizeEmail(email: string): string {
 
 function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
+}
+
+function sessionCookieDomain(request: Request): string | undefined {
+  const origin = request.get("origin");
+  return IS_PRODUCTION || (origin !== undefined && PRODUCTION_ORIGINS.has(origin))
+    ? SESSION_COOKIE_DOMAIN
+    : undefined;
 }
 
 export async function createAuthToken(userId: number, type: "verify_email" | "reset_password", ttlMs: number): Promise<string> {
@@ -71,18 +83,28 @@ export function publicUser(user: UserRow) {
   return { id: user.id, email: user.email, name: user.name, role: user.role ?? "customer", createdAt: user.createdAt.toISOString() };
 }
 
-export async function createSession(userId: number, response: Response): Promise<void> {
+export async function createSession(userId: number, request: Request, response: Response): Promise<void> {
   const token = randomBytes(32).toString("base64url");
   await db.insert(sessionsTable).values({
     tokenHash: hashToken(token),
     userId,
     expiresAt: new Date(Date.now() + SESSION_TTL_MS),
   });
+  const domain = sessionCookieDomain(request);
+  const secure = IS_PRODUCTION || domain !== undefined;
+  if (domain) {
+    response.clearCookie(SESSION_COOKIE, {
+      httpOnly: true,
+      secure,
+      sameSite: "lax",
+      path: "/",
+    });
+  }
   response.cookie(SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: IS_PRODUCTION,
+    secure,
     sameSite: "lax",
-    domain: SESSION_COOKIE_DOMAIN,
+    domain,
     maxAge: SESSION_TTL_MS,
     path: "/",
   });
@@ -91,7 +113,16 @@ export async function createSession(userId: number, response: Response): Promise
 export async function destroySession(request: Request, response: Response): Promise<void> {
   const token = request.cookies?.[SESSION_COOKIE];
   if (token) await db.delete(sessionsTable).where(eq(sessionsTable.tokenHash, hashToken(token)));
-  response.clearCookie(SESSION_COOKIE, { httpOnly: true, sameSite: "lax", domain: SESSION_COOKIE_DOMAIN, path: "/" });
+  const domain = sessionCookieDomain(request);
+  const secure = IS_PRODUCTION || domain !== undefined;
+  const cookieOptions = {
+    httpOnly: true,
+    secure,
+    sameSite: "lax" as const,
+    path: "/",
+  };
+  response.clearCookie(SESSION_COOKIE, cookieOptions);
+  if (domain) response.clearCookie(SESSION_COOKIE, { ...cookieOptions, domain });
 }
 
 export async function loadUser(request: Request): Promise<UserRow | undefined> {
