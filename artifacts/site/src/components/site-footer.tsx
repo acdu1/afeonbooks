@@ -14,6 +14,19 @@ export function SiteFooter() {
       >
         System Status ↗
       </a>
+      <p>
+        <a href="https://afeonbooks.com">The Terror Of The Evil Capybara</a> © 2026 by{" "}
+        <a href="https://afeonbooks.com">AFEON Books</a> is licensed under{" "}
+        <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/">CC BY-NC-ND 4.0</a>
+        {(["cc", "by", "nc", "nd"] as const).map((icon) => (
+          <img
+            key={icon}
+            src={`https://mirrors.creativecommons.org/presskit/icons/${icon}.svg`}
+            alt=""
+            style={{ maxWidth: "1em", maxHeight: "1em", marginLeft: "0.2em" }}
+          />
+        ))}
+      </p>
     </footer>
   );
 }
