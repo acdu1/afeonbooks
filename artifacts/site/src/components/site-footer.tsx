@@ -5,64 +5,28 @@ export function SiteFooter() {
 
   return (
     <footer className="bg-[#FAF7F2] border-t border-black/5 py-16 text-center text-black/40 mt-auto">
-      {/* Footer Content Note */}
-      <p className="text-sm font-medium tracking-wide">
-        {content?.footerNote || "© Store"}
-      </p>
-
-      {/* Creative Commons Licensing Notice */}
-      <div className="flex items-center justify-center flex-wrap gap-x-2 mt-4 text-xs font-normal text-black/40">
-        <a 
-          href="https://afeonbooks.com" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="hover:underline text-black/50"
-        >
-          The Terror Of The Evil Capybara
-        </a>
-        <span>© 2026 by</span>
-        <a 
-          href="https://afeonbooks.com" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="hover:underline text-black/50"
-        >
-          AFEON Books
-        </a>
-        <span>is licensed under</span>
-        <a 
-          href="https://creativecommons.org" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="hover:underline text-black/50"
-        >
-          CC BY-NC-ND 4.0
-        </a>
-        
-        {/* Fixed Licensing Badge Vector */}
-        <a 
-          href="https://creativecommons.org"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block align-middle ml-1 opacity-80 hover:opacity-100 transition-opacity"
-        >
-          <img 
-            src="https://licensebuttons.net" 
-            alt="Creative Commons License BY-NC-ND" 
-            className="h-[15px] w-[80px]"
-          />
-        </a>
-      </div>
-
-      {/* System Status Link */}
+      <p className="text-sm font-medium tracking-wide">{content?.footerNote || "© Store"}</p>
       <a
-        href="https://afeonbooks.com"
+        href="https://status.afeonbooks.com/"
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-block mt-4 text-xs font-bold uppercase tracking-widest text-black/35 hover:text-amber-800 transition-colors"
+        className="inline-block mt-3 text-xs font-bold uppercase tracking-widest text-black/35 hover:text-amber-800 transition-colors"
       >
         System Status ↗
       </a>
+      <p>
+        <a href="https://afeonbooks.com">The Terror Of The Evil Capybara</a> © 2026 by{" "}
+        <a href="https://afeonbooks.com">AFEON Books</a> is licensed under{" "}
+        <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/">CC BY-NC-ND 4.0</a>
+        {(["cc", "by", "nc", "nd"] as const).map((icon) => (
+          <img
+            key={icon}
+            src={`https://mirrors.creativecommons.org/presskit/icons/${icon}.svg`}
+            alt=""
+            style={{ maxWidth: "1em", maxHeight: "1em", marginLeft: "0.2em" }}
+          />
+        ))}
+      </p>
     </footer>
   );
 }
