@@ -11,8 +11,8 @@ export type User = {
 type AuthContextValue = {
   user: User | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (name: string, email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string, turnstileToken: string) => Promise<void>;
+  signUp: (name: string, email: string, password: string, turnstileToken: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -51,18 +51,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, turnstileToken: string) => {
     const data = await authRequest<{ user: User }>("/api/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, "cf-turnstile-response": turnstileToken }),
     });
     setUser(data.user);
   };
 
-  const signUp = async (name: string, email: string, password: string) => {
+  const signUp = async (name: string, email: string, password: string, turnstileToken: string) => {
     await authRequest<{ requiresVerification: boolean }>("/api/auth/register", {
       method: "POST",
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, "cf-turnstile-response": turnstileToken }),
     });
   };
 

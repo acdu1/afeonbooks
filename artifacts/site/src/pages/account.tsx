@@ -6,6 +6,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
 import { authApiRequest, createAuthEntryUrl, useAuth, type User } from "@/lib/auth";
 import { formatPrice } from "@/lib/format";
+import { TurnstileWidget } from "@/components/turnstile-widget";
 
 type MyOrder = {
   id: number;
@@ -58,23 +59,32 @@ function AccountForm() {
   const [busy, setBusy] = useState(false);
   const [forgot, setForgot] = useState(false);
   const [forgotMessage, setForgotMessage] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
+  const action = forgot ? "password_reset" : registering ? "signup" : "login";
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setError("");
+    if (!turnstileToken) {
+      setError("Complete the security check.");
+      return;
+    }
     setBusy(true);
     try {
       if (forgot) {
-        const data = await authApiRequest<{ message: string }>("/api/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) });
+        const data = await authApiRequest<{ message: string }>("/api/auth/forgot-password", { method: "POST", body: JSON.stringify({ email, "cf-turnstile-response": turnstileToken }) });
         setForgotMessage(data.message);
       } else if (registering) {
-        await signUp(name, email, password);
+        await signUp(name, email, password, turnstileToken);
         setForgotMessage("Check your email to verify your account before signing in.");
-      } else await signIn(email, password);
+      } else await signIn(email, password, turnstileToken);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to continue");
     } finally {
       setBusy(false);
+      setTurnstileToken("");
+      setTurnstileResetKey((key) => key + 1);
     }
   };
 
@@ -83,6 +93,7 @@ function AccountForm() {
       {!forgot && registering && <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Full name" required className="w-full border border-black/15 bg-white px-4 py-3 outline-none focus:border-black" />}
       <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email address" required className="w-full border border-black/15 bg-white px-4 py-3 outline-none focus:border-black" />
       {!forgot && <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" minLength={8} required className="w-full border border-black/15 bg-white px-4 py-3 outline-none focus:border-black" />}
+      <TurnstileWidget action={action} onToken={setTurnstileToken} resetKey={turnstileResetKey} />
       {error && <p className="text-sm text-red-700">{error}</p>}
       {forgotMessage && <p className="text-sm text-emerald-700">{forgotMessage}</p>}
       <Button type="submit" disabled={busy} className="w-full rounded-none bg-black py-6 text-xs font-bold uppercase tracking-widest text-white hover:bg-black/80">
@@ -103,6 +114,8 @@ function AccountTokenHandler() {
   const [verificationEmail, setVerificationEmail] = useState("");
   const [resendMessage, setResendMessage] = useState("");
   const [resetPassword, setResetPassword] = useState("");
+  const [resendToken, setResendToken] = useState("");
+  const [resendResetKey, setResendResetKey] = useState(0);
   const params = new URLSearchParams(window.location.search);
   const verifyToken = params.get("verify_token");
   const resetToken = params.get("reset_token");
@@ -117,11 +130,18 @@ function AccountTokenHandler() {
   const resendVerification = async (event: FormEvent) => {
     event.preventDefault();
     setResendMessage("");
+    if (!resendToken) {
+      setResendMessage("Complete the security check.");
+      return;
+    }
     try {
-      const data = await authApiRequest<{ message: string }>("/api/auth/resend-verification", { method: "POST", body: JSON.stringify({ email: verificationEmail }) });
+      const data = await authApiRequest<{ message: string }>("/api/auth/resend-verification", { method: "POST", body: JSON.stringify({ email: verificationEmail, "cf-turnstile-response": resendToken }) });
       setResendMessage(data.message);
     } catch (err) {
       setResendMessage(err instanceof Error ? err.message : "Unable to resend verification email");
+    } finally {
+      setResendToken("");
+      setResendResetKey((key) => key + 1);
     }
   };
 
@@ -129,7 +149,7 @@ function AccountTokenHandler() {
     return <form onSubmit={async (event) => { event.preventDefault(); setError(""); try { await authApiRequest<{ user: User }>("/api/auth/reset-password", { method: "POST", body: JSON.stringify({ token: resetToken, password: resetPassword }) }); window.location.replace("/account"); } catch (err) { setError(err instanceof Error ? err.message : "Unable to reset password"); } }} className="mx-auto mt-8 w-full max-w-md space-y-4"><h2 className="text-2xl font-bold">Choose a new password</h2><input type="password" minLength={8} required value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} placeholder="New password" className="w-full border border-black/15 bg-white px-4 py-3" />{error && <p className="text-sm text-red-700">{error}</p>}<Button type="submit" className="w-full rounded-none bg-black py-6 text-xs font-bold uppercase tracking-widest text-white">Update password</Button></form>;
   }
   if (loading || (!verifyToken && !message && !error) || user) return null;
-  return <div className="mx-auto mt-8 max-w-md text-sm">{message && <p className="text-emerald-700">{message}</p>}{error && <><p className="text-red-700">{error}</p><form onSubmit={resendVerification} className="mt-5 space-y-3"><input type="email" required value={verificationEmail} onChange={(event) => setVerificationEmail(event.target.value)} placeholder="Email address" className="w-full border border-black/15 bg-white px-4 py-3" /><Button type="submit" variant="outline" className="w-full rounded-none text-xs font-bold uppercase tracking-widest">Resend verification email</Button>{resendMessage && <p className="text-black/60">{resendMessage}</p>}</form></>}</div>;
+  return <div className="mx-auto mt-8 max-w-md text-sm">{message && <p className="text-emerald-700">{message}</p>}{error && <><p className="text-red-700">{error}</p><form onSubmit={resendVerification} className="mt-5 space-y-3"><input type="email" required value={verificationEmail} onChange={(event) => setVerificationEmail(event.target.value)} placeholder="Email address" className="w-full border border-black/15 bg-white px-4 py-3" /><TurnstileWidget action="resend_verification" onToken={setResendToken} resetKey={resendResetKey} /><Button type="submit" variant="outline" className="w-full rounded-none text-xs font-bold uppercase tracking-widest">Resend verification email</Button>{resendMessage && <p className="text-black/60">{resendMessage}</p>}</form></>}</div>;
 }
 
 function RoleManager() {

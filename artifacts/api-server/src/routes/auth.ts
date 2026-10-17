@@ -16,6 +16,7 @@ import {
   verifyPassword,
 } from "../lib/auth";
 import { sendEmail } from "../lib/email";
+import { verifyTurnstileToken } from "../lib/turnstile";
 
 const AUTH_URL = (process.env.PUBLIC_AUTH_URL || "https://authn.afeonbooks.com").replace(/\/+$/, "");
 const AUTH_FROM = process.env.ZOHO_AUTH_FROM_ADDRESS || "noreply@afeonbooks.com";
@@ -32,6 +33,10 @@ async function sendAuthEmail(to: string, subject: string, html: string): Promise
 const router: IRouter = Router();
 
 router.post("/auth/register", async (req, res): Promise<void> => {
+  if (!(await verifyTurnstileToken(req.body?.["cf-turnstile-response"], "signup"))) {
+    res.status(403).json({ error: "Unable to verify request" });
+    return;
+  }
   const { email, password, name } = req.body as { email?: unknown; password?: unknown; name?: unknown };
   if (typeof email !== "string" || !/^\S+@\S+\.\S+$/.test(email.trim())) {
     res.status(400).json({ error: "A valid email is required" });
@@ -73,6 +78,10 @@ router.post("/auth/register", async (req, res): Promise<void> => {
 });
 
 router.post("/auth/login", async (req, res): Promise<void> => {
+  if (!(await verifyTurnstileToken(req.body?.["cf-turnstile-response"], "login"))) {
+    res.status(403).json({ error: "Unable to verify request" });
+    return;
+  }
   const { email, password } = req.body as { email?: unknown; password?: unknown };
   if (typeof email !== "string" || typeof password !== "string") {
     res.status(400).json({ error: "Email and password are required" });
@@ -102,6 +111,10 @@ router.get("/auth/me", async (req, res): Promise<void> => {
 });
 
 router.post("/auth/forgot-password", async (req, res): Promise<void> => {
+  if (!(await verifyTurnstileToken(req.body?.["cf-turnstile-response"], "password_reset"))) {
+    res.status(403).json({ error: "Unable to verify request" });
+    return;
+  }
   const email = typeof req.body?.email === "string" ? normalizeEmail(req.body.email) : "";
   const [user] = email ? await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1) : [];
   if (user) {
@@ -138,6 +151,10 @@ router.post("/auth/reset-password", async (req, res): Promise<void> => {
 });
 
 router.post("/auth/resend-verification", async (req, res): Promise<void> => {
+  if (!(await verifyTurnstileToken(req.body?.["cf-turnstile-response"], "resend_verification"))) {
+    res.status(403).json({ error: "Unable to verify request" });
+    return;
+  }
   const email = typeof req.body?.email === "string" ? normalizeEmail(req.body.email) : "";
   const [user] = email ? await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1) : [];
   if (user && !user.emailVerifiedAt) {
