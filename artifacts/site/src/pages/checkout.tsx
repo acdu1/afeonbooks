@@ -309,7 +309,11 @@ export default function Checkout() {
             <div className="mb-12">
               <h1 className="text-3xl font-bold tracking-tight mb-2">Checkout</h1>
               <p className="text-black/50 font-medium">Please enter your shipping details.</p>
-              <img src="powered-by-square.png" alt="Powered by Square."></img>
+              <img
+                src="/powered-with-square.png"
+                alt="Built with Square"
+                className="mt-4 h-auto w-48"
+              />
 
             </div>
 
