@@ -6,6 +6,14 @@ import { requireRole, requireUser } from "../lib/auth";
 
 const router: IRouter = Router();
 
+const DEFAULT_FAQS = [
+  { question: "How do I place an order?", answer: "Browse the shop, add an available item to your cart, and continue to checkout when you are ready." },
+  { question: "How can I check my cart?", answer: "Select the shopping bag in the header to open your cart and review its contents." },
+  { question: "What does it mean if an item is out of stock?", answer: "Items marked out of stock cannot currently be added to your cart." },
+  { question: "Where can I learn more about the book?", answer: "The About section on the home page has more information about the book and its creators." },
+  { question: "How do I access my account?", answer: "Choose Sign in in the header to open the account page." },
+];
+
 const DEFAULT_CONTENT = {
   brandName: "AFEON Books",
   navHomeLabel: "Home",
@@ -18,6 +26,7 @@ const DEFAULT_CONTENT = {
   aboutHeading: "The Terror Of The Evil Capybara - Book 1",
   aboutBody:
     "When terror reveals itself to the detectives, it comes in the form of a fury little capybara with glasses. What happens when these two enemies go head to head? Who will win the duel? Good? Or evil? Join the detectives, White Dragon, Evanzilla, Naomi Da Apple and Kevin as they try to win the battle against evil and also do dangerous things while at it, like jumping off skyscrapers.",
+  faqs: JSON.stringify(DEFAULT_FAQS),
   authorsLine: "Francis Kawibawa, Naomi Tsao, Olivia Chang, Evan Lee.",
   illustratorLine: "Janis Vong",
   footerNote: "© 2026 AFR Group. All Rights Reserved.",
@@ -69,6 +78,7 @@ export function serializeContent(row: SiteContentRow) {
     coverImageUrl: row.coverImageUrl,
     aboutHeading: row.aboutHeading,
     aboutBody: row.aboutBody,
+    faqs: JSON.parse(row.faqs || "[]"),
     authorsLine: row.authorsLine,
     illustratorLine: row.illustratorLine,
     footerNote: row.footerNote,
@@ -136,7 +146,7 @@ router.get("/content", async (_req, res) => {
 router.put("/content", requireUser, requireRole("admin"), async (req, res) => {
   const body = UpdateContentBody.parse(req.body);
   const current = await getOrCreateContent();
-  const { ordersEnabled, emailEnabled, checkoutFields, loyaltyPagesPerDollar, ...rest } = body;
+  const { ordersEnabled, emailEnabled, checkoutFields, loyaltyPagesPerDollar, faqs, ...rest } = body;
   const updated = await db
     .update(siteContentTable)
     .set({
@@ -144,6 +154,7 @@ router.put("/content", requireUser, requireRole("admin"), async (req, res) => {
       ordersEnabled: ordersEnabled ? "true" : "false",
       emailEnabled: emailEnabled ? "true" : "false",
       checkoutFields: JSON.stringify(checkoutFields ?? []),
+      ...(faqs !== undefined ? { faqs: JSON.stringify(faqs) } : {}),
       shippingAddresses: JSON.stringify((body.shippingAddresses ?? []).map((address) => ({
         ...address,
         shippingFeeCents: address.shippingFeeCents ?? 0,

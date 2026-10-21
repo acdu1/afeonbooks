@@ -34,6 +34,12 @@ export const GetContentResponse = zod.object({
   coverImageUrl: zod.string(),
   aboutHeading: zod.string(),
   aboutBody: zod.string(),
+  faqs: zod.array(
+    zod.object({
+      question: zod.string(),
+      answer: zod.string(),
+    }),
+  ),
   authorsLine: zod.string(),
   illustratorLine: zod.string(),
   footerNote: zod.string(),
@@ -97,6 +103,14 @@ export const UpdateContentBody = zod.object({
   coverImageUrl: zod.string(),
   aboutHeading: zod.string(),
   aboutBody: zod.string(),
+  faqs: zod
+    .array(
+      zod.object({
+        question: zod.string(),
+        answer: zod.string(),
+      }),
+    )
+    .optional(),
   authorsLine: zod.string(),
   illustratorLine: zod.string(),
   footerNote: zod.string(),
@@ -168,6 +182,12 @@ export const UpdateContentResponse = zod.object({
   coverImageUrl: zod.string(),
   aboutHeading: zod.string(),
   aboutBody: zod.string(),
+  faqs: zod.array(
+    zod.object({
+      question: zod.string(),
+      answer: zod.string(),
+    }),
+  ),
   authorsLine: zod.string(),
   illustratorLine: zod.string(),
   footerNote: zod.string(),

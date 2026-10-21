@@ -263,6 +263,14 @@ components:
         coverImageUrl: { type: string }
         aboutHeading: { type: string }
         aboutBody: { type: string }
+        faqs:
+          type: array
+          items:
+            type: object
+            properties:
+              question: { type: string }
+              answer: { type: string }
+            required: [question, answer]
         authorsLine: { type: string }
         illustratorLine: { type: string }
         footerNote: { type: string }
@@ -303,7 +311,7 @@ components:
         blogHeroImageUrl: { type: string }
         blogBody: { type: string }
         updatedAt: { type: string }
-      required: [id, school, checkoutFields, brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, shippingAddresses, loyaltyPagesPerDollar, ordersEnabled, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor, blogTitle, blogSubtitle, blogDate, blogHeroImageUrl, blogBody, updatedAt]
+      required: [id, school, checkoutFields, brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, faqs, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, shippingAddresses, loyaltyPagesPerDollar, ordersEnabled, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor, blogTitle, blogSubtitle, blogDate, blogHeroImageUrl, blogBody, updatedAt]
     UpdateSiteContent:
       type: object
       properties:
@@ -325,6 +333,14 @@ components:
         coverImageUrl: { type: string }
         aboutHeading: { type: string }
         aboutBody: { type: string }
+        faqs:
+          type: array
+          items:
+            type: object
+            properties:
+              question: { type: string }
+              answer: { type: string }
+            required: [question, answer]
         authorsLine: { type: string }
         illustratorLine: { type: string }
         footerNote: { type: string }
@@ -364,7 +380,6 @@ components:
         blogDate: { type: string }
         blogHeroImageUrl: { type: string }
         blogBody: { type: string }
-        loyaltyPagesPerDollar: { type: integer, minimum: 0, maximum: 1000000 }
       required: [brandName, navHomeLabel, heroTitle, heroSubtitle, ctaLabel, ctaUrl, coverImageUrl, aboutHeading, aboutBody, authorsLine, illustratorLine, footerNote, accentColor, defaultShippingLabel, defaultShippingAddress, defaultShippingCity, defaultShippingPostalCode, defaultShippingCountry, loyaltyPagesPerDollar, ordersEnabled, emailEnabled, emailFromName, emailFromAddress, emailReplyTo, emailSubject, emailHeading, emailIntro, emailButtonLabel, emailFooter, emailAccentColor, blogTitle, blogSubtitle, blogDate, blogHeroImageUrl, blogBody]
     Product:
       type: object

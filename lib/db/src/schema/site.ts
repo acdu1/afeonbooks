@@ -12,6 +12,7 @@ export const siteContentTable = pgTable("site_content", {
   coverImageUrl: text("cover_image_url").notNull(),
   aboutHeading: text("about_heading").notNull(),
   aboutBody: text("about_body").notNull(),
+  faqs: text("faqs").notNull().default('[{"question":"How do I place an order?","answer":"Browse the shop, add an available item to your cart, and continue to checkout when you are ready."},{"question":"How can I check my cart?","answer":"Select the shopping bag in the header to open your cart and review its contents."},{"question":"What does it mean if an item is out of stock?","answer":"Items marked out of stock cannot currently be added to your cart."},{"question":"Where can I learn more about the book?","answer":"The About section on the home page has more information about the book and its creators."},{"question":"How do I access my account?","answer":"Choose Sign in in the header to open the account page."}]'),
   authorsLine: text("authors_line").notNull(),
   illustratorLine: text("illustrator_line").notNull(),
   footerNote: text("footer_note").notNull(),

@@ -3,6 +3,7 @@ import { useGetContent, useListProducts } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { FaqSection } from "@/components/faq-section";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
@@ -149,6 +150,8 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        <FaqSection showAllLink />
 
       </main>
 

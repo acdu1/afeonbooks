@@ -70,6 +70,7 @@ const contentSchema = z.object({
   coverImageUrl: z.string().url(),
   aboutHeading: z.string().min(1),
   aboutBody: z.string().min(1),
+  faqs: z.array(z.object({ question: z.string().min(1), answer: z.string().min(1) })).default([]),
   authorsLine: z.string().min(1),
   illustratorLine: z.string().min(1),
   footerNote: z.string().min(1),
@@ -332,6 +333,7 @@ export default function Editor() {
       brandName: "", navHomeLabel: "", heroTitle: "", heroSubtitle: "",
       ctaLabel: "", ctaUrl: "", coverImageUrl: "", aboutHeading: "",
       aboutBody: "", authorsLine: "", illustratorLine: "", footerNote: "", accentColor: "#000",
+      faqs: [],
       defaultShippingLabel: "",
       defaultShippingAddress: "",
       defaultShippingCity: "",
@@ -818,6 +820,39 @@ export default function Editor() {
                       <FormItem><FormLabel>Illustrator</FormLabel><FormControl><Input {...field} className="rounded-none" /></FormControl></FormItem>
                     )} />
                   </div>
+                </div>
+
+                <div className="bg-white p-8 border border-black/5 shadow-sm space-y-6">
+                  <div>
+                    <h2 className="text-xl font-bold border-b border-black/10 pb-4">Frequently Asked Questions</h2>
+                    <p className="mt-3 text-sm text-black/50">These questions appear on the home page and the FAQ page.</p>
+                  </div>
+                  {(contentForm.watch("faqs") ?? []).map((faq, index) => (
+                    <div key={index} className="space-y-4 border border-black/10 p-5">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-bold">Question {index + 1}</h3>
+                        <Button type="button" variant="outline" className="rounded-none" aria-label={`Remove question ${index + 1}`} onClick={() => {
+                          const next = [...contentForm.getValues("faqs")];
+                          next.splice(index, 1);
+                          contentForm.setValue("faqs", next, { shouldDirty: true, shouldValidate: true });
+                        }}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <FormField control={contentForm.control} name={`faqs.${index}.question`} render={({ field }) => (
+                        <FormItem><FormLabel>Question</FormLabel><FormControl><Input {...field} className="rounded-none" /></FormControl><FormMessage /></FormItem>
+                      )} />
+                      <FormField control={contentForm.control} name={`faqs.${index}.answer`} render={({ field }) => (
+                        <FormItem><FormLabel>Answer</FormLabel><FormControl><Textarea {...field} className="min-h-[100px] rounded-none" /></FormControl><FormMessage /></FormItem>
+                      )} />
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" className="rounded-none" onClick={() => {
+                    const next = [...contentForm.getValues("faqs"), { question: "", answer: "" }];
+                    contentForm.setValue("faqs", next, { shouldDirty: true, shouldValidate: true });
+                  }}>
+                    Add question
+                  </Button>
                 </div>
 
                 <div className="bg-white p-8 border border-black/5 shadow-sm space-y-6">

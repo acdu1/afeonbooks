@@ -43,6 +43,7 @@ async function ensureContentColumns() {
       ADD COLUMN IF NOT EXISTS blog_subtitle text NOT NULL DEFAULT 'A look inside the latest adventure from the AFEON Books team.',
       ADD COLUMN IF NOT EXISTS blog_date text NOT NULL DEFAULT 'September 15, 2026',
       ADD COLUMN IF NOT EXISTS blog_hero_image_url text NOT NULL DEFAULT '',
+      ADD COLUMN IF NOT EXISTS faqs text NOT NULL DEFAULT '[{"question":"How do I place an order?","answer":"Browse the shop, add an available item to your cart, and continue to checkout when you are ready."},{"question":"How can I check my cart?","answer":"Select the shopping bag in the header to open your cart and review its contents."},{"question":"What does it mean if an item is out of stock?","answer":"Items marked out of stock cannot currently be added to your cart."},{"question":"Where can I learn more about the book?","answer":"The About section on the home page has more information about the book and its creators."},{"question":"How do I access my account?","answer":"Choose Sign in in the header to open the account page."}]',
       ADD COLUMN IF NOT EXISTS blog_body text NOT NULL DEFAULT 'We are back at the writing table, building the next mystery one clue at a time.
 
 The next book is taking shape with bigger questions, stranger discoveries, and a brand-new trail for our detectives to follow. We cannot wait to share more soon.'

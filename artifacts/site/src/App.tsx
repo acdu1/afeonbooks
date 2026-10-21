@@ -15,6 +15,7 @@ import Order from "@/pages/order";
 import Account from "@/pages/account";
 import BlogProgress from "@/pages/blog-progress";
 import RedeemPages from "@/pages/redeem-pages";
+import Faq from "@/pages/faq";
 const queryClient = new QueryClient();
 
 import React from 'react';
@@ -48,6 +49,7 @@ function Router() {
       <Route path="/account-check/:token" component={Account} />
       <Route path="/account" component={Account} />
       <Route path="/blog" component={BlogProgress} />
+      <Route path="/faq" component={Faq} />
       <Route path="/redeem-pages" component={RedeemPages} />
       <Route component={NotFound} />
     </Switch>

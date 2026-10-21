@@ -58,6 +58,9 @@ export function SiteHeader({ simple = false }: SiteHeaderProps) {
               <Link href="/blog" className="text-[15px] font-medium tracking-wide hover:opacity-70 transition-opacity">
                 Blog
               </Link>
+              <Link href="/faq" className="text-[15px] font-medium tracking-wide hover:opacity-70 transition-opacity">
+                FAQ
+              </Link>
               <a href={createAuthEntryUrl(Boolean(user))} className="text-[15px] font-medium tracking-wide hover:opacity-70 transition-opacity">
                 {user ? "Account" : "Sign in"}
               </a>

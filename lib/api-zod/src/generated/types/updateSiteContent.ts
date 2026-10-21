@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { UpdateSiteContentCheckoutFieldsItem } from "./updateSiteContentCheckoutFieldsItem";
+import type { UpdateSiteContentFaqsItem } from "./updateSiteContentFaqsItem";
 import type { UpdateSiteContentShippingAddressesItem } from "./updateSiteContentShippingAddressesItem";
 
 export interface UpdateSiteContent {
@@ -21,6 +22,7 @@ export interface UpdateSiteContent {
   coverImageUrl: string;
   aboutHeading: string;
   aboutBody: string;
+  faqs?: UpdateSiteContentFaqsItem[];
   authorsLine: string;
   illustratorLine: string;
   footerNote: string;

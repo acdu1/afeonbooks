@@ -23,6 +23,11 @@ export type SiteContentCheckoutFieldsItem = {
   required: boolean;
 };
 
+export type SiteContentFaqsItem = {
+  question: string;
+  answer: string;
+};
+
 export type SiteContentShippingAddressesItem = {
   id: string;
   label: string;
@@ -46,6 +51,7 @@ export interface SiteContent {
   coverImageUrl: string;
   aboutHeading: string;
   aboutBody: string;
+  faqs: SiteContentFaqsItem[];
   authorsLine: string;
   illustratorLine: string;
   footerNote: string;
@@ -82,6 +88,11 @@ export type UpdateSiteContentCheckoutFieldsItem = {
   required: boolean;
 };
 
+export type UpdateSiteContentFaqsItem = {
+  question: string;
+  answer: string;
+};
+
 export type UpdateSiteContentShippingAddressesItem = {
   id: string;
   label: string;
@@ -105,6 +116,7 @@ export interface UpdateSiteContent {
   coverImageUrl: string;
   aboutHeading: string;
   aboutBody: string;
+  faqs?: UpdateSiteContentFaqsItem[];
   authorsLine: string;
   illustratorLine: string;
   footerNote: string;
@@ -218,12 +230,12 @@ export interface Order {
   classroom?: string;
   useDefaultAddress: boolean;
   notes?: string;
-  promoCode?: string;
   customFields?: OrderCustomFields;
   paymentMethod: string;
   orderType: OrderOrderType;
   paymentStatus: OrderPaymentStatus;
   status: string;
+  promoCode?: string;
   subtotalCents: number;
   shippingCents: number;
   totalCents: number;
