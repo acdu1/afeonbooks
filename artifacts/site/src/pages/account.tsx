@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link } from "wouter";
-import { ArrowRight, FileText, Gift, LogOut, ShieldCheck } from "lucide-react";
+import { ArrowRight, FileText, Gift, LogOut } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
@@ -150,38 +150,6 @@ function AccountTokenHandler() {
   }
   if (loading || (!verifyToken && !message && !error) || user) return null;
   return <div className="mx-auto mt-8 max-w-md text-sm">{message && <p className="text-emerald-700">{message}</p>}{error && <><p className="text-red-700">{error}</p><form onSubmit={resendVerification} className="mt-5 space-y-3"><input type="email" required value={verificationEmail} onChange={(event) => setVerificationEmail(event.target.value)} placeholder="Email address" className="w-full border border-black/15 bg-white px-4 py-3" /><TurnstileWidget action="resend_verification" onToken={setResendToken} resetKey={resendResetKey} /><Button type="submit" variant="outline" className="w-full rounded-none text-xs font-bold uppercase tracking-widest">Resend verification email</Button>{resendMessage && <p className="text-black/60">{resendMessage}</p>}</form></>}</div>;
-}
-
-function RoleManager() {
-  const { user } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (user?.role !== "admin") return;
-    authApiRequest<{ users: User[] }>("/api/auth/users").then((data) => setUsers(data.users)).catch((err) => setError(err.message));
-  }, [user]);
-
-  if (user?.role !== "admin") return null;
-
-  const updateRole = async (id: number, role: string) => {
-    try {
-      const data = await authApiRequest<{ user: User }>(`/api/auth/users/${id}/role`, { method: "PATCH", body: JSON.stringify({ role: role || null }) });
-      setUsers((current) => current.map((candidate) => candidate.id === id ? data.user : candidate));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update role");
-    }
-  };
-
-  return (
-    <section className="mt-16 border-t border-black/10 pt-10">
-      <div className="mb-6 flex items-center gap-3"><ShieldCheck className="h-5 w-5" /><h2 className="text-2xl font-bold">Team access</h2></div>
-      {error && <p className="mb-4 text-sm text-red-700">{error}</p>}
-      <div className="divide-y divide-black/10 border-y border-black/10">
-        {users.map((candidate) => <div key={candidate.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold">{candidate.name}</p><p className="text-sm text-black/50">{candidate.email}</p></div><select value={candidate.role === "customer" ? "" : candidate.role} onChange={(event) => updateRole(candidate.id, event.target.value)} disabled={candidate.id === user.id} className="border border-black/15 bg-white px-3 py-2 text-sm"><option value="">Customer</option><option value="staff">Staff</option><option value="admin">Admin</option></select></div>)}
-      </div>
-    </section>
-  );
 }
 
 function OrdersPanel() {
@@ -366,7 +334,6 @@ export default function Account() {
 
             <LoyaltyPanel />
             <OrdersPanel />
-            <RoleManager />
           </>
         ) : (
           <AccountForm />

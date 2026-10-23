@@ -14,6 +14,7 @@ export * from "./createOrderParams";
 export * from "./createOrderSchool";
 export * from "./createProduct";
 export * from "./createProductParams";
+export * from "./editOrderDetails";
 export * from "./emailTestResult";
 export * from "./getContentParams";
 export * from "./healthStatus";

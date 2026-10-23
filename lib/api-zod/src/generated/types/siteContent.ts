@@ -34,6 +34,10 @@ export interface SiteContent {
   defaultShippingPostalCode: string;
   defaultShippingCountry: string;
   shippingAddresses: SiteContentShippingAddressesItem[];
+  /**
+   * @minimum 0
+   * @maximum 1000000
+   */
   loyaltyPagesPerDollar: number;
   ordersEnabled: boolean;
   emailEnabled: boolean;

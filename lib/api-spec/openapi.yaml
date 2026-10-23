@@ -201,6 +201,26 @@ paths:
       responses:
         "204":
           description: Deleted
+  /orders/{id}/edit:
+    patch:
+      operationId: editOrderDetails
+      tags: [orders]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EditOrderDetails" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
   /email/test:
     post:
       operationId: sendTestEmail
@@ -439,6 +459,7 @@ components:
         status: { type: string }
         estimatedDeliveryDate: { type: string, format: date }
         subtotalCents: { type: integer }
+        discountCents: { type: integer }
         shippingCents: { type: integer }
         totalCents: { type: integer }
         currency: { type: string }
@@ -453,7 +474,7 @@ components:
         items:
           type: array
           items: { $ref: "#/components/schemas/OrderItem" }
-      required: [id, school, customerName, customerEmail, customerPhone, shippingAddress, city, postalCode, country, useDefaultAddress, paymentMethod, orderType, paymentStatus, status, subtotalCents, shippingCents, totalCents, currency, createdAt, items]
+      required: [id, school, customerName, customerEmail, customerPhone, shippingAddress, city, postalCode, country, useDefaultAddress, paymentMethod, orderType, paymentStatus, status, subtotalCents, discountCents, shippingCents, totalCents, currency, createdAt, items]
     CreateOrderItem:
       type: object
       properties:
@@ -500,6 +521,21 @@ components:
           type: string
           format: date
       required: [status]
+    EditOrderDetails:
+      type: object
+      properties:
+        customerName: { type: string, minLength: 1 }
+        customerEmail: { type: string, format: email }
+        customerPhone: { type: string, minLength: 1 }
+        shippingAddress: { type: string, minLength: 1 }
+        city: { type: string, minLength: 1 }
+        postalCode: { type: string, minLength: 1 }
+        country: { type: string, minLength: 1 }
+        classroom: { type: string }
+        notes: { type: string }
+        shippingCents: { type: integer, minimum: 0 }
+        discountCents: { type: integer, minimum: 0 }
+      required: [customerName, customerEmail, customerPhone, shippingAddress, city, postalCode, country, classroom, notes, shippingCents, discountCents]
     SendTestEmail:
       type: object
       properties:

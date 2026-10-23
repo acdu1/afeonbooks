@@ -21,6 +21,7 @@ import type {
   CreateOrderParams,
   CreateProduct,
   CreateProductParams,
+  EditOrderDetails,
   EmailTestResult,
   GetContentParams,
   HealthStatus,
@@ -1127,6 +1128,87 @@ export const useDeleteOrder = <
   TContext
 > => {
   return useMutation(getDeleteOrderMutationOptions(options));
+};
+
+export const getEditOrderDetailsUrl = (id: number) => {
+  return `/api/orders/${id}/edit`;
+};
+
+export const editOrderDetails = async (
+  id: number,
+  editOrderDetails: EditOrderDetails,
+  options?: RequestInit,
+): Promise<Order> => {
+  return customFetch<Order>(getEditOrderDetailsUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(editOrderDetails),
+  });
+};
+
+export const getEditOrderDetailsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof editOrderDetails>>,
+    TError,
+    { id: number; data: BodyType<EditOrderDetails> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof editOrderDetails>>,
+  TError,
+  { id: number; data: BodyType<EditOrderDetails> },
+  TContext
+> => {
+  const mutationKey = ["editOrderDetails"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof editOrderDetails>>,
+    { id: number; data: BodyType<EditOrderDetails> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return editOrderDetails(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type EditOrderDetailsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof editOrderDetails>>
+>;
+export type EditOrderDetailsMutationBody = BodyType<EditOrderDetails>;
+export type EditOrderDetailsMutationError = ErrorType<unknown>;
+
+export const useEditOrderDetails = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof editOrderDetails>>,
+    TError,
+    { id: number; data: BodyType<EditOrderDetails> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof editOrderDetails>>,
+  TError,
+  { id: number; data: BodyType<EditOrderDetails> },
+  TContext
+> => {
+  return useMutation(getEditOrderDetailsMutationOptions(options));
 };
 
 export const getSendTestEmailUrl = () => {

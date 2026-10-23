@@ -11,8 +11,6 @@ import type { UpdateSiteContentShippingAddressesItem } from "./updateSiteContent
 
 export interface UpdateSiteContent {
   checkoutFields?: UpdateSiteContentCheckoutFieldsItem[];
-  shippingAddresses?: UpdateSiteContentShippingAddressesItem[];
-  loyaltyPagesPerDollar: number;
   brandName: string;
   navHomeLabel: string;
   heroTitle: string;
@@ -32,6 +30,12 @@ export interface UpdateSiteContent {
   defaultShippingCity: string;
   defaultShippingPostalCode: string;
   defaultShippingCountry: string;
+  shippingAddresses?: UpdateSiteContentShippingAddressesItem[];
+  /**
+   * @minimum 0
+   * @maximum 1000000
+   */
+  loyaltyPagesPerDollar: number;
   ordersEnabled: boolean;
   emailEnabled: boolean;
   emailFromName: string;
@@ -43,4 +47,9 @@ export interface UpdateSiteContent {
   emailButtonLabel: string;
   emailFooter: string;
   emailAccentColor: string;
+  blogTitle: string;
+  blogSubtitle: string;
+  blogDate: string;
+  blogHeroImageUrl: string;
+  blogBody: string;
 }

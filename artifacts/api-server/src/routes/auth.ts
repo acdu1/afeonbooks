@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { randomBytes } from "node:crypto";
-import { count, desc, eq, ilike, or } from "drizzle-orm";
+import { count, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { db, loyaltyTransactionsTable, usersTable } from "@workspace/db";
 import {
   consumeAuthToken,
@@ -187,7 +187,15 @@ router.post("/auth/verify-email", async (req, res): Promise<void> => {
 
 router.get("/auth/users", requireUser, requireRole("admin"), async (_req, res): Promise<void> => {
   const users = await db.select().from(usersTable).orderBy(desc(usersTable.createdAt));
-  res.json({ users: users.map(publicUser) });
+  const transactions = await db
+    .select({
+      userId: loyaltyTransactionsTable.userId,
+      balance: sql<number>`coalesce(sum(${loyaltyTransactionsTable.points}), 0)::int`,
+    })
+    .from(loyaltyTransactionsTable)
+    .groupBy(loyaltyTransactionsTable.userId);
+  const balances = new Map(transactions.map((transaction) => [transaction.userId, transaction.balance]));
+  res.json({ users: users.map((user) => ({ ...publicUser(user), pointsBalance: balances.get(user.id) ?? 0 })) });
 });
 
 router.get("/auth/users/search", requireUser, requireRole("admin"), async (req, res): Promise<void> => {
@@ -252,6 +260,43 @@ router.get("/auth/loyalty", requireUser, async (req, res): Promise<void> => {
     balance: transactions.reduce((total, transaction) => total + transaction.points, 0),
     transactions,
   });
+});
+
+router.post("/auth/users/:id/loyalty", requireUser, requireRole("admin"), async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
+    res.status(400).json({ error: "Points and a description are required" });
+    return;
+  }
+  const { points, description } = req.body as { points?: unknown; description?: unknown };
+  if (!Number.isSafeInteger(id) || id < 1) {
+    res.status(400).json({ error: "Invalid user ID" });
+    return;
+  }
+  if (!Number.isSafeInteger(points) || (points as number) < 1 || (points as number) > 2_147_483_647) {
+    res.status(400).json({ error: "Points must be a positive whole number" });
+    return;
+  }
+  if (typeof description !== "string" || !description.trim() || description.trim().length > 200) {
+    res.status(400).json({ error: "A description of 1 to 200 characters is required" });
+    return;
+  }
+  const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, id)).limit(1);
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+  await db.insert(loyaltyTransactionsTable).values({
+    userId: id,
+    orderId: null,
+    points: points as number,
+    description: description.trim(),
+  });
+  const [balance] = await db
+    .select({ total: sql<number>`coalesce(sum(${loyaltyTransactionsTable.points}), 0)::int` })
+    .from(loyaltyTransactionsTable)
+    .where(eq(loyaltyTransactionsTable.userId, id));
+  res.status(201).json({ pointsBalance: balance?.total ?? points });
 });
 
 router.patch("/auth/users/:id/role", requireUser, requireRole("admin"), async (req, res): Promise<void> => {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatPrice } from "@/lib/format";
 import { renderEmailPreview } from "@/lib/email-preview";
 import Marketing from "@/pages/marketing";
+import Users from "@/pages/users";
 import { Edit2, Trash2, Send, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import xlogo from "@assets/logo_web.png";
@@ -32,6 +34,7 @@ import {
   getGetOrdersSummaryQueryKey,
 } from "@workspace/api-client-react";
 import type { UpdateOrderStatusStatus } from "@workspace/api-client-react";
+import type { Order } from "@workspace/api-client-react";
 
 const ORDER_STATUSES: UpdateOrderStatusStatus[] = [
   "pending",
@@ -48,6 +51,28 @@ const STATUS_STYLES: Record<string, string> = {
   delivered: "bg-emerald-100 text-emerald-800 border-emerald-200",
   cancelled: "bg-red-100 text-red-700 border-red-200",
 };
+
+type OrderEditValues = {
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  shippingAddress: string;
+  city: string;
+  postalCode: string;
+  country: string;
+  classroom: string;
+  notes: string;
+  shipping: string;
+  discount: string;
+};
+
+function currencyInputToCents(value: string): number | null {
+  const normalized = value.trim();
+  if (!/^\d+(?:\.\d{0,2})?$/.test(normalized)) return null;
+  const [whole, fraction = ""] = normalized.split(".");
+  const cents = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
+  return Number.isSafeInteger(cents) ? cents : null;
+}
 
 const contentSchema = z.object({
   checkoutFields: z.array(z.object({ id: z.string(), label: z.string().min(1), required: z.boolean() })).default([]),
@@ -209,9 +234,12 @@ export default function Editor() {
     finally { setDevTestLoading(false); }
   };
 
-  const [activeTab, setActiveTab] = useState<"content" | "products" | "orders" | "email" | "marketing">("content");
+  const [activeTab, setActiveTab] = useState<"content" | "products" | "orders" | "email" | "marketing" | "users">("content");
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [testEmailTo, setTestEmailTo] = useState<string>("");
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [orderEditValues, setOrderEditValues] = useState<OrderEditValues | null>(null);
+  const [savingOrder, setSavingOrder] = useState(false);
 
   const { data: content, isLoading: contentLoading } = useGetContent();
   const { data: products } = useListProducts();
@@ -323,6 +351,69 @@ export default function Editor() {
         onError: () => toast.error("Failed to delete order"),
       }
     );
+  };
+
+  const openOrderEditor = (order: Order) => {
+    setEditingOrder(order);
+    setOrderEditValues({
+      customerName: order.customerName,
+      customerEmail: order.customerEmail,
+      customerPhone: order.customerPhone,
+      shippingAddress: order.shippingAddress,
+      city: order.city,
+      postalCode: order.postalCode,
+      country: order.country,
+      classroom: order.classroom ?? "",
+      notes: order.notes ?? "",
+      shipping: (order.shippingCents / 100).toFixed(2),
+      discount: ((order.discountCents ?? 0) / 100).toFixed(2),
+    });
+  };
+
+  const saveOrderEdits = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingOrder || !orderEditValues) return;
+    const shippingCents = currencyInputToCents(orderEditValues.shipping);
+    const discountCents = currencyInputToCents(orderEditValues.discount);
+    if (shippingCents === null || discountCents === null) {
+      toast.error("Enter valid shipping and discount amounts with up to two decimal places.");
+      return;
+    }
+    if (discountCents > editingOrder.subtotalCents) {
+      toast.error("Discount cannot exceed the order subtotal.");
+      return;
+    }
+    setSavingOrder(true);
+    try {
+      const response = await fetch(`/api/orders/${editingOrder.id}/edit`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerName: orderEditValues.customerName,
+          customerEmail: orderEditValues.customerEmail,
+          customerPhone: orderEditValues.customerPhone,
+          shippingAddress: orderEditValues.shippingAddress,
+          city: orderEditValues.city,
+          postalCode: orderEditValues.postalCode,
+          country: orderEditValues.country,
+          classroom: orderEditValues.classroom,
+          notes: orderEditValues.notes,
+          shippingCents,
+          discountCents,
+        }),
+      });
+      const data = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) throw new Error(data.error ?? `Unable to update order (${response.status})`);
+      toast.success(`Order #${editingOrder.id} updated`);
+      setEditingOrder(null);
+      setOrderEditValues(null);
+      queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetOrdersSummaryQueryKey() });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to update order");
+    } finally {
+      setSavingOrder(false);
+    }
   };
 
   const queryClient = useQueryClient();
@@ -619,7 +710,7 @@ export default function Editor() {
 
       <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="flex gap-8 mb-12 border-b border-black/10">
-          {(["content", "products", "email", "orders", "marketing"] as const).map((tab) => (
+          {(["content", "products", "email", "orders", "marketing", "users"] as const).map((tab) => (
             <button
               key={tab}
               className={`pb-4 font-bold text-sm tracking-widest uppercase border-b-2 transition-colors ${activeTab === tab ? "border-black text-black" : "border-transparent text-black/40 hover:text-black/80"}`}
@@ -1047,6 +1138,7 @@ export default function Editor() {
         )}
 
         {activeTab === "marketing" && <Marketing />}
+        {activeTab === "users" && <Users />}
 
         {activeTab === "email" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
@@ -1248,13 +1340,24 @@ export default function Editor() {
                       </td>
                       <td className="px-4 py-3 text-xs text-black/50">{new Date(order.createdAt).toLocaleDateString()}</td>
                       <td className="px-4 py-3">
-                        <button
-                          onClick={() => handleDeleteOrder(order.id)}
-                          className="p-1.5 hover:bg-red-50 text-red-400 hover:text-red-600 rounded transition-colors"
-                          title="Delete order"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => openOrderEditor(order)}
+                            className="rounded p-1.5 text-black/45 transition-colors hover:bg-black/5 hover:text-black"
+                            title="Edit order"
+                            aria-label={`Edit order ${order.id}`}
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteOrder(order.id)}
+                            className="rounded p-1.5 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                            title="Delete order"
+                            aria-label={`Delete order ${order.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1264,6 +1367,89 @@ export default function Editor() {
                 </tbody>
               </table>
             </div>
+            <Dialog
+              open={Boolean(editingOrder && orderEditValues)}
+              onOpenChange={(open) => {
+                if (!open && !savingOrder) {
+                  setEditingOrder(null);
+                  setOrderEditValues(null);
+                }
+              }}
+            >
+              <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Edit order #{editingOrder?.id}</DialogTitle>
+                  <DialogDescription>Update customer and shipping details, notes, or the order discount. Purchased items stay unchanged.</DialogDescription>
+                </DialogHeader>
+                {orderEditValues && (
+                  <form onSubmit={saveOrderEdits} className="space-y-5">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <label className="space-y-1 text-sm font-medium">
+                        Customer name
+                        <Input required value={orderEditValues.customerName} onChange={(event) => setOrderEditValues({ ...orderEditValues, customerName: event.target.value })} />
+                      </label>
+                      <label className="space-y-1 text-sm font-medium">
+                        Email
+                        <Input required type="email" value={orderEditValues.customerEmail} onChange={(event) => setOrderEditValues({ ...orderEditValues, customerEmail: event.target.value })} />
+                      </label>
+                      <label className="space-y-1 text-sm font-medium sm:col-span-2">
+                        Phone
+                        <Input required value={orderEditValues.customerPhone} onChange={(event) => setOrderEditValues({ ...orderEditValues, customerPhone: event.target.value })} />
+                      </label>
+                      <label className="space-y-1 text-sm font-medium sm:col-span-2">
+                        Shipping address
+                        <Input required value={orderEditValues.shippingAddress} onChange={(event) => setOrderEditValues({ ...orderEditValues, shippingAddress: event.target.value })} />
+                      </label>
+                      <label className="space-y-1 text-sm font-medium">
+                        City
+                        <Input required value={orderEditValues.city} onChange={(event) => setOrderEditValues({ ...orderEditValues, city: event.target.value })} />
+                      </label>
+                      <label className="space-y-1 text-sm font-medium">
+                        Postal code
+                        <Input required value={orderEditValues.postalCode} onChange={(event) => setOrderEditValues({ ...orderEditValues, postalCode: event.target.value })} />
+                      </label>
+                      <label className="space-y-1 text-sm font-medium">
+                        Country
+                        <Input required value={orderEditValues.country} onChange={(event) => setOrderEditValues({ ...orderEditValues, country: event.target.value })} />
+                      </label>
+                      <label className="space-y-1 text-sm font-medium">
+                        Classroom
+                        <Input value={orderEditValues.classroom} onChange={(event) => setOrderEditValues({ ...orderEditValues, classroom: event.target.value })} />
+                      </label>
+                      <label className="space-y-1 text-sm font-medium">
+                        Shipping ($)
+                        <Input required type="number" min="0" step="0.01" value={orderEditValues.shipping} onChange={(event) => setOrderEditValues({ ...orderEditValues, shipping: event.target.value })} />
+                      </label>
+                      <label className="space-y-1 text-sm font-medium">
+                        Discount ($)
+                        <Input required type="number" min="0" max={(editingOrder?.subtotalCents ?? 0) / 100} step="0.01" value={orderEditValues.discount} onChange={(event) => setOrderEditValues({ ...orderEditValues, discount: event.target.value })} />
+                      </label>
+                      <label className="space-y-1 text-sm font-medium sm:col-span-2">
+                        Order notes
+                        <Textarea value={orderEditValues.notes} onChange={(event) => setOrderEditValues({ ...orderEditValues, notes: event.target.value })} rows={3} />
+                      </label>
+                    </div>
+                    <p className="text-sm text-black/55">
+                      New total: {editingOrder && (() => {
+                        const shipping = currencyInputToCents(orderEditValues.shipping);
+                        const discount = currencyInputToCents(orderEditValues.discount);
+                        return shipping === null || discount === null
+                          ? "Enter valid amounts"
+                          : formatPrice(editingOrder.subtotalCents - discount + shipping, editingOrder.currency);
+                      })()}
+                    </p>
+                    <DialogFooter>
+                      <Button type="button" variant="outline" disabled={savingOrder} onClick={() => { setEditingOrder(null); setOrderEditValues(null); }}>
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={savingOrder} className="rounded-none bg-black text-white hover:bg-black/80">
+                        {savingOrder ? "Saving..." : "Save order"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                )}
+              </DialogContent>
+            </Dialog>
           </div>
         )}
       </div>

@@ -20,6 +20,7 @@ export const ordersTable = pgTable("orders", {
   status: text("status").notNull().default("pending"),
   estimatedDeliveryDate: text("estimated_delivery_date"),
   subtotalCents: integer("subtotal_cents").notNull(),
+  discountCents: integer("discount_cents").notNull().default(0),
   shippingCents: integer("shipping_cents").notNull().default(0),
   totalCents: integer("total_cents").notNull(),
   currency: text("currency").notNull().default("USD"),

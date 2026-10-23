@@ -29,12 +29,19 @@ export type SiteContentFaqsItem = {
 };
 
 export type SiteContentShippingAddressesItem = {
+  /** @minLength 1 */
   id: string;
+  /** @minLength 1 */
   label: string;
+  /** @minLength 1 */
   address: string;
+  /** @minLength 1 */
   city: string;
+  /** @minLength 1 */
   postalCode: string;
+  /** @minLength 1 */
   country: string;
+  /** @minimum 0 */
   shippingFeeCents: number;
 };
 
@@ -62,6 +69,10 @@ export interface SiteContent {
   defaultShippingPostalCode: string;
   defaultShippingCountry: string;
   shippingAddresses: SiteContentShippingAddressesItem[];
+  /**
+   * @minimum 0
+   * @maximum 1000000
+   */
   loyaltyPagesPerDollar: number;
   ordersEnabled: boolean;
   emailEnabled: boolean;
@@ -94,19 +105,24 @@ export type UpdateSiteContentFaqsItem = {
 };
 
 export type UpdateSiteContentShippingAddressesItem = {
+  /** @minLength 1 */
   id: string;
+  /** @minLength 1 */
   label: string;
+  /** @minLength 1 */
   address: string;
+  /** @minLength 1 */
   city: string;
+  /** @minLength 1 */
   postalCode: string;
+  /** @minLength 1 */
   country: string;
+  /** @minimum 0 */
   shippingFeeCents?: number;
 };
 
 export interface UpdateSiteContent {
   checkoutFields?: UpdateSiteContentCheckoutFieldsItem[];
-  shippingAddresses?: UpdateSiteContentShippingAddressesItem[];
-  loyaltyPagesPerDollar: number;
   brandName: string;
   navHomeLabel: string;
   heroTitle: string;
@@ -126,6 +142,12 @@ export interface UpdateSiteContent {
   defaultShippingCity: string;
   defaultShippingPostalCode: string;
   defaultShippingCountry: string;
+  shippingAddresses?: UpdateSiteContentShippingAddressesItem[];
+  /**
+   * @minimum 0
+   * @maximum 1000000
+   */
+  loyaltyPagesPerDollar: number;
   ordersEnabled: boolean;
   emailEnabled: boolean;
   emailFromName: string;
@@ -235,8 +257,9 @@ export interface Order {
   orderType: OrderOrderType;
   paymentStatus: OrderPaymentStatus;
   status: string;
-  promoCode?: string;
+  estimatedDeliveryDate?: string;
   subtotalCents: number;
+  discountCents: number;
   shippingCents: number;
   totalCents: number;
   currency: string;
@@ -285,12 +308,13 @@ export interface CreateOrder {
   customerPhone: string;
   useDefaultAddress: boolean;
   shippingAddress?: string;
-  shippingAddressId?: string;
   city?: string;
   postalCode?: string;
   country?: string;
+  shippingAddressId?: string;
   classroom?: string;
   notes?: string;
+  /** @maxLength 40 */
   promoCode?: string;
   customFields?: CreateOrderCustomFields;
   orderType?: CreateOrderOrderType;
@@ -319,6 +343,28 @@ export const UpdateOrderStatusStatus = {
 export interface UpdateOrderStatus {
   status: UpdateOrderStatusStatus;
   estimatedDeliveryDate?: string;
+}
+
+export interface EditOrderDetails {
+  /** @minLength 1 */
+  customerName: string;
+  customerEmail: string;
+  /** @minLength 1 */
+  customerPhone: string;
+  /** @minLength 1 */
+  shippingAddress: string;
+  /** @minLength 1 */
+  city: string;
+  /** @minLength 1 */
+  postalCode: string;
+  /** @minLength 1 */
+  country: string;
+  classroom: string;
+  notes: string;
+  /** @minimum 0 */
+  shippingCents: number;
+  /** @minimum 0 */
+  discountCents: number;
 }
 
 export interface SendTestEmail {

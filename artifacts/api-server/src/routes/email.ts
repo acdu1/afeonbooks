@@ -177,6 +177,7 @@ router.post("/email/test", requireUser, requireRole("admin"), async (req, res): 
     status: "pending",
     estimatedDeliveryDate: null,
     subtotalCents: 1499,
+    discountCents: 0,
     shippingCents: 0,
     totalCents: 1499,
     currency: "USD",

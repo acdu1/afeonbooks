@@ -49,6 +49,7 @@ function serializeOrder(o: OrderRow, items: OrderItemRow[]) {
     paymentStatus: o.paymentStatus,
     status: o.status,
     subtotalCents: o.subtotalCents,
+    discountCents: o.discountCents,
     shippingCents: o.shippingCents,
     totalCents: o.totalCents,
     currency: o.currency,
@@ -360,6 +361,7 @@ router.post("/orders", async (req, res): Promise<void> => {
         paymentStatus: body.orderType === "preorder" ? "due_later" : "due",
         status: "pending",
         subtotalCents: subtotal,
+        discountCents,
         shippingCents: shipping,
         totalCents: total,
         currency,
@@ -419,6 +421,7 @@ router.patch("/orders/:id", requireUser, requireRole("staff", "admin"), async (r
     res.status(400).json({ error: "Estimated delivery date is required when shipping an order" });
     return;
   }
+  const estimatedDeliveryDate = body.estimatedDeliveryDate?.toISOString().slice(0, 10);
   let previousStatus: string | undefined;
   const updated = await db.transaction(async (tx) => {
     const current = await tx.select().from(ordersTable).where(eq(ordersTable.id, id)).limit(1);
@@ -427,7 +430,7 @@ router.patch("/orders/:id", requireUser, requireRole("staff", "admin"), async (r
 
     const changed = await tx
       .update(ordersTable)
-      .set({ status: body.status, estimatedDeliveryDate: body.estimatedDeliveryDate ?? null })
+      .set({ status: body.status, estimatedDeliveryDate: estimatedDeliveryDate ?? null })
       .where(eq(ordersTable.id, id))
       .returning();
 
@@ -471,8 +474,155 @@ router.patch("/orders/:id", requireUser, requireRole("staff", "admin"), async (r
     .select()
     .from(orderItemsTable)
     .where(eq(orderItemsTable.orderId, id));
-  if (previousStatus !== body.status || body.estimatedDeliveryDate) void sendOrderStatusUpdateEmail(updated[0], body.status, body.estimatedDeliveryDate);
+  if (previousStatus !== body.status || estimatedDeliveryDate) void sendOrderStatusUpdateEmail(updated[0], body.status, estimatedDeliveryDate);
   res.json(UpdateOrderStatusResponse.parse(serializeOrder(updated[0], items)));
+});
+
+router.patch("/orders/:id/edit", requireUser, requireRole("admin"), async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
+    res.status(400).json({ error: "Order details are required" });
+    return;
+  }
+  const body = req.body as Record<string, unknown>;
+  const textFields = [
+    "customerName",
+    "customerEmail",
+    "customerPhone",
+    "shippingAddress",
+    "city",
+    "postalCode",
+    "country",
+    "classroom",
+    "notes",
+  ] as const;
+  if (!Number.isSafeInteger(id) || id < 1) {
+    res.status(400).json({ error: "Invalid order ID" });
+    return;
+  }
+  for (const field of textFields) {
+    if (typeof body[field] !== "string") {
+      res.status(400).json({ error: `${field} must be a string` });
+      return;
+    }
+  }
+  const customerName = (body.customerName as string).trim();
+  const customerEmail = normalizeEmail(body.customerEmail as string);
+  const customerPhone = (body.customerPhone as string).trim();
+  const shippingAddress = (body.shippingAddress as string).trim();
+  const city = (body.city as string).trim();
+  const postalCode = (body.postalCode as string).trim();
+  const country = (body.country as string).trim();
+  const classroom = (body.classroom as string).trim();
+  const notes = (body.notes as string).trim();
+  const shippingCents = body.shippingCents;
+  const discountCents = body.discountCents;
+  if (
+    !customerName ||
+    !/^\S+@\S+\.\S+$/.test(customerEmail) ||
+    !customerPhone ||
+    !shippingAddress ||
+    !city ||
+    !postalCode ||
+    !country
+  ) {
+    res.status(400).json({ error: "Customer and shipping details are required" });
+    return;
+  }
+  if (
+    !Number.isSafeInteger(shippingCents) ||
+    (shippingCents as number) < 0 ||
+    (shippingCents as number) > 2_147_483_647 ||
+    !Number.isSafeInteger(discountCents) ||
+    (discountCents as number) < 0 ||
+    (discountCents as number) > 2_147_483_647
+  ) {
+    res.status(400).json({ error: "Shipping and discount amounts must be non-negative whole cents" });
+    return;
+  }
+
+  const updated = await db.transaction(async (tx) => {
+    const [current] = await tx
+      .select()
+      .from(ordersTable)
+      .where(eq(ordersTable.id, id))
+      .for("update")
+      .limit(1);
+    if (!current) return null;
+    if ((discountCents as number) > current.subtotalCents) {
+      return { invalidDiscount: true as const };
+    }
+    const totalCents = current.subtotalCents - (discountCents as number) + (shippingCents as number);
+    if (totalCents > 2_147_483_647) {
+      return { invalidTotal: true as const };
+    }
+    const [order] = await tx
+      .update(ordersTable)
+      .set({
+        customerName,
+        customerEmail,
+        customerPhone,
+        shippingAddress,
+        city,
+        postalCode,
+        country,
+        classroom: classroom || null,
+        notes: notes || null,
+        shippingCents: shippingCents as number,
+        discountCents: discountCents as number,
+        totalCents,
+      })
+      .where(eq(ordersTable.id, id))
+      .returning();
+    if (current.status === "delivered") {
+      const [earnedTransaction] = await tx
+        .select({ id: loyaltyTransactionsTable.id, userId: loyaltyTransactionsTable.userId })
+        .from(loyaltyTransactionsTable)
+        .where(eq(loyaltyTransactionsTable.orderId, id))
+        .limit(1);
+      if (earnedTransaction) {
+        const [content] = await tx
+          .select({ loyaltyPagesPerDollar: siteContentTable.loyaltyPagesPerDollar })
+          .from(siteContentTable)
+          .where(eq(siteContentTable.school, current.school))
+          .orderBy(asc(siteContentTable.id))
+          .limit(1);
+        const configuredRate = Number(content?.loyaltyPagesPerDollar ?? 50);
+        const pagesPerDollar = Number.isSafeInteger(configuredRate) && configuredRate >= 0 ? configuredRate : 50;
+        const [matchingUser] = await tx
+          .select({ id: usersTable.id })
+          .from(usersTable)
+          .where(eq(usersTable.email, customerEmail))
+          .limit(1);
+        await tx
+          .update(loyaltyTransactionsTable)
+          .set({
+            ...(matchingUser ? { userId: matchingUser.id } : {}),
+            points: Math.floor(totalCents / 100) * pagesPerDollar,
+            description: `Points earned from order #${id}`,
+          })
+          .where(eq(loyaltyTransactionsTable.id, earnedTransaction.id));
+      }
+    }
+    const items = await tx
+      .select()
+      .from(orderItemsTable)
+      .where(eq(orderItemsTable.orderId, id));
+    return { order, items };
+  });
+  if (!updated) {
+    res.status(404).json({ error: "not found" });
+    return;
+  }
+  if ("invalidDiscount" in updated) {
+    res.status(400).json({ error: "Discount cannot exceed the order subtotal" });
+    return;
+  }
+  if ("invalidTotal" in updated) {
+    res.status(400).json({ error: "Updated total exceeds the supported maximum" });
+    return;
+  }
+  res.json(GetOrderResponse.parse(serializeOrder(updated.order, updated.items)));
 });
 
 router.delete("/orders/:id", requireUser, requireRole("admin"), async (req, res): Promise<void> => {

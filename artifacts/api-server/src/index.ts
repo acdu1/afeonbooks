@@ -24,9 +24,15 @@ async function ensureOrderColumns() {
       ADD COLUMN IF NOT EXISTS school text NOT NULL DEFAULT 'alvarado',
       ADD COLUMN IF NOT EXISTS order_type text NOT NULL DEFAULT 'sale',
       ADD COLUMN IF NOT EXISTS payment_status text NOT NULL DEFAULT 'due',
-      ADD COLUMN IF NOT EXISTS estimated_delivery_date text
+      ADD COLUMN IF NOT EXISTS estimated_delivery_date text,
+      ADD COLUMN IF NOT EXISTS discount_cents integer NOT NULL DEFAULT 0
   `);
-  logger.info("Verified orders.order_type and orders.payment_status columns");
+  await pool.query(`
+      UPDATE orders
+      SET discount_cents = GREATEST(subtotal_cents + shipping_cents - total_cents, 0)
+      WHERE discount_cents = 0 AND total_cents < subtotal_cents + shipping_cents
+  `);
+  logger.info("Verified orders.order_type, orders.payment_status, and orders.discount_cents columns");
 }
 
 async function ensureContentColumns() {
