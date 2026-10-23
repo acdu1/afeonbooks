@@ -14,7 +14,7 @@ import { formatPrice } from "@/lib/format";
 import { renderEmailPreview } from "@/lib/email-preview";
 import Marketing from "@/pages/marketing";
 import Users from "@/pages/users";
-import { Edit2, Trash2, Send, Download } from "lucide-react";
+import { ArrowDown, ArrowUp, Edit2, Trash2, Send, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import xlogo from "@assets/logo_web.png";
 import {
@@ -32,6 +32,7 @@ import {
   getListProductsQueryKey,
   getListOrdersQueryKey,
   getGetOrdersSummaryQueryKey,
+  customFetch,
 } from "@workspace/api-client-react";
 import type { UpdateOrderStatusStatus } from "@workspace/api-client-react";
 import type { Order } from "@workspace/api-client-react";
@@ -236,6 +237,7 @@ export default function Editor() {
 
   const [activeTab, setActiveTab] = useState<"content" | "products" | "orders" | "email" | "marketing" | "users">("content");
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
+  const [isReorderingProducts, setIsReorderingProducts] = useState(false);
   const [testEmailTo, setTestEmailTo] = useState<string>("");
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [orderEditValues, setOrderEditValues] = useState<OrderEditValues | null>(null);
@@ -536,6 +538,31 @@ export default function Editor() {
         },
         onError: () => toast.error("Failed to delete product.")
       });
+    }
+  };
+
+  const handleMoveProduct = async (index: number, direction: -1 | 1) => {
+    const orderedProducts = [...(products ?? [])];
+    const destination = index + direction;
+    if (isReorderingProducts || destination < 0 || destination >= orderedProducts.length) return;
+
+    [orderedProducts[index], orderedProducts[destination]] = [
+      orderedProducts[destination]!,
+      orderedProducts[index]!,
+    ];
+
+    setIsReorderingProducts(true);
+    try {
+      await customFetch<{ success: boolean }>("/api/products/reorder", {
+        method: "PUT",
+        body: JSON.stringify({ productIds: orderedProducts.map((product) => product.id) }),
+      });
+      await queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+      toast.success("Product order updated.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update product order.");
+    } finally {
+      setIsReorderingProducts(false);
     }
   };
 
@@ -1110,7 +1137,7 @@ export default function Editor() {
             <div>
               <h2 className="text-xl font-bold mb-6">All Products ({products?.length ?? 0})</h2>
               <div className="space-y-3">
-                {products?.map((p) => (
+                {products?.map((p, index) => (
                   <div key={p.id} className="bg-white border border-black/5 shadow-sm p-4 flex gap-4 items-start">
                     <img src={p.imageUrl} alt={p.name} className="w-16 h-20 object-cover flex-shrink-0 border border-black/10" />
                     <div className="flex-1 min-w-0">
@@ -1126,6 +1153,26 @@ export default function Editor() {
                       </div>
                     </div>
                     <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void handleMoveProduct(index, -1)}
+                        disabled={isReorderingProducts || index === 0}
+                        aria-label={`Move ${p.name} earlier`}
+                        title="Move earlier"
+                        className="p-1.5 hover:bg-black/5 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <ArrowUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleMoveProduct(index, 1)}
+                        disabled={isReorderingProducts || index === (products?.length ?? 0) - 1}
+                        aria-label={`Move ${p.name} later`}
+                        title="Move later"
+                        className="p-1.5 hover:bg-black/5 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <ArrowDown className="w-4 h-4" />
+                      </button>
                       <button onClick={() => handleEditProduct(p)} className="p-1.5 hover:bg-black/5 rounded transition-colors"><Edit2 className="w-4 h-4" /></button>
                       <button onClick={() => handleDeleteProduct(p.id)} className="p-1.5 hover:bg-red-50 text-red-600 rounded transition-colors"><Trash2 className="w-4 h-4" /></button>
                     </div>

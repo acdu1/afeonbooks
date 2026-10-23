@@ -93,9 +93,21 @@ The next book is taking shape with bigger questions, stranger discoveries, and a
 async function ensureProductColumns() {
   await pool.query(`
     ALTER TABLE products
-      ADD COLUMN IF NOT EXISTS show_in_shop boolean NOT NULL DEFAULT true
+      ADD COLUMN IF NOT EXISTS show_in_shop boolean NOT NULL DEFAULT true,
+      ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 0
   `);
-  logger.info("Verified products.show_in_shop column");
+  await pool.query(`
+    WITH ranked_products AS (
+      SELECT id, ROW_NUMBER() OVER (ORDER BY created_at DESC, id DESC) - 1 AS position
+      FROM products
+    )
+    UPDATE products
+    SET sort_order = ranked_products.position
+    FROM ranked_products
+    WHERE products.id = ranked_products.id
+      AND NOT EXISTS (SELECT 1 FROM products WHERE sort_order <> 0)
+  `);
+  logger.info("Verified products.show_in_shop and products.sort_order columns");
 }
 
 async function ensureAuthTables() {

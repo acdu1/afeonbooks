@@ -263,6 +263,7 @@ export const ListProductsResponseItem = zod.object({
   stock: zod.number(),
   active: zod.boolean(),
   showInShop: zod.boolean(),
+  sortOrder: zod.number(),
   createdAt: zod.string(),
 });
 export const ListProductsResponse = zod.array(ListProductsResponseItem);
@@ -307,6 +308,7 @@ export const GetProductResponse = zod.object({
   stock: zod.number(),
   active: zod.boolean(),
   showInShop: zod.boolean(),
+  sortOrder: zod.number(),
   createdAt: zod.string(),
 });
 
@@ -333,6 +335,11 @@ export const UpdateProductBody = zod.object({
   stock: zod.number().min(updateProductBodyStockMin),
   active: zod.boolean(),
   showInShop: zod.boolean().optional(),
+  sortOrder: zod.number().int().optional(),
+});
+
+export const ReorderProductsBody = zod.object({
+  productIds: zod.array(zod.number().int().positive()).min(1),
 });
 
 export const UpdateProductResponse = zod.object({
@@ -346,6 +353,7 @@ export const UpdateProductResponse = zod.object({
   stock: zod.number(),
   active: zod.boolean(),
   showInShop: zod.boolean(),
+  sortOrder: zod.number(),
   createdAt: zod.string(),
 });
 

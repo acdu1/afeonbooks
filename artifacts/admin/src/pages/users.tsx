@@ -7,7 +7,7 @@ type AdminUser = {
   name: string;
   email: string;
   role: string | null;
-  pointsBalance: number;
+  pointsBalance?: number;
 };
 
 async function adminRequest<T>(path: string, init?: RequestInit): Promise<T> {
@@ -42,6 +42,9 @@ export default function Users() {
     ])
       .then(([userData, me]) => {
         if (cancelled) return;
+        if (!Array.isArray(userData.users)) {
+          throw new Error("The users response was invalid. Refresh the page and try again.");
+        }
         setUsers(userData.users);
         setCurrentUserId(me.user?.id ?? null);
       })
@@ -122,7 +125,7 @@ export default function Users() {
                     <p className="font-medium">{user.name}</p>
                     <p className="text-xs text-black/50">{user.email}</p>
                   </td>
-                  <td className="px-4 py-3 font-semibold">{user.pointsBalance.toLocaleString()}</td>
+                  <td className="px-4 py-3 font-semibold">{(user.pointsBalance ?? 0).toLocaleString()}</td>
                   <td className="px-4 py-3">
                     <select
                       aria-label={`Team access for ${user.name}`}
