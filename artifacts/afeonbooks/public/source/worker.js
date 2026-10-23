@@ -84,6 +84,29 @@ function makePdf(lines) {
   return encoder.encode(chunks.join(""));
 }
 
+async function getCheckoutFieldLabels() {
+  try {
+    const response = await fetch("https://api.afeonbooks.com/api/content", {
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) {
+      console.error("Unable to load checkout field labels for order PDF", response.status);
+      return new Map();
+    }
+
+    const content = await response.json();
+    const fields = Array.isArray(content.checkoutFields) ? content.checkoutFields : [];
+    return new Map(
+      fields
+        .filter((field) => typeof field?.id === "string" && typeof field?.label === "string")
+        .map((field) => [field.id, field.label])
+    );
+  } catch (error) {
+    console.error("Unable to load checkout field labels for order PDF", error);
+    return new Map();
+  }
+}
+
 async function orderPdfResponse(request, orderId) {
   const apiUrl = new URL(`https://api.afeonbooks.com/api/orders/${encodeURIComponent(orderId)}`);
   const apiResponse = await fetch(new Request(apiUrl, { method: "GET", headers: { Accept: "application/json" } }));
@@ -96,6 +119,15 @@ async function orderPdfResponse(request, orderId) {
   }
 
   const order = await apiResponse.json();
+  const fieldLabels = await getCheckoutFieldLabels();
+  const customFields = order.customFields && typeof order.customFields === "object"
+    ? order.customFields
+    : {};
+  const customFieldEntries = Object.entries(customFields)
+    .filter(([, value]) => value != null && String(value).trim() !== "");
+  const customFieldLines = customFieldEntries.map(([id, value]) =>
+    `${fieldLabels.get(id) || id}: ${value}`
+  );
   const money = (cents) => `$${(Number(cents || 0) / 100).toFixed(2)}`;
   const lines = [
     "AFEON BOOKS",
@@ -108,7 +140,8 @@ async function orderPdfResponse(request, orderId) {
     "CUSTOMER",
     `Name: ${order.customerName || ""}`,
     `Email: ${order.customerEmail || ""}`,
-    `Phone: ${order.customerPhone || ""}`,
+    `Student ID: ${order.customerPhone || ""}`,
+    ...(customFieldLines.length ? ["", "ADDITIONAL INFORMATION", ...customFieldLines] : []),
     "",
     "DELIVERY",
     order.classroom ? `Classroom: ${order.classroom}` : null,
