@@ -63,7 +63,7 @@ export default function Home() {
           <div className="w-full max-w-[1600px] mx-auto flex flex-col md:flex-row items-stretch md:items-center">
             {/* Left Column - Text */}
             <div className="w-full md:w-[45%] px-6 md:pl-[12%] py-12 md:py-0 flex flex-col justify-center z-10">
-              <h1 className="text-black text-6xl md:text-[5.5rem] lg:text-[6.5rem] font-bold leading-[1.05] tracking-tight">
+              <h1 className="text-black text-5xl sm:text-6xl md:text-[5.5rem] lg:text-[6.5rem] font-bold leading-[1.05] tracking-tight">
                 {content.heroTitle}
               </h1>
               <p className="mt-8 text-black/60 text-base md:text-lg max-w-sm font-medium">
@@ -83,7 +83,7 @@ export default function Home() {
             </div>
             
             {/* Right Column - Image */}
-            <div className="w-full md:w-[55%] flex justify-center items-center px-6 md:px-0 pb-12 md:pb-0 h-[60vh] md:h-[85vh]">
+            <div className="w-full md:w-[55%] flex justify-center items-center px-6 md:px-0 pb-12 md:pb-0 h-[45vh] min-h-[280px] md:h-[85vh]">
               <img 
                 src={content.coverImageUrl} 
                 alt="Book Cover" 
@@ -94,13 +94,13 @@ export default function Home() {
         </section>
 
         {/* Shop Section */}
-        <section id="shop" className="px-6 py-32 bg-white">
+        <section id="shop" className="px-4 py-16 sm:px-6 sm:py-24 lg:py-32 bg-white">
           <div className="max-w-[1400px] mx-auto">
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-black mb-16 text-center">
               Shop
             </h2>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-12">
               {activeProducts.map((product) => (
                 <div key={product.id} className="flex flex-col group">
                   <Link href={`/product/${product.id}`} className="block aspect-[3/4] bg-[#FAF7F2] mb-6 overflow-hidden relative p-8 flex items-center justify-center hover:opacity-90 transition-opacity">
@@ -136,7 +136,7 @@ export default function Home() {
         </section>
 
         {/* About Section */}
-        <section className="px-6 py-32 bg-[#FAF7F2]">
+        <section className="px-4 py-16 sm:px-6 sm:py-24 lg:py-32 bg-[#FAF7F2]">
           <div className="max-w-2xl mx-auto text-center space-y-10">
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-black">
               {content.aboutHeading}
