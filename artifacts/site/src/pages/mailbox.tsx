@@ -131,7 +131,7 @@ function messageContent(payload: unknown): string {
 function safeMessageDocument(content: string): string {
   const isHtml = /<\s*(html|body|div|p|table|a|img|br)\b/i.test(content);
   const body = isHtml ? content : `<pre>${content.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>`;
-  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; font-src data:"><meta name="referrer" content="no-referrer"><style>body{font:14px/1.6 Arial,sans-serif;color:#202421;overflow-wrap:anywhere;margin:16px}img{max-width:100%;height:auto}pre{white-space:pre-wrap;font:inherit}</style></head><body>${body}</body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; font-src data:"><meta name="referrer" content="no-referrer"><style>body{font:14px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#202421;overflow-wrap:anywhere;margin:16px}img{max-width:100%;height:auto}pre{white-space:pre-wrap;font:inherit}</style></head><body>${body}</body></html>`;
 }
 
 function displayDate(value: string): string {

@@ -588,9 +588,9 @@
 .mail-list-heading h1 {
   margin: 6px 0 0;
   overflow: hidden;
-  font-family: var(--app-font-serif);
+  font-family: var(--app-font-sans);
   font-size: 23px;
-  font-weight: 400;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -757,9 +757,9 @@
 .mail-subject-line h2 {
   margin: 0;
   color: #202c25;
-  font-family: var(--app-font-serif);
+  font-family: var(--app-font-sans);
   font-size: clamp(20px, 2.4vw, 29px);
-  font-weight: 400;
+  font-weight: 600;
   line-height: 1.24;
   overflow-wrap: anywhere;
 }
@@ -865,9 +865,9 @@
 
 .mail-compose-head h2 {
   margin: 0;
-  font-family: var(--app-font-serif);
+  font-family: var(--app-font-sans);
   font-size: 17px;
-  font-weight: 400;
+  font-weight: 600;
 }
 
 .mail-compose-head button {
