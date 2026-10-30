@@ -31,13 +31,13 @@ type LoyaltyData = {
   transactions: Array<{ id: number; points: number; description: string; createdAt: string }>;
 };
 
-function getSourceReturnUrl(value: string | null): string | null {
+function getAllowedReturnUrl(value: string | null): string | null {
   if (!value) return null;
 
   try {
     const target = new URL(value);
     if (
-      target.origin !== "https://source.afeonbooks.com" ||
+      !["https://source.afeonbooks.com", "https://mailsystem.afeonbooks.com"].includes(target.origin) ||
       target.username ||
       target.password
     ) {
@@ -259,7 +259,7 @@ export default function Account() {
   const params = new URLSearchParams(window.location.search);
   const hasTokenFlow = params.has("reset_token") || params.has("verify_token");
   const returnToParam = params.get("return_to");
-  const returnTo = getSourceReturnUrl(returnToParam);
+  const returnTo = getAllowedReturnUrl(returnToParam);
   const isAuthHost = window.location.hostname === "authn.afeonbooks.com";
   const isAuthEntry =
     isAuthHost ||

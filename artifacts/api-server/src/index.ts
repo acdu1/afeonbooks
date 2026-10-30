@@ -152,10 +152,36 @@ async function ensureAuthTables() {
   logger.info("Verified auth tables");
 }
 
+async function ensureMailTables() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS zoho_mail_connections (
+      id serial PRIMARY KEY,
+      user_id integer NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+      account_id text NOT NULL,
+      email_address text NOT NULL,
+      encrypted_refresh_token text NOT NULL,
+      session_token_hash text NOT NULL,
+      unlocked_until timestamptz NOT NULL,
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE TABLE IF NOT EXISTS zoho_mail_oauth_states (
+      id serial PRIMARY KEY,
+      state_hash text NOT NULL UNIQUE,
+      user_id integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      session_token_hash text NOT NULL,
+      expires_at timestamptz NOT NULL,
+      used_at timestamptz
+    );
+    CREATE INDEX IF NOT EXISTS zoho_mail_oauth_states_expiry_idx ON zoho_mail_oauth_states(expires_at);
+  `);
+  logger.info("Verified Zoho Mail tables");
+}
+
 await ensureOrderColumns();
 await ensureContentColumns();
 await ensureProductColumns();
 await ensureAuthTables();
+await ensureMailTables();
 
 app.listen(port, (err) => {
   if (err) {
