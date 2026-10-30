@@ -142,7 +142,12 @@ async function getAccessToken(refreshToken: string): Promise<string> {
   });
   const body: unknown = await response.json().catch(() => null);
   const accessToken = body && typeof body === "object" && "access_token" in body && typeof body.access_token === "string" ? body.access_token : "";
-  if (!response.ok || !accessToken) throw new Error("Zoho Mail authorization expired. Unlock the mailbox again.");
+  if (!response.ok || !accessToken) {
+    logger.warn({ httpStatus: response.status }, "Zoho Mail access-token refresh failed");
+    const error = new Error("Zoho authorization expired. Lock the mailbox and sign in to Zoho again.");
+    Object.assign(error, { status: 401, publicMessage: error.message });
+    throw error;
+  }
   return accessToken;
 }
 
@@ -162,8 +167,10 @@ async function getZohoResponse(connection: NonNullable<Awaited<ReturnType<typeof
   const providerStatus = payload && typeof payload === "object" && "status" in payload ? payload.status : undefined;
   const providerCode = providerStatus && typeof providerStatus === "object" && "code" in providerStatus ? Number(providerStatus.code) : undefined;
   if (!response.ok || (providerCode !== undefined && Number.isFinite(providerCode) && providerCode !== 200)) {
-    const error = new Error("Zoho Mail request failed");
-    Object.assign(error, { status: 502 });
+    logger.warn({ httpStatus: response.status, providerCode: Number.isFinite(providerCode) ? providerCode : undefined }, "Zoho Mail API rejected a mailbox request");
+    const reason = Number.isFinite(providerCode) ? ` (Zoho code ${providerCode})` : ` (HTTP ${response.status})`;
+    const error = new Error(`Zoho Mail rejected that action${reason}. Please refresh and try again.`);
+    Object.assign(error, { status: 502, publicMessage: error.message });
     throw error;
   }
   return payload;
@@ -470,6 +477,21 @@ router.post("/mail/messages/:folderId/:messageId/actions", requireUser, requireR
     method: "PUT",
     body: JSON.stringify(payload),
   }));
+});
+
+router.use((error: unknown, request: Request, response: Response, next: NextFunction): void => {
+  if (response.headersSent) {
+    next(error);
+    return;
+  }
+  const status = error && typeof error === "object" && "status" in error && typeof error.status === "number"
+    ? error.status
+    : 500;
+  const publicMessage = error && typeof error === "object" && "publicMessage" in error && typeof error.publicMessage === "string"
+    ? error.publicMessage
+    : "Mailbox request failed. Please try again; if it continues, contact an administrator.";
+  logger.error({ err: error, method: request.method, status }, "Mailbox API request failed");
+  response.status(status).json({ error: publicMessage });
 });
 
 export default router;

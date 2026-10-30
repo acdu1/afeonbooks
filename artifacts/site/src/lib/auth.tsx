@@ -36,7 +36,12 @@ async function authRequest<T>(path: string, options?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json", ...options?.headers },
   });
   const data = await response.json().catch(() => null) as { error?: string } & T;
-  if (!response.ok) throw new Error(data?.error ?? "Something went wrong");
+  if (!response.ok) {
+    const message = typeof data?.error === "string" && data.error
+      ? data.error
+      : `Request failed with HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ""}.`;
+    throw new Error(message);
+  }
   return data;
 }
 

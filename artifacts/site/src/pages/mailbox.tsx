@@ -519,7 +519,7 @@ export default function Mailbox() {
       {compose && <div className="mail-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !working) setCompose(null); }}>
         <form className="mail-compose-modal" onSubmit={submitCompose}>
           <div className="mail-compose-head"><h2>{compose.mode === "reply" ? "Reply" : compose.mode === "forward" ? "Forward message" : "New message"}</h2><button type="button" title="Close" aria-label="Close compose" onClick={() => setCompose(null)}>×</button></div>
-          <label>To<input name="to" type="text" defaultValue={compose.to} placeholder="name@example.com" autoComplete="off" required /></label>
+          <label>To<input name="to" type="text" defaultValue={compose.to} placeholder="example@afeonbooks.com" autoComplete="off" required /></label>
           <label>Cc<input name="cc" type="text" placeholder="Optional recipients" autoComplete="off" /></label>
           <label>Subject<input name="subject" type="text" defaultValue={compose.subject} maxLength={998} required /></label>
           <label className="mail-compose-body-label">Message<textarea name="body" placeholder="Write your message" defaultValue={compose.body} required /></label>
