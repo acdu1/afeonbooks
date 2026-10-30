@@ -352,7 +352,7 @@ router.get("/mail/messages", requireUser, requireRole("admin"), requireMailbox, 
     response.status(400).json({ error: "Invalid mailbox query." });
     return;
   }
-  const params = new URLSearchParams({ folderId: query.data.folderId, start: String(query.data.start), limit: String(query.data.limit), threadedMails: "true", includeto: "true" });
+  const params = new URLSearchParams({ folderId: query.data.folderId, start: String(query.data.start), limit: String(query.data.limit), threadedMails: "false", includeto: "true" });
   response.setHeader("Cache-Control", "no-store");
   response.json(await getZohoResponse(request.mailboxConnection!, `/messages/view?${params}`));
 });

@@ -42,6 +42,7 @@ type ZohoMessage = {
 type MailSession = { unlocked: boolean; emailAddress?: string; unlockedUntil?: string };
 type ComposeState = { mode: "new" | "reply"; to: string; subject: string; body: string };
 
+const MESSAGE_PAGE_SIZE = 100;
 const api = <T,>(path: string, options?: RequestInit) => authApiRequest<T>(path, options);
 
 function record(value: unknown): Record<string, unknown> {
@@ -222,8 +223,8 @@ export default function Mailbox() {
     setLoading(true);
     setError("");
     const endpoint = query
-      ? `/api/mail/search?q=${encodeURIComponent(query)}&start=${pageStart}&limit=50`
-      : `/api/mail/messages?folderId=${encodeURIComponent(folderId)}&start=${pageStart}&limit=50`;
+      ? `/api/mail/search?q=${encodeURIComponent(query)}&start=${pageStart}&limit=${MESSAGE_PAGE_SIZE}`
+      : `/api/mail/messages?folderId=${encodeURIComponent(folderId)}&start=${pageStart}&limit=${MESSAGE_PAGE_SIZE}`;
     void api<unknown>(endpoint).then((payload) => {
       const nextMessages = normalizeMessages(payload);
       setMessages(nextMessages);
@@ -400,7 +401,7 @@ export default function Mailbox() {
               </button>
             ))}
           </div>
-          {messages.length > 0 && <div className="mail-pagination"><button disabled={pageStart <= 1} onClick={() => setPageStart((value) => Math.max(1, value - 50))} aria-label="Newer messages"><ChevronLeft size={17} /></button><span>{pageStart}–{pageStart + messages.length - 1}</span><button disabled={messages.length < 50} onClick={() => setPageStart((value) => value + 50)} aria-label="Older messages"><ChevronRight size={17} /></button></div>}
+          {messages.length > 0 && <div className="mail-pagination"><button disabled={pageStart <= 1} onClick={() => setPageStart((value) => Math.max(1, value - MESSAGE_PAGE_SIZE))} aria-label="Newer messages"><ChevronLeft size={17} /></button><span>{pageStart}–{pageStart + messages.length - 1}</span><button disabled={messages.length < MESSAGE_PAGE_SIZE} onClick={() => setPageStart((value) => value + MESSAGE_PAGE_SIZE)} aria-label="Older messages"><ChevronRight size={17} /></button></div>}
         </section>
 
         <section className={`mail-reading-pane ${selected ? "has-selection" : ""}`} aria-label="Message preview">
