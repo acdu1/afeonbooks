@@ -132,7 +132,7 @@ export default function Dev() {
         <section className="bg-white border border-black/5 shadow-sm p-6 space-y-4">
           <div>
             <p className="text-xs uppercase tracking-widest font-bold text-black/40">Service Status</p>
-            <h2 className="text-xl font-bold mt-1">AfeonBooks Status Page</h2>
+            <h2 className="text-xl font-bold mt-1">AFEON Books Status Page</h2>
             <p className="text-sm text-black/50 mt-1">Monitor uptime, incidents, and service status.</p>
           </div>
           <div className="flex flex-wrap gap-3">

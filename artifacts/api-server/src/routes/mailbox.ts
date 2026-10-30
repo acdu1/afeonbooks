@@ -70,11 +70,26 @@ function decryptToken(value: string): string {
 }
 
 function getAccountsUrl(path: string): URL {
-  return new URL(path, `${(process.env.ZOHO_ACCOUNTS_URL || "https://accounts.zoho.com").replace(/\/+$/, "")}/`);
+  const accountsUrl = process.env.ZOHO_MAILBOX_ACCOUNTS_URL || process.env.ZOHO_ACCOUNTS_URL || "https://accounts.zoho.com";
+  return new URL(path, `${accountsUrl.replace(/\/+$/, "")}/`);
 }
 
 function getMailApiUrl(path: string): URL {
-  return new URL(path, `${(process.env.ZOHO_MAIL_API_URL || "https://mail.zoho.com").replace(/\/+$/, "")}/`);
+  const mailApiUrl = process.env.ZOHO_MAILBOX_API_URL || process.env.ZOHO_MAIL_API_URL || "https://mail.zoho.com";
+  return new URL(path, `${mailApiUrl.replace(/\/+$/, "")}/`);
+}
+
+function getMailboxOAuthCredentials(): { clientId?: string; clientSecret?: string } {
+  return {
+    clientId: process.env.ZOHO_MAILBOX_CLIENT_ID || process.env.ZOHO_MAIL_CLIENT_ID || process.env.ZOHO_CLIENT_ID,
+    clientSecret: process.env.ZOHO_MAILBOX_CLIENT_SECRET || process.env.ZOHO_MAIL_CLIENT_SECRET || process.env.ZOHO_CLIENT_SECRET,
+  };
+}
+
+function getMailboxRedirectUri(): string {
+  return process.env.ZOHO_MAILBOX_OAUTH_REDIRECT_URI
+    || process.env.ZOHO_MAIL_OAUTH_REDIRECT_URI
+    || "https://api.afeonbooks.com/api/mail/auth/callback";
 }
 
 function getCurrentSessionHash(request: Request): string | undefined {
@@ -116,8 +131,7 @@ async function getMailboxConnection(request: Request) {
 }
 
 async function getAccessToken(refreshToken: string): Promise<string> {
-  const clientId = process.env.ZOHO_CLIENT_ID;
-  const clientSecret = process.env.ZOHO_CLIENT_SECRET;
+  const { clientId, clientSecret } = getMailboxOAuthCredentials();
   if (!clientId || !clientSecret) throw new Error("Zoho Mail OAuth is not configured");
   const response = await fetch(getAccountsUrl("/oauth/v2/token"), {
     method: "POST",
@@ -182,10 +196,10 @@ router.get("/mail/session", requireUser, requireRole("admin"), async (request, r
 });
 
 router.get("/mail/auth/start", requireUser, requireRole("admin"), async (request, response): Promise<void> => {
-  const clientId = process.env.ZOHO_CLIENT_ID;
-  const redirectUri = process.env.ZOHO_MAIL_OAUTH_REDIRECT_URI || "https://api.afeonbooks.com/api/mail/auth/callback";
+  const { clientId, clientSecret } = getMailboxOAuthCredentials();
+  const redirectUri = getMailboxRedirectUri();
   const sessionTokenHash = getCurrentSessionHash(request);
-  if (!clientId || !process.env.ZOHO_CLIENT_SECRET || !sessionTokenHash) {
+  if (!clientId || !clientSecret || !sessionTokenHash) {
     response.status(503).json({ error: "Zoho Mail is not configured for secure sign-in." });
     return;
   }
@@ -237,8 +251,7 @@ router.get("/mail/auth/callback", requireUser, requireRole("admin"), async (requ
     return;
   }
   try {
-    const clientId = process.env.ZOHO_CLIENT_ID;
-    const clientSecret = process.env.ZOHO_CLIENT_SECRET;
+    const { clientId, clientSecret } = getMailboxOAuthCredentials();
     if (!clientId || !clientSecret) throw new Error("Zoho Mail OAuth is not configured");
     const tokenResponse = await fetch(getAccountsUrl("/oauth/v2/token"), {
       method: "POST",
@@ -247,7 +260,7 @@ router.get("/mail/auth/callback", requireUser, requireRole("admin"), async (requ
         code,
         client_id: clientId,
         client_secret: clientSecret,
-        redirect_uri: process.env.ZOHO_MAIL_OAUTH_REDIRECT_URI || "https://api.afeonbooks.com/api/mail/auth/callback",
+        redirect_uri: getMailboxRedirectUri(),
         grant_type: "authorization_code",
       }),
       signal: AbortSignal.timeout(15000),
@@ -263,8 +276,8 @@ router.get("/mail/auth/callback", requireUser, requireRole("admin"), async (requ
     });
     const accountsBody: unknown = await accountsResponse.json().catch(() => null);
     const accounts = accountsBody && typeof accountsBody === "object" && "data" in accountsBody && Array.isArray(accountsBody.data) ? accountsBody.data : [];
-    const configuredAccountId = process.env.ZOHO_MAIL_ACCOUNT_ID;
-    const configuredAddress = process.env.ZOHO_MAIL_AUTHENTICATED_USER?.toLowerCase();
+    const configuredAccountId = process.env.ZOHO_MAILBOX_ACCOUNT_ID || process.env.ZOHO_MAIL_ACCOUNT_ID;
+    const configuredAddress = (process.env.ZOHO_MAILBOX_AUTHENTICATED_USER || process.env.ZOHO_MAIL_AUTHENTICATED_USER)?.toLowerCase();
     const account = accounts.find((value: unknown) => {
       if (!value || typeof value !== "object") return false;
       const item = value as Record<string, unknown>;
