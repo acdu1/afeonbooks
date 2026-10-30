@@ -322,6 +322,17 @@ router.get("/mail/auth/callback", requireUser, requireRole("admin"), async (requ
         ? accountRecord.primaryEmailAddress
         : typeof configuredAddress === "string" ? configuredAddress : "";
     if (!/^\d+$/.test(accountId) || !emailAddress) throw new Error("Zoho did not return a usable mailbox account");
+    if (emailAddress.trim().toLowerCase() !== request.user!.email.trim().toLowerCase()) {
+      logger.warn({ userId: request.user!.id }, "Error 403:Zoho Mail callback returned a mailbox that does not match the current user");
+      await db.delete(zohoMailConnectionsTable).where(and(
+        eq(zohoMailConnectionsTable.userId, request.user!.id),
+        eq(zohoMailConnectionsTable.sessionTokenHash, sessionTokenHash),
+      ));
+      appUrl.searchParams.set("mail_error", "account_mismatch");
+      response.setHeader("Cache-Control", "no-store");
+      response.redirect(appUrl.toString());
+      return;
+    }
 
     failureStage = "save_connection";
     await db.insert(zohoMailConnectionsTable).values({

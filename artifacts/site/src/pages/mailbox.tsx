@@ -214,7 +214,12 @@ export default function Mailbox() {
     setCheckingSession(true);
     const params = new URLSearchParams(window.location.search);
     if (params.has("mail_connected") || params.has("mail_error")) {
-      setNotice(params.has("mail_connected") ? "Zoho mailbox unlocked for this session." : "Zoho sign-in did not complete. Please try again.");
+      const mailError = params.get("mail_error");
+      setNotice(params.has("mail_connected")
+        ? "Zoho mailbox unlocked for this session."
+        : mailError === "account_mismatch"
+          ? "Access denied: the Zoho mailbox email must exactly match your signed-in AFEON account email."
+          : "Zoho sign-in did not complete. Please try again.");
       window.history.replaceState({}, "", window.location.pathname);
     }
     void api<MailSession>("/api/mail/session").then(setSession).catch((err) => {
