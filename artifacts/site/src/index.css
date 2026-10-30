@@ -242,19 +242,20 @@
 }
 
 .mail-gate {
-  --mail-ink: #1c2922;
+  --mail-ink: #111111;
   --mail-accent: #80d7f6;
   --mail-accent-ink: #111111;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   gap: 18px;
   padding: 32px clamp(24px, 8vw, 112px);
-  background: #f1f3ed;
+  background: #FAF7F2;
   color: var(--mail-ink);
   font-family: var(--app-font-sans);
+  text-align: center;
 }
 
 .mail-gate-mark {
@@ -275,36 +276,58 @@
 }
 
 .mail-gate h1 {
-  max-width: 640px;
+  max-width: 720px;
   margin: 0;
-  font-family: var(--app-font-serif);
-  font-size: clamp(32px, 5vw, 52px);
-  font-weight: 400;
-  line-height: 1.08;
+  font-family: var(--app-font-sans);
+  font-size: clamp(30px, 5vw, 46px);
+  font-weight: 700;
+  line-height: 1.15;
 }
 
 .mail-gate > p:not(.mail-eyebrow) {
-  max-width: 480px;
+  max-width: 540px;
   margin: 0;
-  color: #56665c;
+  color: #4B4945;
   font-size: 15px;
   line-height: 1.65;
 }
 
-.mail-gate > button {
-  min-height: 44px;
+.mail-gate > button:not(.mail-text-button) {
+  min-height: 48px;
   margin-top: 6px;
-  border-radius: 2px;
+  padding-inline: 22px;
+  border: 1px solid #111111;
+  border-radius: 4px;
   background: var(--mail-accent);
   color: var(--mail-accent-ink);
+  box-shadow: 0 2px 0 rgb(17 17 17 / 12%);
+  font-family: var(--app-font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  transition: background-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
 }
 
 .mail-text-button {
-  padding: 6px 0;
-  color: #56665c;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid rgb(17 17 17 / 18%);
+  border-radius: 4px;
+  background: transparent;
+  color: #39352F;
   font-size: 13px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  font-weight: 600;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.mail-gate > button:not(.mail-text-button):hover {
+  background: #65c9ed;
+  box-shadow: 0 3px 0 rgb(17 17 17 / 12%);
+  transform: translateY(-1px);
+}
+
+.mail-text-button:hover {
+  border-color: rgb(17 17 17 / 36%);
+  background: rgb(17 17 17 / 4%);
 }
 
 .mail-error {
