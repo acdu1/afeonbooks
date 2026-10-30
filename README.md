@@ -88,7 +88,7 @@ The production Cloudflare Worker forwards `/api/*` requests from the main site t
 
 ## Private Mail System
 
-The private mailbox app is served at `https://mailsystem.afeonbooks.com` by the Cloudflare Worker and uses the existing Render API. Access requires an AFEON admin session followed by a separate Zoho OAuth sign-in. Mailbox credentials are encrypted in PostgreSQL and bound to the unlocking admin session; locking or signing out deletes that session's stored credential.
+The private mailbox app is served at `https://mailsystem.afeonbooks.com` by the Cloudflare Worker and uses the existing Render API. Access requires an AFEON admin account followed by a separate Zoho OAuth sign-in. Each admin must sign in to Zoho and authorize the mailbox from their own AFEON session; credentials are encrypted in PostgreSQL and bound to that person's session. Locking or signing out deletes that session's stored credential.
 
 Use `ZOHO_MAILBOX_` variables for mailbox OAuth and configuration; `ZOHO_` variables without that prefix remain for transactional email sending. Existing deployments can continue using the previous names as fallbacks, but should migrate to the mailbox-prefixed names.
 

@@ -4,6 +4,7 @@ import { and, eq, gt, isNull } from "drizzle-orm";
 import { db, zohoMailConnectionsTable, zohoMailOAuthStatesTable } from "@workspace/db";
 import { z } from "zod";
 import { hashSessionToken, requireRole, requireUser } from "../lib/auth";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 const MAIL_UNLOCK_MS = 30 * 60 * 1000;
@@ -233,7 +234,15 @@ router.get("/mail/auth/callback", requireUser, requireRole("admin"), async (requ
   const code = typeof request.query.code === "string" ? request.query.code : "";
   const state = typeof request.query.state === "string" ? request.query.state : "";
   const sessionTokenHash = getCurrentSessionHash(request);
+  const providerError = typeof request.query.error === "string" ? request.query.error : "";
+  if (providerError) {
+    logger.warn({ providerError }, "Zoho Mail authorization was denied");
+    appUrl.searchParams.set("mail_error", "authorization_denied");
+    response.redirect(appUrl.toString());
+    return;
+  }
   if (!code || !state || !sessionTokenHash) {
+    logger.warn({ hasCode: Boolean(code), hasState: Boolean(state), hasSession: Boolean(sessionTokenHash) }, "Zoho Mail callback was missing authorization state");
     appUrl.searchParams.set("mail_error", "invalid_callback");
     response.redirect(appUrl.toString());
     return;
@@ -246,10 +255,12 @@ router.get("/mail/auth/callback", requireUser, requireRole("admin"), async (requ
     gt(zohoMailOAuthStatesTable.expiresAt, new Date()),
   )).returning({ id: zohoMailOAuthStatesTable.id });
   if (!oauthState) {
+    logger.warn({ userId: request.user!.id }, "Zoho Mail callback state did not match the current admin session");
     appUrl.searchParams.set("mail_error", "invalid_state");
     response.redirect(appUrl.toString());
     return;
   }
+  let failureStage = "token_exchange";
   try {
     const { clientId, clientSecret } = getMailboxOAuthCredentials();
     if (!clientId || !clientSecret) throw new Error("Zoho Mail OAuth is not configured");
@@ -270,6 +281,7 @@ router.get("/mail/auth/callback", requireUser, requireRole("admin"), async (requ
     const refreshToken = tokenBody && typeof tokenBody === "object" && "refresh_token" in tokenBody && typeof tokenBody.refresh_token === "string" ? tokenBody.refresh_token : "";
     if (!tokenResponse.ok || !accessToken || !refreshToken) throw new Error("Zoho authorization did not return valid credentials");
 
+    failureStage = "mailbox_lookup";
     const accountsResponse = await fetch(getMailApiUrl("/api/accounts"), {
       headers: { Authorization: `Zoho-oauthtoken ${accessToken}`, Accept: "application/json" },
       signal: AbortSignal.timeout(15000),
@@ -304,6 +316,7 @@ router.get("/mail/auth/callback", requireUser, requireRole("admin"), async (requ
         : typeof configuredAddress === "string" ? configuredAddress : "";
     if (!/^\d+$/.test(accountId) || !emailAddress) throw new Error("Zoho did not return a usable mailbox account");
 
+    failureStage = "save_connection";
     await db.insert(zohoMailConnectionsTable).values({
       userId: request.user!.id,
       accountId,
@@ -323,7 +336,8 @@ router.get("/mail/auth/callback", requireUser, requireRole("admin"), async (requ
       },
     });
     appUrl.searchParams.set("mail_connected", "1");
-  } catch {
+  } catch (error) {
+    logger.error({ stage: failureStage, err: error }, "Zoho Mail OAuth callback failed");
     appUrl.searchParams.set("mail_error", "authorization_failed");
   }
   response.setHeader("Cache-Control", "no-store");
