@@ -2,7 +2,7 @@ import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } fr
 import { promisify } from "node:util";
 import type { NextFunction, Request, Response } from "express";
 import { and, eq, gt, isNull } from "drizzle-orm";
-import { authTokensTable, db, sessionsTable, usersTable, type UserRow } from "@workspace/db";
+import { authTokensTable, db, sessionsTable, usersTable, zohoMailConnectionsTable, type UserRow } from "@workspace/db";
 
 const scrypt = promisify(scryptCallback);
 const SESSION_COOKIE = "afeonbooks_session";
@@ -27,7 +27,7 @@ function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-function hashToken(token: string): string {
+export function hashSessionToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
@@ -43,7 +43,7 @@ export async function createAuthToken(userId: number, type: "verify_email" | "re
   await db.delete(authTokensTable).where(and(eq(authTokensTable.userId, userId), eq(authTokensTable.type, type)));
   await db.insert(authTokensTable).values({
     userId,
-    tokenHash: hashToken(token),
+    tokenHash: hashSessionToken(token),
     type,
     expiresAt: new Date(Date.now() + ttlMs),
   });
@@ -54,7 +54,7 @@ export async function consumeAuthToken(token: string, type: "verify_email" | "re
   const [found] = await db
     .select()
     .from(authTokensTable)
-    .where(and(eq(authTokensTable.tokenHash, hashToken(token)), eq(authTokensTable.type, type), isNull(authTokensTable.usedAt), gt(authTokensTable.expiresAt, new Date())))
+    .where(and(eq(authTokensTable.tokenHash, hashSessionToken(token)), eq(authTokensTable.type, type), isNull(authTokensTable.usedAt), gt(authTokensTable.expiresAt, new Date())))
     .limit(1);
   if (!found) return undefined;
   const [used] = await db
@@ -86,7 +86,7 @@ export function publicUser(user: UserRow) {
 export async function createSession(userId: number, request: Request, response: Response): Promise<void> {
   const token = randomBytes(32).toString("base64url");
   await db.insert(sessionsTable).values({
-    tokenHash: hashToken(token),
+    tokenHash: hashSessionToken(token),
     userId,
     expiresAt: new Date(Date.now() + SESSION_TTL_MS),
   });
@@ -112,7 +112,11 @@ export async function createSession(userId: number, request: Request, response: 
 
 export async function destroySession(request: Request, response: Response): Promise<void> {
   const token = request.cookies?.[SESSION_COOKIE];
-  if (token) await db.delete(sessionsTable).where(eq(sessionsTable.tokenHash, hashToken(token)));
+  if (token) {
+    const tokenHash = hashSessionToken(token);
+    await db.delete(zohoMailConnectionsTable).where(eq(zohoMailConnectionsTable.sessionTokenHash, tokenHash));
+    await db.delete(sessionsTable).where(eq(sessionsTable.tokenHash, tokenHash));
+  }
   const domain = sessionCookieDomain(request);
   const secure = IS_PRODUCTION || domain !== undefined;
   const cookieOptions = {
@@ -132,7 +136,7 @@ export async function loadUser(request: Request): Promise<UserRow | undefined> {
     .select({ user: usersTable })
     .from(sessionsTable)
     .innerJoin(usersTable, eq(usersTable.id, sessionsTable.userId))
-    .where(and(eq(sessionsTable.tokenHash, hashToken(token)), gt(sessionsTable.expiresAt, new Date())))
+    .where(and(eq(sessionsTable.tokenHash, hashSessionToken(token)), gt(sessionsTable.expiresAt, new Date())))
     .limit(1);
   return rows[0]?.user;
 }

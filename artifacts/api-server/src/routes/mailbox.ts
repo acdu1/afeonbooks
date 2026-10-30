@@ -1,0 +1,448 @@
+import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
+import { and, eq, gt, isNull } from "drizzle-orm";
+import { db, zohoMailConnectionsTable, zohoMailOAuthStatesTable } from "@workspace/db";
+import { z } from "zod";
+import { hashSessionToken, requireRole, requireUser } from "../lib/auth";
+
+const router: IRouter = Router();
+const MAIL_UNLOCK_MS = 30 * 60 * 1000;
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+const MAIL_SCOPES = [
+  "ZohoMail.accounts.READ",
+  "ZohoMail.folders.READ",
+  "ZohoMail.messages.READ",
+  "ZohoMail.messages.CREATE",
+  "ZohoMail.messages.UPDATE",
+  "ZohoMail.messages.DELETE",
+].join(",");
+const accountIdSchema = z.string().regex(/^\d+$/);
+const listQuerySchema = z.object({
+  folderId: accountIdSchema,
+  start: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+const searchQuerySchema = z.object({
+  q: z.string().trim().min(1).max(200),
+  start: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+const sendBodySchema = z.object({
+  to: z.array(z.string().email()).min(1).max(50),
+  cc: z.array(z.string().email()).max(50).optional(),
+  bcc: z.array(z.string().email()).max(50).optional(),
+  replyTo: z.string().email().optional(),
+  subject: z.string().trim().min(1).max(998),
+  html: z.string().max(80_000),
+});
+const actionBodySchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("read") }),
+  z.object({ action: z.literal("unread") }),
+  z.object({ action: z.literal("archive") }),
+  z.object({ action: z.literal("flag"), flag: z.enum(["info", "important", "followup", "flag_not_set"]) }),
+  z.object({ action: z.literal("move"), destinationFolderId: accountIdSchema }),
+  z.object({ action: z.literal("delete") }),
+]);
+
+function getEncryptionKey(): Buffer {
+  const encoded = process.env.MAIL_TOKEN_ENCRYPTION_KEY;
+  const key = encoded ? Buffer.from(encoded, "base64") : Buffer.alloc(0);
+  if (key.length !== 32) throw new Error("MAIL_TOKEN_ENCRYPTION_KEY must be a base64-encoded 32-byte key");
+  return key;
+}
+
+function encryptToken(token: string): string {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", getEncryptionKey(), iv);
+  const encrypted = Buffer.concat([cipher.update(token, "utf8"), cipher.final()]);
+  return [iv, cipher.getAuthTag(), encrypted].map((part) => part.toString("base64url")).join(".");
+}
+
+function decryptToken(value: string): string {
+  const [ivValue, tagValue, encryptedValue] = value.split(".");
+  if (!ivValue || !tagValue || !encryptedValue) throw new Error("Stored Zoho Mail credential is invalid");
+  const decipher = createDecipheriv("aes-256-gcm", getEncryptionKey(), Buffer.from(ivValue, "base64url"));
+  decipher.setAuthTag(Buffer.from(tagValue, "base64url"));
+  return Buffer.concat([
+    decipher.update(Buffer.from(encryptedValue, "base64url")),
+    decipher.final(),
+  ]).toString("utf8");
+}
+
+function getAccountsUrl(path: string): URL {
+  return new URL(path, `${(process.env.ZOHO_ACCOUNTS_URL || "https://accounts.zoho.com").replace(/\/+$/, "")}/`);
+}
+
+function getMailApiUrl(path: string): URL {
+  return new URL(path, `${(process.env.ZOHO_MAIL_API_URL || "https://mail.zoho.com").replace(/\/+$/, "")}/`);
+}
+
+function getCurrentSessionHash(request: Request): string | undefined {
+  const sessionToken = request.cookies?.afeonbooks_session;
+  return typeof sessionToken === "string" && sessionToken ? hashSessionToken(sessionToken) : undefined;
+}
+
+function requireMailboxOrigin(request: Request, response: Response, next: NextFunction): void {
+  const path = new URL(request.originalUrl, "https://api.afeonbooks.com").pathname;
+  if (path === "/api/mail/auth/callback") {
+    next();
+    return;
+  }
+  const origin = request.get("origin");
+  const referer = request.get("referer");
+  let requestOrigin = origin;
+  if (!requestOrigin && referer) {
+    try { requestOrigin = new URL(referer).origin; } catch {}
+  }
+  const allowed = requestOrigin === "https://mailsystem.afeonbooks.com" || (
+    process.env.NODE_ENV !== "production" && requestOrigin !== undefined && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(requestOrigin)
+  );
+  if (!allowed) {
+    response.status(403).json({ error: "Mailbox requests must come from the mailsystem application." });
+    return;
+  }
+  next();
+}
+
+async function getMailboxConnection(request: Request) {
+  const sessionTokenHash = getCurrentSessionHash(request);
+  if (!request.user || !sessionTokenHash) return undefined;
+  const [connection] = await db.select().from(zohoMailConnectionsTable).where(and(
+    eq(zohoMailConnectionsTable.userId, request.user.id),
+    eq(zohoMailConnectionsTable.sessionTokenHash, sessionTokenHash),
+    gt(zohoMailConnectionsTable.unlockedUntil, new Date()),
+  )).limit(1);
+  return connection;
+}
+
+async function getAccessToken(refreshToken: string): Promise<string> {
+  const clientId = process.env.ZOHO_CLIENT_ID;
+  const clientSecret = process.env.ZOHO_CLIENT_SECRET;
+  if (!clientId || !clientSecret) throw new Error("Zoho Mail OAuth is not configured");
+  const response = await fetch(getAccountsUrl("/oauth/v2/token"), {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ refresh_token: refreshToken, client_id: clientId, client_secret: clientSecret, grant_type: "refresh_token" }),
+    signal: AbortSignal.timeout(15000),
+  });
+  const body: unknown = await response.json().catch(() => null);
+  const accessToken = body && typeof body === "object" && "access_token" in body && typeof body.access_token === "string" ? body.access_token : "";
+  if (!response.ok || !accessToken) throw new Error("Zoho Mail authorization expired. Unlock the mailbox again.");
+  return accessToken;
+}
+
+async function getZohoResponse(connection: NonNullable<Awaited<ReturnType<typeof getMailboxConnection>>>, path: string, init?: RequestInit): Promise<unknown> {
+  const accessToken = await getAccessToken(decryptToken(connection.encryptedRefreshToken));
+  const response = await fetch(getMailApiUrl(`/api/accounts/${encodeURIComponent(connection.accountId)}${path}`), {
+    ...init,
+    headers: {
+      Authorization: `Zoho-oauthtoken ${accessToken}`,
+      Accept: "application/json",
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...init?.headers,
+    },
+    signal: AbortSignal.timeout(20000),
+  });
+  const payload: unknown = await response.json().catch(() => null);
+  const providerStatus = payload && typeof payload === "object" && "status" in payload ? payload.status : undefined;
+  const providerCode = providerStatus && typeof providerStatus === "object" && "code" in providerStatus ? Number(providerStatus.code) : undefined;
+  if (!response.ok || (providerCode !== undefined && Number.isFinite(providerCode) && providerCode !== 200)) {
+    const error = new Error("Zoho Mail request failed");
+    Object.assign(error, { status: 502 });
+    throw error;
+  }
+  return payload;
+}
+
+function requireMailbox(request: Request, response: Response, next: NextFunction): void {
+  void getMailboxConnection(request).then((connection) => {
+    if (!connection) {
+      response.status(423).json({ error: "Unlock the mailbox with Zoho to continue." });
+      return;
+    }
+    request.mailboxConnection = connection;
+    next();
+  }).catch(next);
+}
+
+declare global {
+  namespace Express {
+    interface Request {
+      mailboxConnection?: typeof zohoMailConnectionsTable.$inferSelect;
+    }
+  }
+}
+
+router.use("/mail", requireMailboxOrigin);
+
+router.get("/mail/session", requireUser, requireRole("admin"), async (request, response): Promise<void> => {
+  const connection = await getMailboxConnection(request);
+  response.setHeader("Cache-Control", "no-store");
+  response.json(connection ? { unlocked: true, emailAddress: connection.emailAddress, unlockedUntil: connection.unlockedUntil } : { unlocked: false });
+});
+
+router.get("/mail/auth/start", requireUser, requireRole("admin"), async (request, response): Promise<void> => {
+  const clientId = process.env.ZOHO_CLIENT_ID;
+  const redirectUri = process.env.ZOHO_MAIL_OAUTH_REDIRECT_URI || "https://api.afeonbooks.com/api/mail/auth/callback";
+  const sessionTokenHash = getCurrentSessionHash(request);
+  if (!clientId || !process.env.ZOHO_CLIENT_SECRET || !sessionTokenHash) {
+    response.status(503).json({ error: "Zoho Mail is not configured for secure sign-in." });
+    return;
+  }
+  try {
+    getEncryptionKey();
+  } catch {
+    response.status(503).json({ error: "Zoho Mail encryption is not configured on the API server." });
+    return;
+  }
+  const state = randomBytes(32).toString("base64url");
+  await db.insert(zohoMailOAuthStatesTable).values({
+    stateHash: hashSessionToken(state),
+    userId: request.user!.id,
+    sessionTokenHash,
+    expiresAt: new Date(Date.now() + OAUTH_STATE_TTL_MS),
+  });
+  const authorizeUrl = getAccountsUrl("/oauth/v2/auth");
+  authorizeUrl.searchParams.set("response_type", "code");
+  authorizeUrl.searchParams.set("client_id", clientId);
+  authorizeUrl.searchParams.set("scope", MAIL_SCOPES);
+  authorizeUrl.searchParams.set("redirect_uri", redirectUri);
+  authorizeUrl.searchParams.set("access_type", "offline");
+  authorizeUrl.searchParams.set("prompt", "consent");
+  authorizeUrl.searchParams.set("state", state);
+  response.setHeader("Cache-Control", "no-store");
+  response.redirect(authorizeUrl.toString());
+});
+
+router.get("/mail/auth/callback", requireUser, requireRole("admin"), async (request, response): Promise<void> => {
+  const appUrl = new URL("https://mailsystem.afeonbooks.com/");
+  const code = typeof request.query.code === "string" ? request.query.code : "";
+  const state = typeof request.query.state === "string" ? request.query.state : "";
+  const sessionTokenHash = getCurrentSessionHash(request);
+  if (!code || !state || !sessionTokenHash) {
+    appUrl.searchParams.set("mail_error", "invalid_callback");
+    response.redirect(appUrl.toString());
+    return;
+  }
+  const [oauthState] = await db.update(zohoMailOAuthStatesTable).set({ usedAt: new Date() }).where(and(
+    eq(zohoMailOAuthStatesTable.stateHash, hashSessionToken(state)),
+    eq(zohoMailOAuthStatesTable.userId, request.user!.id),
+    eq(zohoMailOAuthStatesTable.sessionTokenHash, sessionTokenHash),
+    isNull(zohoMailOAuthStatesTable.usedAt),
+    gt(zohoMailOAuthStatesTable.expiresAt, new Date()),
+  )).returning({ id: zohoMailOAuthStatesTable.id });
+  if (!oauthState) {
+    appUrl.searchParams.set("mail_error", "invalid_state");
+    response.redirect(appUrl.toString());
+    return;
+  }
+  try {
+    const clientId = process.env.ZOHO_CLIENT_ID;
+    const clientSecret = process.env.ZOHO_CLIENT_SECRET;
+    if (!clientId || !clientSecret) throw new Error("Zoho Mail OAuth is not configured");
+    const tokenResponse = await fetch(getAccountsUrl("/oauth/v2/token"), {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: process.env.ZOHO_MAIL_OAUTH_REDIRECT_URI || "https://api.afeonbooks.com/api/mail/auth/callback",
+        grant_type: "authorization_code",
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const tokenBody: unknown = await tokenResponse.json().catch(() => null);
+    const accessToken = tokenBody && typeof tokenBody === "object" && "access_token" in tokenBody && typeof tokenBody.access_token === "string" ? tokenBody.access_token : "";
+    const refreshToken = tokenBody && typeof tokenBody === "object" && "refresh_token" in tokenBody && typeof tokenBody.refresh_token === "string" ? tokenBody.refresh_token : "";
+    if (!tokenResponse.ok || !accessToken || !refreshToken) throw new Error("Zoho authorization did not return valid credentials");
+
+    const accountsResponse = await fetch(getMailApiUrl("/api/accounts"), {
+      headers: { Authorization: `Zoho-oauthtoken ${accessToken}`, Accept: "application/json" },
+      signal: AbortSignal.timeout(15000),
+    });
+    const accountsBody: unknown = await accountsResponse.json().catch(() => null);
+    const accounts = accountsBody && typeof accountsBody === "object" && "data" in accountsBody && Array.isArray(accountsBody.data) ? accountsBody.data : [];
+    const configuredAccountId = process.env.ZOHO_MAIL_ACCOUNT_ID;
+    const configuredAddress = process.env.ZOHO_MAIL_AUTHENTICATED_USER?.toLowerCase();
+    const account = accounts.find((value: unknown) => {
+      if (!value || typeof value !== "object") return false;
+      const item = value as Record<string, unknown>;
+      const id = String(item.accountId ?? item.accountid ?? item.zuid ?? "");
+      const addresses = Array.isArray(item.emailAddress) ? item.emailAddress.map((entry) => {
+        if (typeof entry === "string") return entry.toLowerCase();
+        if (entry && typeof entry === "object" && "emailAddress" in entry && typeof entry.emailAddress === "string") return entry.emailAddress.toLowerCase();
+        return "";
+      }) : [];
+      const primary = typeof item.mailboxAddress === "string" ? item.mailboxAddress.toLowerCase() : typeof item.primaryEmailAddress === "string" ? item.primaryEmailAddress.toLowerCase() : "";
+      return configuredAccountId ? id === configuredAccountId : configuredAddress ? addresses.includes(configuredAddress) || primary === configuredAddress : accounts.length === 1;
+    });
+    if (!accountsResponse.ok || !account) throw new Error("Could not identify one authorized Zoho mailbox account");
+    const accountRecord = account as Record<string, unknown>;
+    const accountId = String(accountRecord.accountId ?? accountRecord.accountid ?? "");
+    const emailAddresses = Array.isArray(accountRecord.emailAddress) ? accountRecord.emailAddress : [];
+    const primaryAddress = emailAddresses.find((entry) => entry && typeof entry === "object" && "isAlias" in entry && entry.isAlias !== true) as Record<string, unknown> | undefined;
+    const emailAddress = typeof primaryAddress?.emailAddress === "string"
+      ? primaryAddress.emailAddress
+      : typeof accountRecord.mailboxAddress === "string"
+      ? accountRecord.mailboxAddress
+      : typeof accountRecord.primaryEmailAddress === "string"
+        ? accountRecord.primaryEmailAddress
+        : typeof configuredAddress === "string" ? configuredAddress : "";
+    if (!/^\d+$/.test(accountId) || !emailAddress) throw new Error("Zoho did not return a usable mailbox account");
+
+    await db.insert(zohoMailConnectionsTable).values({
+      userId: request.user!.id,
+      accountId,
+      emailAddress,
+      encryptedRefreshToken: encryptToken(refreshToken),
+      sessionTokenHash,
+      unlockedUntil: new Date(Date.now() + MAIL_UNLOCK_MS),
+    }).onConflictDoUpdate({
+      target: zohoMailConnectionsTable.userId,
+      set: {
+        accountId,
+        emailAddress,
+        encryptedRefreshToken: encryptToken(refreshToken),
+        sessionTokenHash,
+        unlockedUntil: new Date(Date.now() + MAIL_UNLOCK_MS),
+        updatedAt: new Date(),
+      },
+    });
+    appUrl.searchParams.set("mail_connected", "1");
+  } catch {
+    appUrl.searchParams.set("mail_error", "authorization_failed");
+  }
+  response.setHeader("Cache-Control", "no-store");
+  response.redirect(appUrl.toString());
+});
+
+router.post("/mail/lock", requireUser, requireRole("admin"), async (request, response): Promise<void> => {
+  const sessionTokenHash = getCurrentSessionHash(request);
+  if (sessionTokenHash) {
+    await db.delete(zohoMailConnectionsTable).where(and(
+      eq(zohoMailConnectionsTable.userId, request.user!.id),
+      eq(zohoMailConnectionsTable.sessionTokenHash, sessionTokenHash),
+    ));
+  }
+  response.status(204).end();
+});
+
+router.get("/mail/folders", requireUser, requireRole("admin"), requireMailbox, async (request, response): Promise<void> => {
+  response.setHeader("Cache-Control", "no-store");
+  response.json(await getZohoResponse(request.mailboxConnection!, "/folders"));
+});
+
+router.get("/mail/messages", requireUser, requireRole("admin"), requireMailbox, async (request, response): Promise<void> => {
+  const query = listQuerySchema.safeParse(request.query);
+  if (!query.success) {
+    response.status(400).json({ error: "Invalid mailbox query." });
+    return;
+  }
+  const params = new URLSearchParams({ folderId: query.data.folderId, start: String(query.data.start), limit: String(query.data.limit), threadedMails: "true", includeto: "true" });
+  response.setHeader("Cache-Control", "no-store");
+  response.json(await getZohoResponse(request.mailboxConnection!, `/messages/view?${params}`));
+});
+
+router.get("/mail/search", requireUser, requireRole("admin"), requireMailbox, async (request, response): Promise<void> => {
+  const query = searchQuerySchema.safeParse(request.query);
+  if (!query.success) {
+    response.status(400).json({ error: "Invalid search query." });
+    return;
+  }
+  const params = new URLSearchParams({ searchKey: query.data.q, start: String(query.data.start), limit: String(query.data.limit), includeto: "true" });
+  response.setHeader("Cache-Control", "no-store");
+  response.json(await getZohoResponse(request.mailboxConnection!, `/messages/search?${params}`));
+});
+
+router.get("/mail/messages/:folderId/:messageId", requireUser, requireRole("admin"), requireMailbox, async (request, response): Promise<void> => {
+  const folderId = accountIdSchema.safeParse(request.params.folderId);
+  const messageId = accountIdSchema.safeParse(request.params.messageId);
+  if (!folderId.success || !messageId.success) {
+    response.status(400).json({ error: "Invalid message reference." });
+    return;
+  }
+  response.setHeader("Cache-Control", "no-store");
+  response.json(await getZohoResponse(request.mailboxConnection!, `/folders/${folderId.data}/messages/${messageId.data}/content`));
+});
+
+router.post("/mail/messages", requireUser, requireRole("admin"), requireMailbox, async (request, response): Promise<void> => {
+  const body = sendBodySchema.safeParse(request.body);
+  if (!body.success) {
+    response.status(400).json({ error: "Invalid email content or recipient." });
+    return;
+  }
+  const payload = {
+    fromAddress: request.mailboxConnection!.emailAddress,
+    toAddress: body.data.to.join(","),
+    ccAddress: body.data.cc?.join(","),
+    bccAddress: body.data.bcc?.join(","),
+    replyTo: body.data.replyTo,
+    subject: body.data.subject,
+    content: body.data.html,
+    mailFormat: "html",
+  };
+  response.setHeader("Cache-Control", "no-store");
+  response.json(await getZohoResponse(request.mailboxConnection!, "/messages", { method: "POST", body: JSON.stringify(payload) }));
+});
+
+router.post("/mail/messages/:folderId/:messageId/reply", requireUser, requireRole("admin"), requireMailbox, async (request, response): Promise<void> => {
+  const folderId = accountIdSchema.safeParse(request.params.folderId);
+  const messageId = accountIdSchema.safeParse(request.params.messageId);
+  const body = sendBodySchema.safeParse(request.body);
+  if (!folderId.success || !messageId.success || !body.success || body.data.to.length !== 1) {
+    response.status(400).json({ error: "A valid message and one reply recipient are required." });
+    return;
+  }
+  const payload = {
+    fromAddress: request.mailboxConnection!.emailAddress,
+    toAddress: body.data.to[0],
+    ccAddress: body.data.cc?.join(","),
+    subject: body.data.subject,
+    action: "Reply",
+    content: body.data.html,
+    mailFormat: "html",
+  };
+  response.setHeader("Cache-Control", "no-store");
+  response.json(await getZohoResponse(request.mailboxConnection!, `/messages/${messageId.data}`, { method: "POST", body: JSON.stringify(payload) }));
+});
+
+router.post("/mail/messages/:folderId/:messageId/actions", requireUser, requireRole("admin"), requireMailbox, async (request, response): Promise<void> => {
+  const folderId = accountIdSchema.safeParse(request.params.folderId);
+  const messageId = accountIdSchema.safeParse(request.params.messageId);
+  const body = actionBodySchema.safeParse(request.body);
+  if (!folderId.success || !messageId.success || !body.success) {
+    response.status(400).json({ error: "Invalid message action." });
+    return;
+  }
+  const { action } = body.data;
+  if (action === "delete") {
+    response.setHeader("Cache-Control", "no-store");
+    response.json(await getZohoResponse(request.mailboxConnection!, `/folders/${folderId.data}/messages/${messageId.data}`,
+      { method: "DELETE" }));
+    return;
+  }
+  const payload: Record<string, unknown> = {
+    messageId: [messageId.data],
+    isFolderSpecific: true,
+    folderId: folderId.data,
+  };
+  if (action === "read") payload.mode = "markAsRead";
+  if (action === "unread") payload.mode = "markAsUnread";
+  if (action === "archive") payload.mode = "archiveMails";
+  if (action === "flag") {
+    payload.mode = "setFlag";
+    payload.flagid = body.data.flag;
+  }
+  if (action === "move") {
+    payload.mode = "moveMessage";
+    payload.destfolderId = body.data.destinationFolderId;
+  }
+  response.setHeader("Cache-Control", "no-store");
+  response.json(await getZohoResponse(request.mailboxConnection!, "/updatemessage", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  }));
+});
+
+export default router;
