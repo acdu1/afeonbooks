@@ -98,7 +98,7 @@ Use `ZOHO_MAILBOX_` variables for mailbox OAuth and configuration; `ZOHO_` varia
 - `ZOHO_MAILBOX_ACCOUNT_ID` or `ZOHO_MAILBOX_AUTHENTICATED_USER` to select the intended mailbox when the Zoho account has multiple mailboxes.
 - `MAIL_TOKEN_ENCRYPTION_KEY`, a base64-encoded random 32-byte key. Generate it with `openssl rand -base64 32`; keep it only in Render's secret environment and back it up securely because losing it prevents decrypting saved mailbox credentials.
 
-The mailbox settings fall back to the former `ZOHO_MAIL_*` names, then (for OAuth credentials and shared Zoho URLs) to the existing `ZOHO_*` settings where applicable.
+Mailbox OAuth credentials and URLs retain fallbacks for existing deployments. Mailbox account selection uses only `ZOHO_MAILBOX_ACCOUNT_ID` or `ZOHO_MAILBOX_AUTHENTICATED_USER`; it does not read `ZOHO_MAIL_ACCOUNT_ID` or `ZOHO_MAIL_AUTHENTICATED_USER`, which remain dedicated to transactional email sending.
 
 The first authorization requests Zoho account/folder read and message read/create/update/delete scopes. The app implements inbox/folder browsing, search, message reading, compose/reply, read/unread, archive, flag, move, and trash actions. It does not yet implement attachment upload/download, drafts, contacts, calendar, or Zoho account settings. End-to-end use also requires deploying the Worker custom-domain route and registering/validating the OAuth redirect with Zoho.
 

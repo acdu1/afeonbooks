@@ -288,8 +288,8 @@ router.get("/mail/auth/callback", requireUser, requireRole("admin"), async (requ
     });
     const accountsBody: unknown = await accountsResponse.json().catch(() => null);
     const accounts = accountsBody && typeof accountsBody === "object" && "data" in accountsBody && Array.isArray(accountsBody.data) ? accountsBody.data : [];
-    const configuredAccountId = process.env.ZOHO_MAILBOX_ACCOUNT_ID || process.env.ZOHO_MAIL_ACCOUNT_ID;
-    const configuredAddress = (process.env.ZOHO_MAILBOX_AUTHENTICATED_USER || process.env.ZOHO_MAIL_AUTHENTICATED_USER)?.toLowerCase();
+    const configuredAccountId = process.env.ZOHO_MAILBOX_ACCOUNT_ID;
+    const configuredAddress = process.env.ZOHO_MAILBOX_AUTHENTICATED_USER?.toLowerCase();
     const account = accounts.find((value: unknown) => {
       if (!value || typeof value !== "object") return false;
       const item = value as Record<string, unknown>;
