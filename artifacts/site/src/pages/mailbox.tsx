@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   Archive,
   ArrowLeft,
@@ -8,6 +8,7 @@ import {
   CircleAlert,
   FileText,
   Flag,
+  Forward,
   Inbox,
   LoaderCircle,
   LockKeyhole,
@@ -15,6 +16,7 @@ import {
   Mail,
   MailOpen,
   Pencil,
+  Printer,
   RefreshCw,
   Search,
   Send,
@@ -23,9 +25,9 @@ import {
 } from "lucide-react";
 import { authApiRequest, createAuthEntryUrl, useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 type ZohoFolder = { id: string; name: string; total?: number; unread?: number };
+type MailView = "all" | "unread" | "flagged";
 type ZohoMessage = {
   id: string;
   threadId?: string;
@@ -40,7 +42,7 @@ type ZohoMessage = {
   raw: Record<string, unknown>;
 };
 type MailSession = { unlocked: boolean; emailAddress?: string; unlockedUntil?: string };
-type ComposeState = { mode: "new" | "reply"; to: string; subject: string; body: string };
+type ComposeState = { mode: "new" | "reply" | "forward"; to: string; subject: string; body: string };
 
 const MESSAGE_PAGE_SIZE = 100;
 const api = <T,>(path: string, options?: RequestInit) => authApiRequest<T>(path, options);
@@ -148,6 +150,11 @@ function escapedHtml(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/\n/g, "<br>");
 }
 
+function quotedMessage(content: string): string {
+  const textContent = new DOMParser().parseFromString(content, "text/html").body.textContent?.trim() ?? "";
+  return textContent ? `\n\n---------- Forwarded message ----------\n${textContent}` : "";
+}
+
 function SignInGate() {
   const returnTo = encodeURIComponent(window.location.href);
   return (
@@ -169,9 +176,12 @@ export default function Mailbox() {
   const [checkingSession, setCheckingSession] = useState(true);
   const [folders, setFolders] = useState<ZohoFolder[]>([]);
   const [folderId, setFolderId] = useState("");
+  const [mailView, setMailView] = useState<MailView>("all");
   const [messages, setMessages] = useState<ZohoMessage[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [selected, setSelected] = useState<ZohoMessage | null>(null);
   const [content, setContent] = useState("");
+  const messageFrameRef = useRef<HTMLIFrameElement>(null);
   const [searchText, setSearchText] = useState("");
   const [query, setQuery] = useState("");
   const [pageStart, setPageStart] = useState(1);
@@ -183,6 +193,12 @@ export default function Mailbox() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const activeFolder = useMemo(() => folders.find((folder) => folder.id === folderId), [folders, folderId]);
+  const visibleMessages = useMemo(() => messages.filter((message) => (
+    mailView === "unread" ? message.unread : mailView === "flagged" ? message.flagged : true
+  )), [mailView, messages]);
+  const unreadTotal = activeFolder?.unread ?? 0;
+  const allVisibleSelected = visibleMessages.length > 0 && visibleMessages.every((message) => selectedIds.has(message.id));
+  const selectedHasUnread = visibleMessages.some((message) => selectedIds.has(message.id) && message.unread);
 
   useEffect(() => {
     document.title = "AFEON Mail";
@@ -228,6 +244,7 @@ export default function Mailbox() {
     void api<unknown>(endpoint).then((payload) => {
       const nextMessages = normalizeMessages(payload);
       setMessages(nextMessages);
+      setSelectedIds(new Set());
       setSelected((current) => current ? nextMessages.find((message) => message.id === current.id) ?? null : null);
     }).catch((err) => setError(err instanceof Error ? err.message : "Unable to load messages")).finally(() => setLoading(false));
   }, [session?.unlocked, folderId, query, pageStart, refreshKey, user?.role]);
@@ -282,10 +299,54 @@ export default function Mailbox() {
     }
   };
 
-  const openCompose = (mode: "new" | "reply") => {
+  const runBulkAction = async (action: Record<string, string>) => {
+    const targets = visibleMessages.filter((message) => selectedIds.has(message.id));
+    if (!targets.length || !folderId) return;
+    setWorking(true);
+    setError("");
+    try {
+      for (const message of targets) {
+        await api(`/api/mail/messages/${folderId}/${message.id}/actions`, {
+          method: "POST",
+          body: JSON.stringify(action),
+        });
+      }
+      if (selected && targets.some((message) => message.id === selected.id)) {
+        setSelected(null);
+        setContent("");
+      }
+      setSelectedIds(new Set());
+      setRefreshKey((key) => key + 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Some selected messages could not be updated.");
+      setRefreshKey((key) => key + 1);
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const toggleMessageSelection = (messageId: string) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(messageId)) next.delete(messageId);
+      else next.add(messageId);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allVisibleSelected ? new Set() : new Set(visibleMessages.map((message) => message.id)));
+  };
+
+  const openCompose = (mode: "new" | "reply" | "forward") => {
     if (mode === "reply" && selected) {
       const subject = selected.subject.toLowerCase().startsWith("re:") ? selected.subject : `Re: ${selected.subject}`;
       setCompose({ mode, to: selected.senderAddress, subject, body: "" });
+      return;
+    }
+    if (mode === "forward" && selected) {
+      const subject = selected.subject.toLowerCase().startsWith("fwd:") ? selected.subject : `Fwd: ${selected.subject}`;
+      setCompose({ mode, to: "", subject, body: quotedMessage(content) });
       return;
     }
     setCompose({ mode: "new", to: "", subject: "", body: "" });
@@ -370,35 +431,63 @@ export default function Mailbox() {
 
       <div className="mail-workspace">
         <aside className="mail-sidebar">
-          <Button className="mail-compose-button" onClick={() => openCompose("new")}><Pencil size={16} /> Compose</Button>
+          <Button className="mail-compose-button" onClick={() => openCompose("new")}><Pencil size={16} /> New Mail</Button>
           <nav aria-label="Mail folders" className="mail-folder-list">
             {folders.map((folder) => {
               const isSelected = folder.id === folderId;
               const FolderIcon = /inbox/i.test(folder.name) ? Inbox : /sent/i.test(folder.name) ? Send : /draft/i.test(folder.name) ? FileText : /trash|deleted/i.test(folder.name) ? Trash2 : /archive/i.test(folder.name) ? Archive : Mail;
-              return <button key={folder.id} className={`mail-folder ${isSelected ? "is-selected" : ""}`} onClick={() => { setFolderId(folder.id); setQuery(""); setSearchText(""); setPageStart(1); setSelected(null); }}><FolderIcon size={17} /><span>{folder.name}</span>{folder.unread ? <b>{folder.unread}</b> : null}</button>;
+              return <button key={folder.id} className={`mail-folder ${isSelected && mailView === "all" ? "is-selected" : ""}`} onClick={() => { setFolderId(folder.id); setMailView("all"); setQuery(""); setSearchText(""); setPageStart(1); setSelected(null); setSelectedIds(new Set()); }}><FolderIcon size={17} /><span>{folder.name}</span>{folder.unread ? <b>{folder.unread}</b> : null}</button>;
             })}
+            <div className="mail-nav-divider" />
+            <p className="mail-nav-label">VIEWS</p>
+            <button className={`mail-folder mail-view ${mailView === "unread" ? "is-selected" : ""}`} onClick={() => { setMailView("unread"); setSelected(null); setSelectedIds(new Set()); }}><MailOpen size={17} /><span>Unread</span>{unreadTotal > 0 && <b>{unreadTotal}</b>}</button>
+            <button className={`mail-folder mail-view ${mailView === "all" ? "is-selected" : ""}`} onClick={() => { setMailView("all"); setSelected(null); setSelectedIds(new Set()); }}><Mail size={17} /><span>All messages</span></button>
+            <button className={`mail-folder mail-view ${mailView === "flagged" ? "is-selected" : ""}`} onClick={() => { setMailView("flagged"); setSelected(null); setSelectedIds(new Set()); }}><Flag size={17} /><span>Flagged</span></button>
           </nav>
           <div className="mail-sidebar-foot"><span className="mail-secure-dot" /> Session locked in {session.unlockedUntil ? new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(session.unlockedUntil)) : "30 min"}</div>
         </aside>
 
         <section className={`mail-list-pane ${selected ? "has-selection" : ""}`} aria-label="Messages">
           <div className="mail-list-heading">
-            <div><p className="mail-eyebrow">{query ? "SEARCH RESULTS" : "MAILBOX"}</p><h1>{query ? `Results for “${query}”` : activeFolder?.name ?? "Messages"}</h1></div>
+            <div><p className="mail-eyebrow">{query ? "SEARCH RESULTS" : mailView === "all" ? "MAILBOX" : "VIEWS"}</p><h1>{query ? `Results for “${query}”` : mailView === "unread" ? "Unread" : mailView === "flagged" ? "Flagged" : activeFolder?.name ?? "Messages"}</h1></div>
             <button title="Refresh messages" aria-label="Refresh messages" onClick={() => setRefreshKey((key) => key + 1)} disabled={loading}><RefreshCw size={17} className={loading ? "animate-spin" : ""} /></button>
+          </div>
+          <div className="mail-list-toolbar">
+            <label className="mail-select-all" title="Select all messages">
+              <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAll} disabled={!visibleMessages.length || working} />
+              <span className="sr-only">Select all messages</span>
+            </label>
+            {selectedIds.size > 0 ? <>
+              <span className="mail-selection-count">{selectedIds.size} selected</span>
+              <button title={selectedHasUnread ? "Mark selected as read" : "Mark selected as unread"} aria-label={selectedHasUnread ? "Mark selected as read" : "Mark selected as unread"} onClick={() => void runBulkAction({ action: selectedHasUnread ? "read" : "unread" })} disabled={working}><MailOpen size={16} /><span>{selectedHasUnread ? "Read" : "Unread"}</span></button>
+              <select aria-label="Move selected messages to folder" value="" onChange={(event) => { if (event.target.value) void runBulkAction({ action: "move", destinationFolderId: event.target.value }); }} disabled={working}>
+                <option value="">Move to…</option>{folders.filter((folder) => folder.id !== folderId).map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
+              </select>
+              <button title="Flag selected" aria-label="Flag selected messages" onClick={() => void runBulkAction({ action: "flag", flag: "important" })} disabled={working}><Flag size={16} /><span>Flag</span></button>
+              <button title="Archive selected" aria-label="Archive selected messages" onClick={() => void runBulkAction({ action: "archive" })} disabled={working}><Archive size={16} /><span>Archive</span></button>
+              <button title="Move selected to Trash" aria-label="Delete selected messages" onClick={() => void runBulkAction({ action: "delete" })} disabled={working}><Trash2 size={16} /><span>Trash</span></button>
+            </> : <>
+              <span className="mail-toolbar-caption">{mailView === "unread" ? `${unreadTotal} unread in ${activeFolder?.name ?? "folder"}` : mailView === "flagged" ? "Flagged messages in folder" : "Views"}</span>
+              <button title="Filter unread messages" aria-label="Show unread messages" onClick={() => setMailView("unread")}><MailOpen size={16} /><span>Unread</span></button>
+              <button title="Show flagged messages" aria-label="Show flagged messages" onClick={() => setMailView("flagged")}><Flag size={16} /><span>Flagged</span></button>
+            </>}
           </div>
           {error && <div className="mail-inline-error"><CircleAlert size={16} /> {error}</div>}
           {notice && <div className="mail-inline-notice">{notice}<button onClick={() => setNotice("")} aria-label="Dismiss notice">×</button></div>}
           {loading && messages.length === 0 ? <div className="mail-empty"><LoaderCircle className="animate-spin" /> Loading messages</div> : null}
-          {!loading && messages.length === 0 ? <div className="mail-empty"><MailOpen size={28} /><p>{query ? "No matching messages" : "This folder is empty"}</p></div> : null}
+          {!loading && visibleMessages.length === 0 ? <div className="mail-empty"><MailOpen size={28} /><p>{query ? "No matching messages" : mailView === "unread" ? "No unread messages in this folder" : mailView === "flagged" ? "No flagged messages in this folder" : "This folder is empty"}</p></div> : null}
           <div className="mail-message-list">
-            {messages.map((message) => (
-              <button key={message.id} className={`mail-message-row ${selected?.id === message.id ? "is-active" : ""} ${message.unread ? "is-unread" : ""}`} onClick={() => setSelected(message)}>
-                <span className="mail-message-sender">{message.sender}</span>
-                <span className="mail-message-date">{displayDate(message.date)}</span>
-                <span className="mail-message-subject">{message.subject}</span>
-                <span className="mail-message-preview">{message.preview || message.recipients || "Open message"}</span>
+            {visibleMessages.map((message) => (
+              <div key={message.id} className={`mail-message-row ${selected?.id === message.id ? "is-active" : ""} ${message.unread ? "is-unread" : ""} ${selectedIds.has(message.id) ? "is-checked" : ""}`}>
+                <input aria-label={`Select ${message.subject}`} type="checkbox" checked={selectedIds.has(message.id)} onChange={() => toggleMessageSelection(message.id)} disabled={working} />
+                <button className="mail-message-main" onClick={() => setSelected(message)}>
+                  <span className="mail-message-sender">{message.sender}</span>
+                  <span className="mail-message-date">{displayDate(message.date)}</span>
+                  <span className="mail-message-subject">{message.subject}</span>
+                  <span className="mail-message-preview">{message.preview || message.recipients || "Open message"}</span>
+                </button>
                 {message.flagged && <Flag className="mail-message-flag" size={14} fill="currentColor" />}
-              </button>
+              </div>
             ))}
           </div>
           {messages.length > 0 && <div className="mail-pagination"><button disabled={pageStart <= 1} onClick={() => setPageStart((value) => Math.max(1, value - MESSAGE_PAGE_SIZE))} aria-label="Newer messages"><ChevronLeft size={17} /></button><span>{pageStart}–{pageStart + messages.length - 1}</span><button disabled={messages.length < MESSAGE_PAGE_SIZE} onClick={() => setPageStart((value) => value + MESSAGE_PAGE_SIZE)} aria-label="Older messages"><ChevronRight size={17} /></button></div>}
@@ -412,6 +501,8 @@ export default function Mailbox() {
               <button title={selected.unread ? "Mark as read" : "Mark as unread"} aria-label={selected.unread ? "Mark as read" : "Mark as unread"} onClick={() => void runAction({ action: selected.unread ? "read" : "unread" })}><MailOpen size={17} /></button>
               <button title="Archive" aria-label="Archive" onClick={() => void runAction({ action: "archive" })}><Archive size={17} /></button>
               <button title={selected.flagged ? "Clear flag" : "Flag important"} aria-label={selected.flagged ? "Clear flag" : "Flag important"} onClick={() => void runAction({ action: "flag", flag: selected.flagged ? "flag_not_set" : "important" })}><Star size={17} fill={selected.flagged ? "currentColor" : "none"} /></button>
+              <button title="Forward" aria-label="Forward message" onClick={() => openCompose("forward")}><Forward size={17} /></button>
+              <button title="Print message" aria-label="Print message" onClick={() => messageFrameRef.current?.contentWindow?.print()}><Printer size={17} /></button>
               <select aria-label="Move message to folder" value="" onChange={(event) => { if (event.target.value) void runAction({ action: "move", destinationFolderId: event.target.value }); }}><option value="">Move to…</option>{folders.filter((folder) => folder.id !== folderId).map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select>
               <button className="mail-delete-action" title="Move to Trash" aria-label="Move to Trash" onClick={() => void runAction({ action: "delete" })}><Trash2 size={17} /></button>
             </div>
@@ -419,7 +510,7 @@ export default function Mailbox() {
               <div className="mail-subject-line"><h2>{selected.subject}</h2><span>{displayDate(selected.date)}</span></div>
               <div className="mail-sender-details"><div className="mail-sender-avatar">{(selected.sender[0] || "?").toUpperCase()}</div><div><strong>{selected.sender}</strong><p>{selected.senderAddress}</p></div></div>
               <div className="mail-recipient-line">To {selected.recipients || session.emailAddress}</div>
-              {content ? <iframe className="mail-message-frame" title={`Message: ${selected.subject}`} sandbox="" referrerPolicy="no-referrer" srcDoc={safeMessageDocument(content)} /> : <div className="mail-body-loading"><LoaderCircle className="animate-spin" /> Loading message content</div>}
+              {content ? <iframe ref={messageFrameRef} className="mail-message-frame" title={`Message: ${selected.subject}`} sandbox="allow-modals" referrerPolicy="no-referrer" srcDoc={safeMessageDocument(content)} /> : <div className="mail-body-loading"><LoaderCircle className="animate-spin" /> Loading message content</div>}
             </article>
           </> : <div className="mail-reading-empty"><Mail size={28} /><p>Select a message to read</p></div>}
         </section>
@@ -427,11 +518,11 @@ export default function Mailbox() {
 
       {compose && <div className="mail-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !working) setCompose(null); }}>
         <form className="mail-compose-modal" onSubmit={submitCompose}>
-          <div className="mail-compose-head"><h2>{compose.mode === "reply" ? "Reply" : "New message"}</h2><button type="button" title="Close" aria-label="Close compose" onClick={() => setCompose(null)}>×</button></div>
+          <div className="mail-compose-head"><h2>{compose.mode === "reply" ? "Reply" : compose.mode === "forward" ? "Forward message" : "New message"}</h2><button type="button" title="Close" aria-label="Close compose" onClick={() => setCompose(null)}>×</button></div>
           <label>To<input name="to" type="text" defaultValue={compose.to} placeholder="name@example.com" autoComplete="off" required /></label>
           <label>Cc<input name="cc" type="text" placeholder="Optional recipients" autoComplete="off" /></label>
           <label>Subject<input name="subject" type="text" defaultValue={compose.subject} maxLength={998} required /></label>
-          <label className="mail-compose-body-label">Message<textarea name="body" placeholder="Write your message" required /></label>
+          <label className="mail-compose-body-label">Message<textarea name="body" placeholder="Write your message" defaultValue={compose.body} required /></label>
           {error && <p className="mail-error">{error}</p>}
           <div className="mail-compose-actions"><Button type="submit" disabled={working}><Send size={16} /> {working ? "Sending…" : "Send"}</Button><button type="button" onClick={() => setCompose(null)} disabled={working}>Discard</button></div>
         </form>
