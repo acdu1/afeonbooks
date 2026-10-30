@@ -11,6 +11,7 @@ import renderLogsRouter from "./render-logs";
 import authRouter from "./auth";
 import devEventsRouter from "./dev-events";
 import marketingRouter from "./marketing";
+import mailboxRouter from "./mailbox";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(renderLogsRouter);
 router.use(authRouter);
 router.use(devEventsRouter);
 router.use(marketingRouter);
+router.use(mailboxRouter);
 
 export default router;

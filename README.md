@@ -86,6 +86,20 @@ https://api.afeonbooks.com
 
 The production Cloudflare Worker forwards `/api/*` requests from the main site to that origin. The previous Render API hostname should not be used.
 
+## Private Mail System
+
+The private mailbox app is served at `https://mailsystem.afeonbooks.com` by the Cloudflare Worker and uses the existing Render API. Access requires an AFEON admin session followed by a separate Zoho OAuth sign-in. Mailbox credentials are encrypted in PostgreSQL and bound to the unlocking admin session; locking or signing out deletes that session's stored credential.
+
+Configure these values in the Render API environment before enabling the mailbox:
+
+- `ZOHO_CLIENT_ID` and `ZOHO_CLIENT_SECRET` from a Zoho OAuth client.
+- `ZOHO_MAIL_OAUTH_REDIRECT_URI=https://api.afeonbooks.com/api/mail/auth/callback`, registered exactly in the Zoho OAuth client.
+- `ZOHO_ACCOUNTS_URL` and `ZOHO_MAIL_API_URL` for the Zoho data center that hosts the mailbox (defaults target the `.com` data center).
+- `ZOHO_MAIL_ACCOUNT_ID` or `ZOHO_MAIL_AUTHENTICATED_USER` to select the intended mailbox when the Zoho account has multiple mailboxes.
+- `MAIL_TOKEN_ENCRYPTION_KEY`, a base64-encoded random 32-byte key. Generate it with `openssl rand -base64 32`; keep it only in Render's secret environment and back it up securely because losing it prevents decrypting saved mailbox credentials.
+
+The first authorization requests Zoho account/folder read and message read/create/update/delete scopes. The app implements inbox/folder browsing, search, message reading, compose/reply, read/unread, archive, flag, move, and trash actions. It does not yet implement attachment upload/download, drafts, contacts, calendar, or Zoho account settings. End-to-end use also requires deploying the Worker custom-domain route and registering/validating the OAuth redirect with Zoho.
+
 ## Admin Access
 
 The admin editor requires the four-digit PIN configured in the `site_content.admin_pin` database field. Open the admin application at `/admin/` in production or `/editor` in the Vite development app.

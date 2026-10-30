@@ -16,6 +16,7 @@ import Account from "@/pages/account";
 import BlogProgress from "@/pages/blog-progress";
 import RedeemPages from "@/pages/redeem-pages";
 import Faq from "@/pages/faq";
+import Mailbox from "@/pages/mailbox";
 const queryClient = new QueryClient();
 
 import React from 'react';
@@ -32,6 +33,7 @@ if (apiBaseUrl) {
 function Router() {
   const HomeRoute = () => {
     if (window.location.hostname === "authn.afeonbooks.com") return <Account />;
+    if (window.location.hostname === "mailsystem.afeonbooks.com") return <Mailbox />;
     const params = new URLSearchParams(window.location.search);
     return params.has("reset_token") || params.has("verify_token") ? <Account /> : <Home />;
   };
@@ -110,6 +112,7 @@ function useDevAudit() {
 function App() {
   useImageProtection();
   useDevAudit();
+  const isMailHost = window.location.hostname === "mailsystem.afeonbooks.com";
   return (
     <QueryClientProvider client={queryClient}>
       <UtmProvider>
@@ -117,11 +120,11 @@ function App() {
         <CartProvider>
           <TooltipProvider>
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <StatusBanner />
+              {!isMailHost && <StatusBanner />}
               <Router />
             </WouterRouter>
             <Toaster />
-            <CookieBanner />
+            {!isMailHost && <CookieBanner />}
           </TooltipProvider>
         </CartProvider>
         </AuthProvider>
