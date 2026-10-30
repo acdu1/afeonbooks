@@ -243,7 +243,8 @@
 
 .mail-gate {
   --mail-ink: #1c2922;
-  --mail-green: #1f5a43;
+  --mail-accent: #80d7f6;
+  --mail-accent-ink: #111111;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -261,8 +262,8 @@
   width: 52px;
   height: 52px;
   place-items: center;
-  background: var(--mail-green);
-  color: white;
+  background: var(--mail-accent);
+  color: var(--mail-accent-ink);
 }
 
 .mail-eyebrow {
@@ -294,8 +295,8 @@
   min-height: 44px;
   margin-top: 6px;
   border-radius: 2px;
-  background: var(--mail-green);
-  color: white;
+  background: var(--mail-accent);
+  color: var(--mail-accent-ink);
 }
 
 .mail-text-button {
@@ -324,8 +325,8 @@
   --mail-line: #dce2dc;
   --mail-paper: #fbfcf9;
   --mail-canvas: #f0f3ee;
-  --mail-green: #245b45;
-  --mail-coral: #bf614c;
+  --mail-accent: #80d7f6;
+  --mail-accent-ink: #111111;
   display: flex;
   width: 100%;
   height: 100dvh;
@@ -349,7 +350,7 @@
 .mail-app input:focus-visible,
 .mail-app textarea:focus-visible,
 .mail-app select:focus-visible {
-  outline: 2px solid #49836a;
+  outline: 2px solid var(--mail-accent);
   outline-offset: 2px;
 }
 
@@ -378,7 +379,7 @@
 }
 
 .mail-brand b {
-  color: var(--mail-green);
+  color: #236078;
 }
 
 .mail-brand-icon {
@@ -386,8 +387,8 @@
   width: 32px;
   height: 32px;
   place-items: center;
-  background: var(--mail-green);
-  color: white;
+  background: var(--mail-accent);
+  color: var(--mail-accent-ink);
 }
 
 .mail-search {
@@ -476,13 +477,13 @@
   justify-content: flex-start;
   padding-inline: 14px;
   border-radius: 2px;
-  background: var(--mail-green);
-  color: white;
+  background: var(--mail-accent);
+  color: var(--mail-accent-ink);
 }
 
 .mail-compose-button:hover,
 .mail-gate > button:hover {
-  background: #194733;
+  background: #65c9ed;
 }
 
 .mail-folder-list {
@@ -517,8 +518,8 @@
 
 .mail-folder:hover,
 .mail-folder.is-selected {
-  background: #e6ece5;
-  color: var(--mail-green);
+  background: #e4f6fc;
+  color: #174e63;
 }
 
 .mail-folder.is-selected {
@@ -635,7 +636,7 @@
   position: absolute;
   right: 15px;
   bottom: 11px;
-  color: var(--mail-coral);
+  color: #236078;
 }
 
 .mail-pagination {
@@ -761,8 +762,8 @@
   flex: 0 0 auto;
   place-items: center;
   border-radius: 50%;
-  background: #dce8dd;
-  color: var(--mail-green);
+  background: #e4f6fc;
+  color: #174e63;
   font-weight: 700;
 }
 
@@ -804,7 +805,7 @@
 
 .mail-inline-notice {
   justify-content: space-between;
-  color: var(--mail-green);
+  color: #1f5a43;
 }
 
 .mail-modal-backdrop {
@@ -899,8 +900,8 @@
 .mail-compose-actions > button:first-child {
   min-height: 38px;
   border-radius: 2px;
-  background: var(--mail-green);
-  color: white;
+  background: var(--mail-accent);
+  color: var(--mail-accent-ink);
 }
 
 .mail-compose-actions > button:last-child {
