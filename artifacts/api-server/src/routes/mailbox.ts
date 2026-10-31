@@ -143,8 +143,16 @@ async function getAccessToken(refreshToken: string): Promise<string> {
   const body: unknown = await response.json().catch(() => null);
   const accessToken = body && typeof body === "object" && "access_token" in body && typeof body.access_token === "string" ? body.access_token : "";
   if (!response.ok || !accessToken) {
-    logger.warn({ httpStatus: response.status }, "Zoho Mail access-token refresh failed");
-    const error = new Error("Zoho authorization expired. Lock the mailbox and sign in to Zoho again.");
+    const providerError = body && typeof body === "object" && "error" in body && typeof body.error === "string"
+      ? body.error
+      : undefined;
+    logger.warn({ httpStatus: response.status, providerError }, "Zoho Mail access-token refresh failed");
+    const message = providerError === "invalid_client"
+      ? "Zoho rejected the mailbox OAuth client. Verify ZOHO_MAILBOX_CLIENT_ID and ZOHO_MAILBOX_CLIENT_SECRET in Render match the Zoho client used for mailbox authorization."
+      : providerError === "invalid_grant"
+        ? "Zoho revoked or expired this mailbox authorization. Lock the mailbox, then connect Zoho again using the configured mailbox OAuth client."
+        : "Zoho could not refresh the mailbox authorization. Check the Render API logs for the Zoho error code; if it is invalid_grant, lock the mailbox and connect Zoho again.";
+    const error = new Error(message);
     Object.assign(error, { status: 401, publicMessage: error.message });
     throw error;
   }
