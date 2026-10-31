@@ -71,6 +71,10 @@ function text(value: unknown): string {
   return "";
 }
 
+function decodeHtmlEntities(value: string): string {
+  return new DOMParser().parseFromString(value, "text/html").body.textContent ?? value;
+}
+
 function field(item: Record<string, unknown>, ...keys: string[]): unknown {
   for (const key of keys) if (item[key] !== undefined && item[key] !== null) return item[key];
   return undefined;
@@ -108,7 +112,7 @@ function normalizeMessages(payload: unknown): ZohoMessage[] {
       ? new Date(dateNumber < 10_000_000_000 ? dateNumber * 1000 : dateNumber).toISOString()
       : text(rawDate);
     const subject = text(field(item, "subject", "Subject")) || "(no subject)";
-    const preview = text(field(item, "summary", "snippet", "preview", "content", "messageContent"));
+    const preview = decodeHtmlEntities(text(field(item, "summary", "snippet", "preview", "content", "messageContent")));
     const rawFlag = text(field(item, "flagid", "flag", "flagType")).toLowerCase();
     return {
       id: text(field(item, "messageId", "messageid", "id")),
