@@ -22,6 +22,7 @@ import {
   Send,
   Star,
   Trash2,
+  X,
 } from "lucide-react";
 import { authApiRequest, createAuthEntryUrl, useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -434,7 +435,7 @@ export default function Mailbox() {
         </div>
       </header>
 
-      <div className="mail-workspace">
+      <div className={`mail-workspace ${selected ? "has-selection" : ""}`}>
         <aside className="mail-sidebar">
           <Button className="mail-compose-button" onClick={() => openCompose("new")}><Pencil size={16} /> New Mail</Button>
           <nav aria-label="Mail folders" className="mail-folder-list">
@@ -510,6 +511,7 @@ export default function Mailbox() {
               <button title="Print message" aria-label="Print message" onClick={() => messageFrameRef.current?.contentWindow?.print()}><Printer size={17} /></button>
               <select aria-label="Move message to folder" value="" onChange={(event) => { if (event.target.value) void runAction({ action: "move", destinationFolderId: event.target.value }); }}><option value="">Move to…</option>{folders.filter((folder) => folder.id !== folderId).map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select>
               <button className="mail-delete-action" title="Move to Trash" aria-label="Move to Trash" onClick={() => void runAction({ action: "delete" })}><Trash2 size={17} /></button>
+              <button title="Close message" aria-label="Close message" onClick={() => setSelected(null)}><X size={17} /></button>
             </div>
             <article className="mail-reading-content">
               <div className="mail-subject-line"><h2>{selected.subject}</h2><span>{displayDate(selected.date)}</span></div>

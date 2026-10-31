@@ -486,6 +486,14 @@
   grid-template-columns: 205px minmax(280px, 340px) minmax(0, 1fr);
 }
 
+.mail-workspace:not(.has-selection) {
+  grid-template-columns: 205px minmax(0, 1fr);
+}
+
+.mail-workspace:not(.has-selection) .mail-reading-pane {
+  display: none;
+}
+
 .mail-sidebar {
   display: flex;
   min-height: 0;
@@ -1043,6 +1051,10 @@
     grid-template-columns: 170px minmax(250px, 310px) minmax(0, 1fr);
   }
 
+  .mail-workspace:not(.has-selection) {
+    grid-template-columns: 170px minmax(0, 1fr);
+  }
+
   .mail-account-address {
     max-width: 130px;
   }
@@ -1080,6 +1092,10 @@
   .mail-workspace {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .mail-workspace:not(.has-selection) {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .mail-sidebar {
