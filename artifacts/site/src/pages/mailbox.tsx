@@ -218,7 +218,7 @@ export default function Mailbox() {
       setNotice(params.has("mail_connected")
         ? "Zoho mailbox unlocked for this session."
         : mailError === "account_mismatch"
-          ? "Access denied: the Zoho mailbox email must exactly match your signed-in AFEON account email."
+          ? "Error 403: Zoho Mail callback returned a mailbox that does not match the current user"
           : "Zoho sign-in did not complete. Please try again.");
       window.history.replaceState({}, "", window.location.pathname);
     }
