@@ -449,7 +449,7 @@ export default function Mailbox() {
             <button className={`mail-folder mail-view ${mailView === "all" ? "is-selected" : ""}`} onClick={() => { setMailView("all"); setSelected(null); setSelectedIds(new Set()); }}><Mail size={17} /><span>All messages</span></button>
             <button className={`mail-folder mail-view ${mailView === "flagged" ? "is-selected" : ""}`} onClick={() => { setMailView("flagged"); setSelected(null); setSelectedIds(new Set()); }}><Flag size={17} /><span>Flagged</span></button>
           </nav>
-          <div className="mail-sidebar-foot"><span className="mail-secure-dot" /> Session locked in {session.unlockedUntil ? new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(session.unlockedUntil)) : "30 min"}</div>
+          <div className="mail-sidebar-foot"><span className="mail-secure-dot" /> Session expires at {session.unlockedUntil ? new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(session.unlockedUntil)) : "30 min"}</div>
         </aside>
 
         <section className={`mail-list-pane ${selected ? "has-selection" : ""}`} aria-label="Messages">
