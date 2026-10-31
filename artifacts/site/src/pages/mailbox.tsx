@@ -44,8 +44,10 @@ type ZohoMessage = {
 };
 type MailSession = { unlocked: boolean; emailAddress?: string; unlockedUntil?: string };
 type ComposeState = { mode: "new" | "reply" | "forward"; to: string; subject: string; body: string };
+type InlineImage = { contentType: string; data: string };
 
 const MESSAGE_PAGE_SIZE = 100;
+const MAX_INLINE_MESSAGE_IMAGES = 20;
 const api = <T,>(path: string, options?: RequestInit) => authApiRequest<T>(path, options);
 
 function record(value: unknown): Record<string, unknown> {
@@ -134,6 +136,56 @@ function messageContent(payload: unknown): string {
   const item = record(payload);
   const data = record(item.data);
   return text(field(item, "content", "messageContent", "htmlContent", "body") ?? field(data, "content", "messageContent", "htmlContent", "body"));
+}
+
+async function inlineMessageImages(content: string, folderId: string, messageId: string): Promise<{ content: string; failed: boolean }> {
+  if (!/<\s*(html|body|div|p|table|a|img|br)\b/i.test(content)) return { content, failed: false };
+  const document = new DOMParser().parseFromString(content, "text/html");
+  const images = new Map<string, { images: HTMLImageElement[]; params: URLSearchParams }>();
+  for (const image of Array.from(document.querySelectorAll<HTMLImageElement>("img[src]"))) {
+    const source = image.getAttribute("src");
+    if (!source) continue;
+    let url: URL;
+    try { url = new URL(source, window.location.origin); } catch { continue; }
+    const trustedOrigin = url.origin === window.location.origin
+      || (url.protocol === "https:" && /^mail\.zoho\.(?:com|eu|in|com\.au|com\.cn|jp)$/.test(url.hostname));
+    const params = url.searchParams;
+    const accountId = params.get("na") ?? "";
+    const fileName = params.get("f") ?? "";
+    const cid = params.get("cid") ?? "";
+    if (!trustedOrigin || url.pathname !== "/mail/ImageDisplay"
+      || params.get("nmsgId") !== messageId
+      || !/^\d+$/.test(accountId)
+      || params.get("mode") !== "inline"
+      || !/^[A-Za-z0-9_-]{1,80}\.(?:png|jpe?g|gif|webp|avif)$/i.test(fileName)
+      || !/^[A-Za-z0-9._@+-]{1,256}$/.test(cid)) continue;
+    const key = `${fileName}\0${cid}`;
+    const group = images.get(key);
+    if (group) {
+      group.images.push(image);
+    } else {
+      images.set(key, {
+        images: [image],
+        params: new URLSearchParams({ na: accountId, nmsgId: messageId, f: fileName, mode: "inline", cid }),
+      });
+    }
+  }
+  if (images.size === 0) return { content, failed: false };
+  const requests = Array.from(images.values());
+  let failed = requests.length > MAX_INLINE_MESSAGE_IMAGES;
+  for (let index = 0; index < Math.min(requests.length, MAX_INLINE_MESSAGE_IMAGES); index += 4) {
+    await Promise.all(requests.slice(index, index + 4).map(async ({ images: matchingImages, params }) => {
+      const path = `/api/mail/messages/${encodeURIComponent(folderId)}/${encodeURIComponent(messageId)}/inline-image?${params}`;
+      try {
+        const result = await api<InlineImage>(path);
+        for (const image of matchingImages) image.setAttribute("src", `data:${result.contentType};base64,${result.data}`);
+      } catch {
+        failed = true;
+        for (const image of matchingImages) image.removeAttribute("src");
+      }
+    }));
+  }
+  return { content: `${document.head.innerHTML}${document.body.innerHTML}`, failed };
 }
 
 function safeMessageDocument(content: string): string {
@@ -265,13 +317,20 @@ export default function Mailbox() {
       return;
     }
     setContent("");
-    void api<unknown>(`/api/mail/messages/${folderId}/${selected.id}`).then((payload) => {
-      setContent(messageContent(payload));
+    let cancelled = false;
+    void api<unknown>(`/api/mail/messages/${folderId}/${selected.id}`).then(async (payload) => {
+      const result = await inlineMessageImages(messageContent(payload), folderId, selected.id);
+      if (cancelled) return;
+      setContent(result.content);
+      if (result.failed) setError("Some inline images in this email could not be loaded.");
       if (selected.unread) {
         void api(`/api/mail/messages/${folderId}/${selected.id}/actions`, { method: "POST", body: JSON.stringify({ action: "read" }) })
           .then(() => setRefreshKey((key) => key + 1)).catch(() => undefined);
       }
-    }).catch((err) => setError(err instanceof Error ? err.message : "Unable to open message"));
+    }).catch((err) => {
+      if (!cancelled) setError(err instanceof Error ? err.message : "Unable to open message");
+    });
+    return () => { cancelled = true; };
   }, [session?.unlocked, selected?.id, folderId, user?.role]);
 
   const startZohoSignIn = () => window.location.assign("/api/mail/auth/start");

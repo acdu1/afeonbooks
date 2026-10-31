@@ -9,6 +9,8 @@ import { logger } from "../lib/logger";
 const router: IRouter = Router();
 const MAIL_UNLOCK_MS = 30 * 60 * 1000;
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+const MAX_INLINE_IMAGE_BYTES = 5 * 1024 * 1024;
+const INLINE_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/gif", "image/webp", "image/avif"]);
 const MAIL_SCOPES = [
   "ZohoMail.accounts.READ",
   "ZohoMail.folders.READ",
@@ -22,6 +24,13 @@ const listQuerySchema = z.object({
   folderId: accountIdSchema,
   start: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+const inlineImageQuerySchema = z.object({
+  na: accountIdSchema,
+  nmsgId: accountIdSchema,
+  f: z.string().regex(/^[A-Za-z0-9_-]{1,80}\.(?:png|jpe?g|gif|webp|avif)$/i),
+  mode: z.literal("inline"),
+  cid: z.string().regex(/^[A-Za-z0-9._@+-]{1,256}$/),
 });
 const searchQuerySchema = z.object({
   q: z.string().trim().min(1).max(200),
@@ -417,6 +426,63 @@ router.get("/mail/messages/:folderId/:messageId", requireUser, requireRole("admi
   }
   response.setHeader("Cache-Control", "no-store");
   response.json(await getZohoResponse(request.mailboxConnection!, `/folders/${folderId.data}/messages/${messageId.data}/content`));
+});
+
+router.get("/mail/messages/:folderId/:messageId/inline-image", requireUser, requireRole("admin"), requireMailbox, async (request, response): Promise<void> => {
+  const folderId = accountIdSchema.safeParse(request.params.folderId);
+  const messageId = accountIdSchema.safeParse(request.params.messageId);
+  const query = inlineImageQuerySchema.safeParse(request.query);
+  if (!folderId.success || !messageId.success || !query.success
+    || query.data.na !== request.mailboxConnection!.accountId
+    || query.data.nmsgId !== messageId.data) {
+    response.status(400).json({ error: "Invalid inline image reference." });
+    return;
+  }
+
+  const accessToken = await getAccessToken(decryptToken(request.mailboxConnection!.encryptedRefreshToken));
+  const params = new URLSearchParams({
+    na: request.mailboxConnection!.accountId,
+    nmsgId: messageId.data,
+    f: query.data.f,
+    mode: "inline",
+    cid: query.data.cid,
+  });
+  const upstream = await fetch(getMailApiUrl(`/mail/ImageDisplay?${params}`), {
+    headers: {
+      Authorization: `Zoho-oauthtoken ${accessToken}`,
+      Accept: "image/avif,image/webp,image/png,image/jpeg,image/gif",
+    },
+    redirect: "manual",
+    signal: AbortSignal.timeout(20000),
+  });
+  const contentType = upstream.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() ?? "";
+  const contentLength = Number(upstream.headers.get("content-length"));
+  if (!upstream.ok || !INLINE_IMAGE_TYPES.has(contentType)
+    || (Number.isFinite(contentLength) && contentLength > MAX_INLINE_IMAGE_BYTES)
+    || !upstream.body) {
+    logger.warn({ httpStatus: upstream.status, contentType, messageId: messageId.data }, "Zoho Mail inline image fetch failed");
+    response.status(502).json({ error: "Zoho could not load this inline email image." });
+    return;
+  }
+
+  const reader = upstream.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    totalBytes += value.byteLength;
+    if (totalBytes > MAX_INLINE_IMAGE_BYTES) {
+      await reader.cancel();
+      response.status(502).json({ error: "This inline email image is too large to display." });
+      return;
+    }
+    chunks.push(value);
+  }
+  const image = Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)), totalBytes);
+  response.setHeader("Cache-Control", "no-store");
+  response.setHeader("X-Content-Type-Options", "nosniff");
+  response.json({ contentType, data: image.toString("base64") });
 });
 
 router.post("/mail/messages", requireUser, requireRole("admin"), requireMailbox, async (request, response): Promise<void> => {

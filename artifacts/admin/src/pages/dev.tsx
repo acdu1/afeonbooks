@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -13,6 +13,99 @@ type RenderLog = {
   [key: string]: unknown;
 };
 
+const ANSI_COLORS = [
+  "#000000", "#aa0000", "#008000", "#aa5500", "#0000aa", "#aa00aa", "#008080", "#aaaaaa",
+  "#555555", "#ff5555", "#55aa55", "#ffff55", "#5555ff", "#ff55ff", "#55ffff", "#ffffff",
+];
+
+function ansi256Color(value: number): string | undefined {
+  if (!Number.isInteger(value) || value < 0 || value > 255) return undefined;
+  if (value < ANSI_COLORS.length) return ANSI_COLORS[value];
+  if (value < 232) {
+    const channel = (index: number) => index === 0 ? 0 : 55 + index * 40;
+    const colorIndex = value - 16;
+    return `rgb(${channel(Math.floor(colorIndex / 36))}, ${channel(Math.floor(colorIndex / 6) % 6)}, ${channel(colorIndex % 6)})`;
+  }
+  const gray = 8 + (value - 232) * 10;
+  return `rgb(${gray}, ${gray}, ${gray})`;
+}
+
+function renderAnsiMessage(message: string): ReactNode[] {
+  const segments: ReactNode[] = [];
+  const escapePattern = /\u001B\[([0-9;]*)m/g;
+  let style: CSSProperties = {};
+  let offset = 0;
+  let match: RegExpExecArray | null;
+
+  const append = (text: string) => {
+    if (!text) return;
+    const parts = text.split(/(https?:\/\/[^\s<>"']+)/g);
+    segments.push(
+      <span key={segments.length} style={{ ...style }}>
+        {parts.map((part, index) => /^https?:\/\//i.test(part)
+          ? <a key={index} href={part} target="_blank" rel="noopener noreferrer" style={{ color: "#7e22ce", textDecoration: "underline" }}>{part}</a>
+          : part)}
+      </span>,
+    );
+  };
+
+  while ((match = escapePattern.exec(message)) !== null) {
+    append(message.slice(offset, match.index));
+    const codes = match[1].split(";").map((code) => Number(code || 0));
+    for (let index = 0; index < codes.length; index += 1) {
+      const code = codes[index];
+      if (code === 0) {
+        style = {};
+      } else if (code === 1) {
+        style.fontWeight = "bold";
+      } else if (code === 2) {
+        style.opacity = 0.7;
+      } else if (code === 3) {
+        style.fontStyle = "italic";
+      } else if (code === 4) {
+        style.textDecoration = "underline";
+      } else if (code === 22) {
+        delete style.fontWeight;
+        delete style.opacity;
+      } else if (code === 23) {
+        delete style.fontStyle;
+      } else if (code === 24) {
+        delete style.textDecoration;
+      } else if (code >= 30 && code <= 37) {
+        style.color = ANSI_COLORS[code - 30];
+      } else if (code === 38 || code === 48) {
+        const property = code === 38 ? "color" : "backgroundColor";
+        const mode = codes[index + 1];
+        if (mode === 5) {
+          const color = ansi256Color(codes[index + 2]);
+          if (color) style[property] = color;
+          index += 2;
+        } else if (mode === 2) {
+          const channels = codes.slice(index + 2, index + 5);
+          if (channels.length === 3 && channels.every((channel) => Number.isInteger(channel) && channel >= 0 && channel <= 255)) {
+            style[property] = `rgb(${channels.join(", ")})`;
+          }
+          index += 4;
+        }
+      } else if (code === 39) {
+        delete style.color;
+      } else if (code >= 40 && code <= 47) {
+        style.backgroundColor = ANSI_COLORS[code - 40];
+      } else if (code === 49) {
+        delete style.backgroundColor;
+      } else if (code >= 90 && code <= 97) {
+        style.color = ANSI_COLORS[code - 90 + 8];
+      } else if (code >= 100 && code <= 107) {
+        style.backgroundColor = ANSI_COLORS[code - 100 + 8];
+      }
+    }
+    offset = escapePattern.lastIndex;
+  }
+
+  append(message.slice(offset));
+  return segments;
+}
+
 export default function Dev() {
   const [apiStatus, setApiStatus] = useState<"checking" | "online" | "offline">("checking");
   const [devTesting, setDevTesting] = useState<{ active: boolean; expiresAt: string | null } | null>(null);
@@ -24,6 +117,8 @@ export default function Dev() {
   const [renderConfigured, setRenderConfigured] = useState<boolean | null>(null);
   const [logType, setLogType] = useState<"all" | "app" | "request" | "build">("all");
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const renderLogsContainerRef = useRef<HTMLDivElement>(null);
+  const followRenderLogsRef = useRef(true);
 
   const checkHealth = useCallback(async () => {
     setApiStatus("checking");
@@ -78,6 +173,13 @@ export default function Dev() {
     const timer = setInterval(() => void loadRenderLogs(), 5_000);
     return () => clearInterval(timer);
   }, [autoRefresh, loadRenderLogs]);
+
+  useEffect(() => {
+    const container = renderLogsContainerRef.current;
+    if (container && followRenderLogsRef.current) {
+      container.scrollTop = container.scrollHeight;
+    }
+  }, [renderLogs]);
 
   const testPort = () => {
     const value = Number(port);
@@ -186,8 +288,16 @@ export default function Dev() {
               <p className="text-sm font-mono break-all">{renderLogsError}</p>
             </div>
           ) : (
-            <div className="bg-black text-white border border-black/10 rounded-none overflow-hidden">
-              <div className="max-h-[520px] overflow-auto p-4 font-mono text-xs leading-5 space-y-1">
+            <div className="bg-white text-black border border-slate-200 rounded-none overflow-hidden">
+              <div
+                ref={renderLogsContainerRef}
+                onScroll={(event) => {
+                  const container = event.currentTarget;
+                  followRenderLogsRef.current =
+                    container.scrollHeight - container.scrollTop - container.clientHeight <= 24;
+                }}
+                className="max-h-[520px] overflow-auto font-mono text-xs leading-5"
+              >
                 {renderLogs.length === 0 ? (
                   <div className="text-white/40 py-8 text-center">No Render logs found in the current window.</div>
                 ) : renderLogs.map((log, index) => {
@@ -196,10 +306,10 @@ export default function Dev() {
                   const timestamp = log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : "--:--:--";
                   const message = String(log.message ?? log.text ?? JSON.stringify(log));
                   return (
-                    <div key={String(log.id ?? index)} className="whitespace-pre-wrap break-words">
-                      <span className="text-white/40 mr-3">{timestamp}</span>
+                    <div key={String(log.id ?? index)} className="whitespace-pre-wrap break-words border-b border-slate-100 last:border-b-0 px-4 py-0.5">
+                      <span className="text-slate-500 mr-3">{timestamp}</span>
                       {level && <span className="text-amber-300 mr-3">{level}</span>}
-                      <span>{message}</span>
+                      <span>{renderAnsiMessage(message)}</span>
                     </div>
                   );
                 })}
